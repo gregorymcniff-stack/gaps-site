@@ -65,6 +65,42 @@ body{
 .data-stale-overlay{opacity:0.45;filter:grayscale(40%);transition:opacity .5s,filter .5s}
 .stale-badge{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:3px;padding:1px 6px;margin-left:6px}
 
+
+/* ── QUICKREAD HERO ─────────────────────────────────────────── */
+.quickread{
+  display:grid;grid-template-columns:220px 1fr 180px;
+  background:#fff;border-bottom:2px solid var(--border);
+  gap:0;
+}
+.qr-block{padding:18px 22px;display:flex;flex-direction:column;justify-content:center}
+.qr-block+.qr-block{border-left:1px solid var(--border)}
+.qr-eyebrow{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--secondary);margin-bottom:8px}
+.qr-big{font-family:'JetBrains Mono',monospace;font-size:52px;font-weight:800;line-height:1;color:var(--navy);font-variant-numeric:tabular-nums}
+.qr-big-denom{font-size:18px;font-weight:400;color:var(--secondary)}
+.qr-bar-track{height:8px;background:var(--border);border-radius:6px;overflow:hidden;margin:10px 0 8px}
+.qr-bar-fill{height:100%;border-radius:6px;transition:width .6s ease}
+.qr-bar-fill.normal{background:var(--green)}
+.qr-bar-fill.watch{background:#ca8a04}
+.qr-bar-fill.elevated{background:var(--orange)}
+.qr-bar-fill.high{background:var(--red)}
+.qr-status-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.qr-input-row{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)}
+.qr-input-row:last-child{border-bottom:none}
+.qr-input-name{font-size:11px;font-weight:700;color:var(--secondary);width:62px;flex-shrink:0;text-transform:uppercase;letter-spacing:.05em}
+.qr-input-bar{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden}
+.qr-input-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.qr-input-fill.traffic{background:#2563eb}
+.qr-input-fill.weather{background:#b45309}
+.qr-input-fill.jet{background:#6d28d9}
+.qr-input-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;color:var(--navy);width:28px;text-align:right;flex-shrink:0}
+.qr-driver-tag{font-size:8px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;background:var(--navy);color:#fff;border-radius:3px;padding:1px 5px;flex-shrink:0}
+.qr-delay-num{font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:800;line-height:1;color:var(--navy);margin:6px 0 4px}
+.qr-delay-note{font-size:10px;color:var(--secondary);line-height:1.4}
+.qr-delay-note b{color:var(--navy)}
+@media(max-width:1250px){.quickread{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.quickread{grid-template-columns:1fr}}
+/* ── END QUICKREAD ────────────────────────────────────────────── */
+
 /* HEADER */
 .header{
   height:58px;background:var(--navy);
@@ -679,6 +715,52 @@ body{
   </div>
 </div>
 
+<section class="quickread" aria-label="Quick status summary">
+
+  <!-- LEFT: SFI score -->
+  <div class="qr-block">
+    <div class="qr-eyebrow">Sky Friction Index</div>
+    <div class="qr-big" id="qrSfiScore">67<span class="qr-big-denom">/100</span></div>
+    <div class="qr-bar-track"><div class="qr-bar-fill watch" id="qrSfiBar" style="width:67%"></div></div>
+    <div class="qr-status-row">
+      <span class="pill pill-watch" id="qrSfiPill">Watch</span>
+      <span class="trend trend-up" id="qrSfiTrend">↗ Rising</span>
+    </div>
+  </div>
+
+  <!-- CENTER: 3 inputs -->
+  <div class="qr-block">
+    <div class="qr-eyebrow">What's driving it</div>
+    <div class="qr-input-row">
+      <span class="qr-input-name">Traffic</span>
+      <div class="qr-input-bar"><div class="qr-input-fill traffic" id="qrTrafficBar" style="width:73%"></div></div>
+      <span class="qr-input-val" id="qrTrafficVal">73</span>
+      <span class="qr-driver-tag" id="qrTrafficTag" style="visibility:hidden">Primary</span>
+    </div>
+    <div class="qr-input-row">
+      <span class="qr-input-name">Weather</span>
+      <div class="qr-input-bar"><div class="qr-input-fill weather" id="qrWeatherBar" style="width:58%"></div></div>
+      <span class="qr-input-val" id="qrWeatherVal">58</span>
+      <span class="qr-driver-tag" id="qrWeatherTag" style="visibility:hidden">Primary</span>
+    </div>
+    <div class="qr-input-row">
+      <span class="qr-input-name">Jet Stream</span>
+      <div class="qr-input-bar"><div class="qr-input-fill jet" id="qrJetBar" style="width:54%"></div></div>
+      <span class="qr-input-val" id="qrJetVal">54</span>
+      <span class="qr-driver-tag" id="qrJetTag" style="visibility:hidden">Primary</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: Delay diagnostic -->
+  <div class="qr-block">
+    <div class="qr-eyebrow">Delay Pressure</div>
+    <div class="qr-delay-num" id="qrDelayVal">71<span style="font-size:14px;font-weight:400;color:var(--secondary)">/100</span></div>
+    <span class="pill pill-high" id="qrDelayPill" style="margin-bottom:8px">High</span>
+    <div class="qr-delay-note">Diagnostic only · <b>not included in SFI</b><br>FAA NAS + hub density proxy</div>
+  </div>
+
+</section>
+
 <section class="direction">
   <div class="dir-cell">
     <div class="dir-lbl">System Direction</div>
@@ -966,6 +1048,55 @@ function updateDeltaCard(sfi,traffic,weather){
   });
   _prevSfi=sfi; _prevTraffic=traffic; _prevWeather=weather;
 }
+
+
+// ── QUICKREAD HERO UPDATE ─────────────────────────────────────────────────
+function updateQuickRead(sfi, trafficScore, weatherScore, jetScore, delayScore, driver){
+  // SFI score + bar
+  const sfiEl=document.getElementById('qrSfiScore');
+  if(sfiEl) sfiEl.innerHTML=sfi+'<span class="qr-big-denom">/100</span>';
+  const sfiBar=document.getElementById('qrSfiBar');
+  if(sfiBar){
+    const cls=sfi>=70?'high':sfi>=60?'elevated':sfi>=55?'watch':'normal';
+    sfiBar.className='qr-bar-fill '+cls;
+    sfiBar.style.width=sfi+'%';
+  }
+  // SFI pill + trend
+  const qrPill=document.getElementById('qrSfiPill');
+  if(qrPill){
+    const cls=sfi>=70?'pill-high':sfi>=60?'pill-elevated':sfi>=55?'pill-watch':'pill-normal';
+    const lbl=sfi>=70?'High':sfi>=60?'Elevated':sfi>=55?'Watch':'Normal';
+    qrPill.className='pill '+cls; qrPill.textContent=lbl;
+  }
+  const qrTrend=document.getElementById('qrSfiTrend');
+  if(qrTrend){
+    const hist=SFI_HISTORY; const prev=hist.length>=2?hist[hist.length-2]:null;
+    const d=prev!==null?sfi-prev:0;
+    qrTrend.className='trend '+(d>=2?'trend-up':d<=-2?'trend-down':'trend-flat');
+    qrTrend.textContent=d>=5?'↑ Rising fast':d>=2?'↗ Rising':d<=-5?'↓ Falling fast':d<=-2?'↘ Easing':'→ Stable';
+  }
+  // Three input bars
+  const inputs=[
+    {bar:'qrTrafficBar',val:'qrTrafficVal',tag:'qrTrafficTag',score:trafficScore,key:'corridor density'},
+    {bar:'qrWeatherBar',val:'qrWeatherVal',tag:'qrWeatherTag',score:weatherScore,key:'weather pressure'},
+    {bar:'qrJetBar',val:'qrJetVal',tag:'qrJetTag',score:jetScore,key:'jet stream'},
+  ];
+  inputs.forEach(inp=>{
+    const b=document.getElementById(inp.bar); if(b) b.style.width=inp.score+'%';
+    const v=document.getElementById(inp.val); if(v) v.textContent=inp.score;
+    const t=document.getElementById(inp.tag); if(t) t.style.visibility=driver===inp.key?'visible':'hidden';
+  });
+  // Delay
+  const dv=document.getElementById('qrDelayVal');
+  if(dv) dv.innerHTML=delayScore+'<span style="font-size:14px;font-weight:400;color:var(--secondary)">/100</span>';
+  const dp=document.getElementById('qrDelayPill');
+  if(dp){
+    const cls=delayScore>=70?'pill-high':delayScore>=60?'pill-elevated':delayScore>=50?'pill-watch':'pill-normal';
+    const lbl=delayScore>=70?'High':delayScore>=60?'Elevated':delayScore>=50?'Watch':'Normal';
+    dp.className='pill '+cls; dp.textContent=lbl;
+  }
+}
+// ── END QUICKREAD ─────────────────────────────────────────────────────────
 
 // SPARKLINES REMOVED
 // Credibility fix: historical trend graphics are not drawn until a real time-series store exists.
@@ -1655,7 +1786,7 @@ function updateDerivedLiveModel(){
   const src=[]; if(liveAircraftOk)src.push('OpenSky live'); else src.push('OpenSky stale baseline'); if(LIVE_MODEL.weather)src.push('Open-Meteo live incl. 250 hPa winds'); else src.push('weather stale baseline'); if(awcOk)src.push('AviationWeather METAR live'); if(faaOk)src.push('FAA ATCSCC live ('+FAA_STATE.programs.length+' programs)'); else src.push('FAA stale baseline'); if(eurocontrolOk)src.push('EUROCONTROL ATFM: '+EC_STATE.networkLoad); else src.push('EUROCONTROL: needs B2B credentials');
   const allLive=liveAircraftOk && LIVE_MODEL.weather && awcOk;
   const dot=document.getElementById('sourceDot'); if(dot) dot.className='live-dot '+(allLive?'':'warn');
-  setText('sourceSummary',src.join(' · ')+' · velocity '+(delta60>=0?'+':'')+delta60+' pts/hr · recalculated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})); updateFeedFreshness(); if(typeof updateDeltaCard==='function')updateDeltaCard(sfi,corridorScore,weatherScore);
+  setText('sourceSummary',src.join(' · ')+' · velocity '+(delta60>=0?'+':'')+delta60+' pts/hr · recalculated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})); updateFeedFreshness(); if(typeof updateDeltaCard==='function')updateDeltaCard(sfi,corridorScore,weatherScore); if(typeof updateQuickRead==='function')updateQuickRead(sfi,corridorScore,weatherScore,jetScore,delayScore,driver);
   setText('topDataStatus', allLive?'Live Inputs + Heuristic SFI':'Partial/Stale Inputs + Heuristic SFI');
   setText('systemDirectionVal', systemDirection); setDirectionClass('systemDirectionVal', sfi);
   const statusMarker=document.getElementById('systemStatusMarker'); if(statusMarker) statusMarker.style.left=clamp(sfi,0,100)+'%';
