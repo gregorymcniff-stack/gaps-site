@@ -938,7 +938,7 @@ body{
         <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">SFI</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaSfi">--</div></div>
       </div>
     </div>
-    <div class="sum-card hl"><div class="sum-lbl">Busiest Regions <span class="metric-tag observed">OpenSky</span></div><div class="sum-val" id="topCorridorVal">--</div><div class="sum-sub" id="topCorridorSub">Updating…</div><svg class="micro" viewBox="0 0 42 20"><rect x="2" y="8" width="8" height="10" fill="#ca8a04"/><rect x="16" y="5" width="8" height="13" fill="#c2410c"/><rect x="30" y="2" width="8" height="16" fill="#b91c1c"/></svg></div>
+    <div class="sum-card hl"><div class="sum-lbl">Busiest Regions <span class="metric-tag observed">OpenSky</span></div><div class="sum-val" id="topCorridorVal">--</div><div class="sum-sub" id="topCorridorSub">Updating…</div></div>
     <div class="sum-card"><div class="sum-lbl">Worst US Airport Now <span class="metric-tag observed">FAA</span></div><div class="sum-val" id="delayAirportVal">--</div><div class="sum-sub" id="delayAirportSub">Updating…</div></div>
     <!-- hidden IDs still needed by JS -->
     <span id="upperAirVal" style="display:none"></span><span id="upperAirSub" style="display:none"></span>
@@ -1883,7 +1883,20 @@ const HUBS={
 const ROUTES=[['JFK','LHR','unknown'],['LAX','JFK','unknown'],['LAX','NRT','unknown'],['LHR','DXB','unknown'],['DXB','SIN','unknown'],['SCL','JFK','unknown'],['LHR','SIN','unknown']];
 // Land outlines: Natural Earth 1:110m (public domain), via the world-atlas package.
 let LAND=null;
-fetch('data/land-110m.json').then(r=>r.ok?r.json():null).then(d=>{if(Array.isArray(d)){LAND=d; drawMap();}}).catch(()=>{});
+// Shapes that cross the 180° line (Russia, Fiji) are unwrapped and also drawn shifted by 360°.
+function prepLand(rings){
+  const out=[];
+  rings.forEach(r=>{
+    const u=[]; let off=0;
+    r.forEach((p,i)=>{ if(i){const d=p[0]+off-u[i-1][0]; if(d>180)off-=360; else if(d<-180)off+=360;} u.push([p[0]+off,p[1]]); });
+    out.push(u);
+    const minX=Math.min(...u.map(p=>p[0])), maxX=Math.max(...u.map(p=>p[0]));
+    if(maxX>180) out.push(u.map(p=>[p[0]-360,p[1]]));
+    if(minX<-180) out.push(u.map(p=>[p[0]+360,p[1]]));
+  });
+  return out;
+}
+fetch('data/land-110m.json').then(r=>r.ok?r.json():null).then(d=>{if(Array.isArray(d)){LAND=prepLand(d); drawMap();}}).catch(()=>{});
 function drawMap(){
   const c=document.getElementById('mapCanvas'); if(!c)return;
   const rect=c.getBoundingClientRect(); const dpr=window.devicePixelRatio||1;
@@ -1891,24 +1904,30 @@ function drawMap(){
   c.width=rect.width*dpr;c.height=rect.height*dpr;
   const ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
   const W=rect.width,H=rect.height;
-  const x=lon=>(lon+180)/360*W;
-  const y=lat=>(90-lat)/180*H;
+  // Keep the true 2:1 shape of the world map; centre it in the panel.
+  // Latitudes shown: 80°N to 58°S (almost no air traffic beyond).
+  const LATN=80, LATS=-58, SPAN=LATN-LATS;
+  const MW=Math.min(W,H*360/SPAN), MH=MW*SPAN/360, OX=(W-MW)/2, OY=(H-MH)/2;
+  const x=lon=>OX+(lon+180)/360*MW;
+  const y=lat=>OY+(LATN-lat)/SPAN*MH;
 
   ctx.clearRect(0,0,W,H);
   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#f8fbff');g.addColorStop(1,'#eef5fb');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   ctx.strokeStyle='#dbe6f1';ctx.lineWidth=1;
-  for(let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(i*W/6,0);ctx.lineTo(i*W/6,H);ctx.stroke()}
-  for(let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(0,i*H/6);ctx.lineTo(W,i*H/6);ctx.stroke()}
+  for(let lon=-150;lon<180;lon+=30){ctx.beginPath();ctx.moveTo(x(lon),y(LATN));ctx.lineTo(x(lon),y(LATS));ctx.stroke()}
+  for(let lat=-60;lat<90;lat+=30){ctx.beginPath();ctx.moveTo(x(-180),y(lat));ctx.lineTo(x(180),y(lat));ctx.stroke()}
+  ctx.save();ctx.beginPath();ctx.rect(x(-180),y(LATN),MW,MH);ctx.clip();
   ctx.fillStyle='#dde7f2';ctx.strokeStyle='#b7c8da';ctx.lineWidth=1;
   (LAND||[]).forEach(poly=>{
     ctx.beginPath();poly.forEach((p,i)=>{i?ctx.lineTo(x(p[0]),y(p[1])):ctx.moveTo(x(p[0]),y(p[1]))});
     ctx.closePath();ctx.fill();ctx.stroke();
   });
+  ctx.restore();
 
   // Live aircraft density (OpenSky positions, grouped into 3° cells)
   const os=feedOf('opensky');
   if(liveAircraftOk && os && os.data && Array.isArray(os.data.density)){
-    const cell=os.data.densityCellDeg||3, cw=W*cell/360, ch=H*cell/180;
+    const cell=os.data.densityCellDeg||3, cw=MW*cell/360, ch=MH*cell/SPAN;
     const maxN=os.data.density.reduce((m,d)=>Math.max(m,d[2]),1), lmax=Math.log(1+maxN);
     os.data.density.forEach(([i,j,n])=>{
       ctx.fillStyle='rgba(29,78,216,'+(0.10+0.55*Math.log(1+n)/lmax).toFixed(3)+')';
