@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAPS Sources and Terms</title>
+<meta name="description" content="Data sources, credits, licences and terms of use for the GAPS dashboard.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0b2a4a;--text:#334155;--muted:#5b6b7c;--border:#e2e8f0}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.65}
+header{background:var(--navy);color:#fff;padding:22px 16px}header .in,main{max-width:860px;margin:0 auto}header a{color:#93c5fd;text-decoration:none;font-size:13px}
+header h1{margin:6px 0 4px;font-size:26px}header p{margin:0;color:#cbd5e1;font-size:14px}
+main{padding:8px 16px 60px}h2{color:var(--navy);font-size:19px;margin:30px 0 8px}p,li{font-size:14.5px}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13.5px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}a{color:#1d4ed8}
+</style>
+</head>
+<body>
+<header><div class="in"><a href="./">← Back to the dashboard</a><h1>Sources, credits and terms</h1><p>Where every number on GAPS comes from, and the conditions for using it.</p></div></header>
+<main>
+<h2>Data sources</h2>
+<div class="table-wrap"><table>
+<tr><th>Data</th><th>Provider</th><th>Used for</th><th>Licence / terms</th></tr>
+<tr><td>Ground stops, delay programs, closures</td><td><a href="https://nasstatus.faa.gov/">FAA NAS Status</a></td><td>Programs in effect, airport status</td><td>US government work, public domain</td></tr>
+<tr><td>Traffic management advisories</td><td><a href="https://www.fly.faa.gov/adv/advADB">FAA ATCSCC Advisory Database</a></td><td>Programs started recently; the backtest</td><td>US government work, public domain</td></tr>
+<tr><td>Airport weather reports (METAR) and SIGMETs</td><td><a href="https://aviationweather.gov/">NOAA Aviation Weather Center</a></td><td>Airport weather, hazard areas</td><td>US government work, public domain</td></tr>
+<tr><td>Weather forecasts and history</td><td><a href="https://open-meteo.com/">Open-Meteo</a></td><td>US hub forecast (index input), world weather, the backtest</td><td><a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Weather data by Open-Meteo.com. Free tier for non-commercial use.</td></tr>
+<tr><td>Planetary K-index</td><td><a href="https://www.swpc.noaa.gov/">NOAA Space Weather Prediction Center</a></td><td>Space weather</td><td>US government work, public domain</td></tr>
+<tr><td>Aircraft counts and positions, emergency squawks</td><td><a href="https://adsb.lol/">adsb.lol</a> volunteer receiver network</td><td>Aircraft count, map shading, emergency codes</td><td><a href="https://opendatacommons.org/licenses/odbl/">Open Database License (ODbL)</a></td></tr>
+<tr><td>Aircraft positions (when reachable)</td><td><a href="https://opensky-network.org/">The OpenSky Network</a></td><td>Aircraft count and map shading</td><td>OpenSky terms of use (non-commercial)</td></tr>
+<tr><td>Coastlines</td><td><a href="https://www.naturalearthdata.com/">Natural Earth</a> via world-atlas</td><td>Map outlines</td><td>Public domain</td></tr>
+</table></div>
+<p>Data are fetched by the GAPS server every 10 minutes and shared by all visitors. Each panel shows when its data was received.</p>
+
+<h2>Terms of use</h2>
+<ul>
+<li><b>Information only.</b> GAPS is a free public tool for situational awareness. It is not an official source, not a safety system, and must not be used for flight planning, dispatch or operational decisions.</li>
+<li><b>No guarantee.</b> Data can be late, incomplete or wrong, and feeds can fail. The outlook is a statistical estimate with known limits, described on the <a href="method.html">Method page</a>.</li>
+<li><b>No affiliation.</b> GAPS has no affiliation with any airline, airport, the FAA, NOAA, EUROCONTROL or the data providers above.</li>
+<li><b>Privacy.</b> GAPS sets no cookies and uses no tracking or advertising. The hosting provider (Netlify) keeps standard server logs.</li>
+</ul>
+
+<h2>Reuse</h2>
+<p>If you reuse data shown here, follow each provider's licence above, including credit to Open-Meteo (CC BY 4.0) and adsb.lol (ODbL). The backtest scripts and results are in the <a href="https://github.com/gregorymcniff-stack/gaps-site">source repository</a>.</p>
+</main>
+</body>
+</html>
