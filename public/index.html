@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="GAPS is a near-real-time aviation pressure monitor tracking traffic density, hub weather, and upper-air jet-stream stress across the global airline network." />
+<meta property="og:title" content="GAPS — Global Airline Pressure System" />
+<meta property="og:description" content="A public aviation pressure monitor combining live aircraft density, hub weather, and upper-air conditions into the Sky Friction Index." />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="GAPS — Global Airline Pressure System" />
+<meta name="twitter:description" content="Near-real-time aviation pressure monitoring across traffic, weather, and upper-air conditions." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230b2a4a'/%3E%3Cpath d='M15 35 L49 20 L39 34 L49 44 Z' fill='%23ffffff' opacity='.94'/%3E%3Cpath d='M21 39 L31 35 L26 47 Z' fill='%2393c5fd'/%3E%3C/svg%3E" />
+<title>GAPS — Global Airline Pressure System</title>
+<!-- GAPS v65 — three-input heuristic model: 42% corridor density (OpenSky) + 36% weather/METAR (Open-Meteo + AviationWeather) + 22% upper-air jet stream (Open-Meteo 250 hPa). Dead code removed. No research modifier or HMM panel in production readout. -->
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffffff;
+  --panel:#f4f7fb;
+  --card:#ffffff;
+  --navy:#0b2a4a;
+  --navy2:#1a3f6f;
+  --secondary:#5b6b7c;
+  --border:#e6ecf2;
+  --green:#15803d;
+  --green-bg:#f0fdf4;
+  --green-border:#bbf7d0;
+  --yellow:#b45309;
+  --yellow-bg:#fefce8;
+  --yellow-border:#fde68a;
+  --orange:#c2410c;
+  --orange-bg:#fff7ed;
+  --orange-border:#fed7aa;
+  --red:#b91c1c;
+  --red-bg:#fef2f2;
+  --red-border:#fecaca;
+  --purple:#6d28d9;
+  --purple-bg:#f5f3ff;
+  --purple-border:#ddd6fe;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'IBM Plex Sans',sans-serif;
+  background:var(--bg);
+  color:var(--navy);
+  font-size:13px;
+  line-height:1.4;
+  min-width:0;
+}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.pill{
+  display:inline-block;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  padding:2px 8px;border-radius:3px;border:1px solid;
+}
+.pill-normal{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}.pill-normal::before{content:"✓ "}
+.pill-watch{background:var(--yellow-bg);color:var(--yellow);border-color:var(--yellow-border)}.pill-watch::before{content:"~ "}
+.pill-elevated{background:var(--orange-bg);color:var(--orange);border-color:var(--orange-border)}.pill-elevated::before{content:"⚠ "}
+.pill-high{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}.pill-high::before{content:"✕ "}
+.pill-purple{background:var(--purple-bg);color:var(--purple);border-color:var(--purple-border)}
+.trend{font-size:12px;font-weight:700}.trend-up{color:var(--red)}.trend-down{color:var(--green)}.trend-flat{color:var(--secondary)}
+
+
+/* Stale data greyout */
+.data-stale-overlay{opacity:0.45;filter:grayscale(40%);transition:opacity .5s,filter .5s}
+.stale-badge{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:3px;padding:1px 6px;margin-left:6px}
+
+
+/* ── QUICKREAD HERO ─────────────────────────────────────────── */
+.quickread{
+  display:grid;grid-template-columns:220px 1fr 180px;
+  background:#fff;border-bottom:2px solid var(--border);
+  gap:0;
+}
+.qr-block{padding:18px 22px;display:flex;flex-direction:column;justify-content:center}
+.qr-block+.qr-block{border-left:1px solid var(--border)}
+.qr-eyebrow{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--secondary);margin-bottom:8px}
+.qr-big{font-family:'JetBrains Mono',monospace;font-size:52px;font-weight:800;line-height:1;color:var(--navy);font-variant-numeric:tabular-nums}
+.qr-big-denom{font-size:18px;font-weight:400;color:var(--secondary)}
+.qr-bar-track{height:8px;background:var(--border);border-radius:6px;overflow:hidden;margin:10px 0 8px}
+.qr-bar-fill{height:100%;border-radius:6px;transition:width .6s ease}
+.qr-bar-fill.normal{background:var(--green)}
+.qr-bar-fill.watch{background:#ca8a04}
+.qr-bar-fill.elevated{background:var(--orange)}
+.qr-bar-fill.high{background:var(--red)}
+.qr-status-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.qr-input-row{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)}
+.qr-input-row:last-child{border-bottom:none}
+.qr-input-name{font-size:11px;font-weight:700;color:var(--secondary);width:62px;flex-shrink:0;text-transform:uppercase;letter-spacing:.05em}
+.qr-input-bar{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden}
+.qr-input-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.qr-input-fill.traffic{background:#2563eb}
+.qr-input-fill.weather{background:#b45309}
+.qr-input-fill.jet{background:#6d28d9}
+.qr-input-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;color:var(--navy);width:28px;text-align:right;flex-shrink:0}
+.qr-driver-tag{font-size:8px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;background:var(--navy);color:#fff;border-radius:3px;padding:1px 5px;flex-shrink:0}
+.qr-delay-num{font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:800;line-height:1;color:var(--navy);margin:6px 0 4px}
+.qr-delay-note{font-size:10px;color:var(--secondary);line-height:1.4}
+.qr-delay-note b{color:var(--navy)}
+@media(max-width:1250px){.quickread{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.quickread{grid-template-columns:1fr}}
+/* ── END QUICKREAD ────────────────────────────────────────────── */
+
+/* HEADER */
+.header{
+  height:58px;background:var(--navy);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;border-bottom:2px solid var(--navy2);
+  position:sticky;top:0;z-index:300;
+}
+.hdr-brand{display:flex;align-items:center;gap:16px}
+.hdr-title{font-size:14px;font-weight:700;letter-spacing:.1em;color:#fff}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,.42);letter-spacing:.12em;text-transform:uppercase;margin-top:2px;max-width:620px}
+.hdr-live{
+  background:#dc2626;color:#fff;font-size:10px;font-weight:700;letter-spacing:.12em;
+  padding:3px 10px;border-radius:3px;animation:blink 2.2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.62}}
+.hdr-right{display:flex;align-items:center;gap:26px}
+.hdr-metric .lbl{font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em}
+.hdr-metric .val{font-family:'JetBrains Mono',monospace;font-size:18px;color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
+.hdr-clock{font-family:'JetBrains Mono',monospace;font-size:16px;color:rgba(255,255,255,.88);font-variant-numeric:tabular-nums}
+
+/* SYSTEM DIRECTION */
+.direction{
+  display:grid;grid-template-columns:1.1fr .95fr .95fr .95fr 1fr 1.35fr;
+  background:#fff;border-bottom:1px solid var(--border);
+}
+.dir-cell{padding:11px 18px;border-right:1px solid var(--border)}
+.dir-cell:last-child{border-right:none}
+.dir-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary);margin-bottom:3px}
+.dir-val{font-size:14px;font-weight:700;color:var(--navy)}
+.dir-val.red{color:var(--red)}.dir-val.yellow{color:var(--yellow)}.dir-val.green{color:var(--green)}
+.dir-sub{font-size:10px;color:var(--secondary);line-height:1.35;margin-top:4px}
+.status-track{height:7px;background:linear-gradient(90deg,var(--green) 0%,var(--green) 35%,#ca8a04 35%,#ca8a04 68%,var(--red) 68%,var(--red) 100%);border-radius:6px;margin-top:7px;position:relative}
+.status-marker{position:absolute;left:67%;top:-4px;width:5px;height:15px;background:var(--navy);border-radius:3px}
+
+/* STRIP */
+.strip{background:var(--panel);border-bottom:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr) 3px repeat(3,1fr)}
+.st{padding:13px 16px;border-right:1px solid var(--border)}
+.st:last-child{border-right:none}
+.strip-divider{background:var(--border);position:relative}
+.strip-divider::after{content:'DIAGNOSTICS';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(90deg);font-size:7px;font-weight:900;letter-spacing:.14em;color:var(--secondary);white-space:nowrap;text-transform:uppercase;background:var(--panel);padding:2px 5px}
+/* Diagnostic tiles — visible but clearly excluded */
+.st.diagnostic{background:#f9f9fb;border-right:1px dashed #d1dce8}
+.st.diagnostic .st-score{color:#64748b}
+.st.diagnostic .st-lbl{color:#8898aa}
+.st-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary);margin-bottom:6px}
+.st-score{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:var(--navy);line-height:1;font-variant-numeric:tabular-nums}
+.st-denom{font-size:13px;color:var(--secondary);font-weight:400}
+.st-raw{font-size:10px;color:var(--secondary);font-family:'JetBrains Mono',monospace;margin-top:4px;font-variant-numeric:tabular-nums}
+.st-foot{display:flex;align-items:center;gap:7px;margin-top:5px}
+.pos{margin-top:7px}
+.pos-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--secondary);font-weight:700;text-transform:uppercase}
+.pos-track{height:6px;background:#d9e3ee;border-radius:4px;margin-top:3px;position:relative;overflow:visible}
+.pos-track::before{content:"";position:absolute;left:52%;top:-3px;width:2px;height:12px;background:#94a3b8}
+.pos-track::after{content:"";position:absolute;left:61%;top:-3px;width:2px;height:12px;background:#64748b}
+.pos-now{position:absolute;top:-4px;width:5px;height:14px;border-radius:4px;background:var(--navy)}
+.pos-now.red{background:var(--red)}.pos-now.yellow{background:#ca8a04}.pos-now.green{background:var(--green)}
+
+/* ONE PAGE LAYOUT */
+.main{
+  display:grid;grid-template-columns:238px 1fr 282px;
+  height:calc(100vh - 58px - 58px - 143px - 218px);
+  min-height:480px;
+}
+.left-pane,.right-pane{background:var(--panel);padding:16px 14px;overflow:hidden}
+.left-pane{border-right:1px solid var(--border)}
+.right-pane{border-left:1px solid var(--border)}
+.pane-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--secondary);margin-bottom:11px}
+.takeaway{background:#fff;border:1px solid var(--border);border-radius:6px;padding:11px 13px 11px 16px;margin-bottom:9px;position:relative;overflow:hidden}
+.takeaway::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.ta-high::before{background:var(--red)}.ta-elevated::before{background:var(--orange)}.ta-watch::before{background:#ca8a04}
+.ta-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--secondary);margin-bottom:3px}
+.ta-text{font-size:12px;font-weight:500;color:var(--navy);line-height:1.55}
+.ta-badge{margin-top:7px}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.mini-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 13px;margin-top:9px}
+.mini-score{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--navy);line-height:1;font-variant-numeric:tabular-nums}
+.progress{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.pf{height:100%;border-radius:3px}
+.component{display:grid;grid-template-columns:1fr 42px;gap:8px;border-top:1px solid var(--border);padding:8px 0}
+.component:first-of-type{border-top:none}
+.comp-title{font-size:11px;font-weight:700;color:var(--navy)}
+.comp-sub{font-size:10px;color:var(--secondary);margin-top:1px}
+.comp-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+
+/* MAP */
+.map-pane{display:flex;flex-direction:column;background:#fff}
+.map-bar{padding:9px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.map-bar-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary)}
+.legend{display:flex;gap:12px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--secondary)}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.map-wrap{position:relative;flex:1;background:#f8fbff}
+#mapCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.map-note{
+  position:absolute;left:14px;bottom:14px;width:430px;background:rgba(255,255,255,.95);
+  border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--navy);
+  box-shadow:0 8px 24px rgba(11,42,74,.12);
+}
+.map-note strong{font-size:12px}
+.map-note p{font-size:11px;color:var(--secondary);margin-top:4px;line-height:1.45}
+.map-pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px}
+.map-pill{font-size:10px;font-weight:700;color:var(--secondary);display:flex;gap:5px;align-items:center}
+.line-sample{width:24px;height:4px;border-radius:4px;background:var(--red)}
+.line-sample.dash{background:repeating-linear-gradient(90deg,var(--red) 0 5px,transparent 5px 9px);border:1px solid rgba(185,28,28,.28)}
+
+/* RIGHT */
+.sum-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 13px;margin-bottom:9px;position:relative}
+.sum-card.hl{padding-left:17px}.sum-card.hl::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red);border-radius:3px 0 0 3px}
+.sum-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary);margin-bottom:4px}
+.sum-val{font-size:14px;font-weight:600;color:var(--navy)}
+.sum-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--secondary);margin-top:3px;font-variant-numeric:tabular-nums}
+.micro{width:42px;height:18px;margin-top:6px}
+.outlook{background:var(--navy);border-radius:6px;padding:13px;margin-top:12px}
+.outlook-lbl{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.42);margin-bottom:8px}
+.outlook-txt{font-size:12px;line-height:1.7;color:rgba(255,255,255,.88)}
+.data-status{background:#fff;border:1px solid var(--border);border-radius:6px;padding:11px 12px;margin-top:10px;font-size:11px;color:var(--secondary);line-height:1.5}
+.data-status strong{color:var(--navy)}
+/* Analyst-grade provenance + confidence tags */
+.provenance-panel{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 11px;margin-top:10px}
+.prov-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.prov-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary)}
+.prov-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.prov-item{border:1px solid #edf2f7;border-radius:6px;padding:7px 8px;background:#fbfdff}
+.prov-tag{display:inline-block;font-size:8px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;border-radius:3px;padding:1px 5px;margin-bottom:4px}
+.tag-observed{background:#eefbf3;color:#15803d;border:1px solid #bbf7d0}
+.tag-derived{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.tag-modeled{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+.tag-predictive{background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe}
+.prov-copy{font-size:10px;line-height:1.35;color:var(--secondary)}
+.confidence-list{margin-top:8px;border-top:1px solid var(--border);padding-top:8px}
+.conf-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;padding:4px 0;color:var(--secondary)}
+.conf-row b{color:var(--navy);font-weight:700}
+.conf-pill{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;border-radius:10px;padding:1px 7px;background:#eef5fb;color:var(--navy2);white-space:nowrap}
+.conf-pill.high{background:var(--green-bg);color:var(--green)}
+.conf-pill.med{background:var(--yellow-bg);color:var(--yellow)}
+.conf-pill.low{background:var(--orange-bg);color:var(--orange)}
+.assumption-note{font-size:10px;color:var(--secondary);line-height:1.35;margin-top:7px}
+.metric-tag{display:inline-block;font-size:8px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;border:1px solid #d7e2ee;border-radius:3px;padding:1px 5px;margin-left:5px;vertical-align:1px;background:#f8fbff;color:var(--secondary)}
+.metric-tag.observed{color:#15803d;border-color:#bbf7d0;background:#f0fdf4}.metric-tag.derived{color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff}.metric-tag.modeled{color:#c2410c;border-color:#fed7aa;background:#fff7ed}.metric-tag.predictive{color:#6d28d9;border-color:#ddd6fe;background:#f5f3ff}
+.compact-legend{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:7px}
+.legend-chip{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border-radius:999px;padding:2px 7px;border:1px solid var(--border);background:#fff;color:var(--secondary)}
+.data-status.tight{padding:10px 11px}.data-status.tight p{margin:0 0 6px}.data-status.tight .pulse-note{margin-top:7px}
+
+
+/* BOTTOM */
+.bottom{background:var(--panel);border-top:1px solid var(--border);padding:12px 20px 18px;display:grid;grid-template-columns:1.05fr 1.35fr .95fr;gap:12px;min-height:260px;align-items:stretch}
+.bc{background:#fff;border:1px solid var(--border);border-radius:8px;padding:11px 12px 8px;min-height:126px}
+.bc-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary);margin-bottom:5px}
+.bc-score{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--navy);line-height:1;font-variant-numeric:tabular-nums}
+.bc-den{font-size:12px;color:var(--secondary);font-weight:400}
+.bc-avgs{font-size:10px;color:var(--secondary);font-family:'JetBrains Mono',monospace;margin:4px 0 5px;line-height:1.55;font-variant-numeric:tabular-nums}
+.bc-foot{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.bc-insight{font-size:10.5px;color:var(--navy);line-height:1.25;margin-top:4px}
+.spark{width:100%;height:23px;display:block;margin-top:4px}
+
+/* DETAIL SECTIONS */
+.details{
+  background:#fff;border-top:1px solid var(--border);padding:20px 24px 34px;
+}
+.details h2{font-size:18px;color:var(--navy);margin-bottom:4px}
+.details p{font-size:13px;color:var(--secondary);margin-bottom:16px;max-width:840px;line-height:1.6}
+.data-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.dc{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff}
+.dc-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.dc-title{font-size:13px;font-weight:700;color:var(--navy)}
+.dc-body{padding:0 14px}
+.dr{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.dr:last-child{border-bottom:none}
+.dr-lbl{color:var(--secondary)}
+.dr-val{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--navy);font-variant-numeric:tabular-nums}
+.edr-ref{margin-top:16px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;max-width:820px}
+.edr-ref-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary);margin-bottom:10px}
+.edr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.edr-tile{border-radius:6px;padding:10px;border:1px solid}
+.edr-val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px}
+.edr-name{font-weight:600;font-size:12px;color:var(--navy);margin-top:4px}
+.edr-desc{font-size:11px;color:var(--secondary);margin-top:2px}
+
+
+/* REFINEMENTS: index-vs-unit hierarchy, SFI forecast commentary, map polish */
+.score-badge{
+  display:inline-block;margin-left:6px;vertical-align:1px;
+  font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--navy2);background:#eef5fb;border:1px solid #c9d8e8;border-radius:3px;padding:1px 5px;
+}
+.unit-note{font-size:10px;color:var(--secondary);font-weight:500;margin-left:4px}
+.forecast-card{padding:0;overflow:hidden}
+.forecast-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:0;align-items:stretch}
+.forecast-chart{padding:12px 12px 10px;border-right:1px solid var(--border)}
+.forecast-read{padding:12px 12px 10px;background:#f8fbff}
+.forecast-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary);margin-bottom:5px}
+.forecast-big{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;margin-bottom:4px}
+.forecast-copy{font-size:11px;line-height:1.43;color:var(--navy)}
+.forecast-source{font-size:9px;color:var(--secondary);margin-top:8px;line-height:1.32}
+.forecast-source a,.data-status a{color:var(--navy2);font-weight:700;text-decoration:none;border-bottom:1px solid #c9d8e8}
+.map-note.map-read{left:14px;bottom:14px;width:360px}
+.map-symbols{position:absolute;right:14px;bottom:14px;width:300px;background:rgba(255,255,255,.95);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:var(--navy);box-shadow:0 8px 24px rgba(11,42,74,.12)}
+.map-symbols strong{font-size:12px}.map-symbols p{font-size:11px;color:var(--secondary);margin-top:4px;line-height:1.45}
+.source-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.source-chip{font-size:10px;color:var(--secondary);background:#f8fbff;border:1px solid var(--border);border-radius:4px;padding:3px 6px}.source-chip a{color:var(--navy2);font-weight:700;text-decoration:none}
+.pulse-note{font-size:10px;color:var(--secondary);margin-top:5px}
+
+/* REVISED LOWER SYSTEM MODULES: no duplicate top KPIs */
+.module-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 13px;min-height:0;height:auto;overflow:visible}
+.module-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.module-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary)}
+.module-sub{font-size:10px;color:var(--secondary);line-height:1.35;margin-top:-5px;margin-bottom:8px}
+.component.compact{grid-template-columns:1fr 38px;padding:6px 0}
+.component.compact .comp-title{font-size:11px}.component.compact .comp-sub{font-size:9.5px}
+.forecast-module{display:grid;grid-template-columns:1fr 1.05fr;gap:0;overflow:hidden;padding:0}
+.forecast-module .forecast-chart{padding:14px 12px 10px;border-right:1px solid var(--border)}
+.forecast-module .forecast-read{padding:14px 13px 10px;background:#f8fbff}
+.pulse-list{display:grid;gap:8px;margin-bottom:10px}
+.pulse-item{border-left:3px solid var(--border);padding-left:9px;font-size:11px;line-height:1.38;color:var(--navy)}
+.pulse-item strong{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--secondary);display:block;margin-bottom:1px}
+.pulse-item.red{border-left-color:var(--red)}.pulse-item.orange{border-left-color:var(--orange)}.pulse-item.yellow{border-left-color:var(--yellow)}
+
+
+.markov-note{margin-top:8px;background:#f8fbff;border:1px solid var(--border);border-radius:6px;padding:8px 9px;font-size:10.5px;color:var(--secondary);line-height:1.38}
+.markov-note strong{color:var(--navy)}
+
+
+/* TRUST / CREDIBILITY BAR */
+.trust-bar{
+  background:#f8fbff;border-bottom:1px solid var(--border);
+  padding:7px 18px;font-size:11px;color:var(--secondary);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+.trust-bar strong{color:var(--navy);font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.trust-meter{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.trust-chip{background:#fff;border:1px solid var(--border);border-radius:999px;padding:3px 8px;font-size:10px}
+.trust-chip b{color:var(--navy)}
+.st.alert-high{box-shadow:inset 0 0 0 1px rgba(185,28,28,.20);animation:softAlert 2.8s ease-in-out infinite;}
+@keyframes softAlert{0%,100%{background:#fff}50%{background:#fffafa}}
+.feed-stale{color:var(--orange)!important}.feed-live{color:var(--green)!important}
+.spark-placeholder{
+  height:23px;display:flex;align-items:center;justify-content:flex-start;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--secondary);
+  margin-top:4px;border-top:1px dashed #d7e2ee;padding-top:5px;
+}
+
+/* LIVE SOURCE / STATUS LAYER */
+.system-status{font-size:10px;padding:7px 18px;background:#f4f7fb;border-bottom:1px solid var(--border);color:var(--secondary);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.system-status strong{color:var(--navy);font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.status-left,.status-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(21,128,61,.12);display:inline-block}
+.live-dot.warn{background:var(--yellow);box-shadow:0 0 0 3px rgba(180,83,9,.12)}
+.live-dot.bad{background:var(--red);box-shadow:0 0 0 3px rgba(185,28,28,.12)}
+.data-source{font-size:9.5px;color:var(--secondary);margin-top:4px;line-height:1.25}
+.data-source a{color:var(--navy2);font-weight:700;text-decoration:none;border-bottom:1px solid #c9d8e8}
+.data-source .mono{color:var(--navy)}
+.status-chip{font-size:10px;color:var(--secondary);background:#fff;border:1px solid var(--border);border-radius:4px;padding:3px 6px}
+.status-chip b{color:var(--navy)}
+
+
+/* PREDICTIVE / ACADEMIC MODEL LAYER */
+.metric-note{font-size:10.5px;color:var(--secondary);line-height:1.45;margin-top:6px}
+.sum-card.predictive{background:#f8fbff}
+.sum-card.predictive .sum-val{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.phase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}
+.phase-tile{background:#f8fbff;border:1px solid var(--border);border-radius:6px;padding:7px 8px}
+.phase-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary)}
+.phase-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:var(--navy);margin-top:2px}
+.metric-box{background:#f8fbff;border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:16px;max-width:1060px}
+.metric-box h3{font-size:14px;color:var(--navy);margin-bottom:7px}
+.metric-box p{font-size:12.5px;color:var(--secondary);line-height:1.6;margin:0 0 8px;max-width:none}
+.formula{font-family:'JetBrains Mono',monospace;background:#fff;border:1px solid var(--border);border-radius:6px;padding:9px 10px;font-size:11px;color:var(--navy);line-height:1.55;margin:8px 0}
+.ref-link{color:var(--navy2);font-weight:700;text-decoration:none;border-bottom:1px solid #c9d8e8}
+
+/* MODEL IMPLEMENTATION HARDENING */
+.model-source-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.model-source-card{background:#fff;border:1px solid var(--border);border-radius:7px;padding:9px 10px;font-size:11px;line-height:1.45;color:var(--secondary)}
+.model-source-card b{display:block;color:var(--navy);font-size:11px;margin-bottom:3px}
+.model-source-card .mini-formula{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--navy);background:#f8fbff;border:1px solid var(--border);border-radius:5px;padding:5px 6px;margin-top:5px}
+.weight-table{width:100%;border-collapse:collapse;margin:9px 0;background:#fff;border:1px solid var(--border);border-radius:7px;overflow:hidden;font-size:11px}
+.weight-table th,.weight-table td{border-bottom:1px solid var(--border);padding:7px 8px;text-align:left;vertical-align:top}
+.weight-table th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--secondary);background:#f8fbff}
+.weight-table tr:last-child td{border-bottom:none}
+.pulse-list{gap:6px}
+.pulse-item{font-size:10.5px;line-height:1.28}
+.pulse-item strong{font-size:9px}
+.synthesis-note{font-size:10px;line-height:1.35;color:var(--secondary);background:#f8fbff;border:1px solid var(--border);border-radius:6px;padding:7px 8px;margin-top:8px}
+.synthesis-note strong{color:var(--navy)}
+.hmm-state-box{border:1px solid var(--border);background:#fff;border-radius:7px;padding:8px 9px;margin-top:8px}
+.hmm-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:7px}
+.hmm-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary)}
+.hmm-state{font-size:15px;font-weight:800;color:var(--navy);line-height:1.1}
+.hmm-conf{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--purple);background:var(--purple-bg);border:1px solid var(--purple-border);border-radius:4px;padding:2px 6px;white-space:nowrap}
+.hmm-bars{display:grid;gap:5px}
+.hmm-row{display:grid;grid-template-columns:58px 1fr 34px;gap:6px;align-items:center;font-size:10px;color:var(--secondary)}
+.hmm-track{height:6px;background:#edf2f7;border-radius:4px;overflow:hidden}
+.hmm-fill{height:100%;border-radius:4px;background:var(--navy2);width:0%}
+.hmm-note{font-size:10px;line-height:1.35;color:var(--secondary);margin-top:7px}
+.hmm-note strong{color:var(--navy)}
+.calibration-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:9px}
+.calibration-card{background:#fff;border:1px solid var(--border);border-radius:7px;padding:9px 10px;font-size:11px;line-height:1.45;color:var(--secondary)}
+.calibration-card b{display:block;color:var(--navy);font-size:11px;margin-bottom:3px}
+@media(max-width:1250px){.calibration-grid{grid-template-columns:1fr}}
+
+@media(max-width:1250px){.model-source-grid{grid-template-columns:1fr}}
+
+@media(max-width:1250px){.bottom{grid-template-columns:1fr}.forecast-module{grid-template-columns:1fr}.forecast-module .forecast-chart{border-right:none;border-bottom:1px solid var(--border)}}
+@media(max-width:1250px){.forecast-grid{grid-template-columns:1fr}.forecast-chart{border-right:none;border-bottom:1px solid var(--border)}.map-note.map-read,.map-symbols{position:static;width:auto;margin:10px 14px}.map-wrap{display:flex;flex-direction:column}.map-wrap canvas{position:absolute}}
+
+@media(max-width:1250px){
+  body{min-width:0}
+  .direction,.strip,.bottom{grid-template-columns:repeat(2,1fr)}
+  .main{grid-template-columns:1fr;height:auto}
+  .map-pane{height:620px}
+  .data-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:700px){
+  .header{height:auto;align-items:flex-start;flex-direction:column;padding:14px}
+  .hdr-right{flex-wrap:wrap}
+  .direction,.strip,.bottom,.data-grid,.edr-grid{grid-template-columns:1fr}
+}
+
+/* GAPS predictive-monitoring additions */
+.trend-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+.trend-kpi{border:1px solid var(--border);border-radius:7px;background:#fff;padding:8px 9px}
+.trend-kpi .k{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary)}
+.trend-kpi .v{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:var(--navy);margin-top:2px}
+.trend-kpi .n{font-size:10px;color:var(--secondary);line-height:1.35;margin-top:3px}
+.causal-panel{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 11px;margin-top:10px}
+.causal-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary);margin-bottom:7px}
+.causal-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border-top:1px solid var(--border);padding:6px 0;font-size:11px;color:var(--navy)}
+.causal-row:first-of-type{border-top:none}
+.causal-status{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;color:var(--secondary)}
+.causal-status.up{color:var(--red)}.causal-status.build{color:var(--orange)}.causal-status.flat{color:var(--secondary)}.causal-status.down{color:var(--green)}
+@media(max-width:700px){.trend-grid{grid-template-columns:1fr}}
+
+.ev-row{display:grid;grid-template-columns:1.4fr .6fr 1fr .5fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;align-items:center}
+.ev-row:last-child{border-bottom:none}
+.ev-ts{color:var(--secondary);font-family:'JetBrains Mono',monospace;font-size:10px}
+.ev-sfi{font-weight:700;color:var(--red);font-family:'JetBrains Mono',monospace}
+.ev-driver{color:var(--navy);font-weight:600}
+.ev-dur{color:var(--secondary);font-family:'JetBrains Mono',monospace;text-align:right}
+.ev-empty{font-size:11px;color:var(--secondary);line-height:1.55;padding:8px 0}
+
+
+/* GAPS production brand pass */
+.brand-mark{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#0b2a4a,#1a3f6f);
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 8px 22px rgba(0,0,0,.20);
+  flex:0 0 auto;
+}
+.brand-mark svg{width:21px;height:21px;display:block}
+.hdr-title-main{font-size:18px;font-weight:800;letter-spacing:.08em;color:#fff;line-height:1}
+.hdr-title-sub{font-size:10px;color:rgba(255,255,255,.48);letter-spacing:.14em;text-transform:uppercase;margin-top:4px}
+.hdr-sub{max-width:620px}
+.loading-state{
+  position:fixed;inset:0;background:linear-gradient(180deg,#071a2f,#0b2a4a);
+  color:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;
+  transition:opacity .35s ease,visibility .35s ease;
+}
+.loading-state.done{opacity:0;visibility:hidden;pointer-events:none}
+.loading-card{
+  width:min(420px,calc(100vw - 36px));border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);border-radius:14px;padding:22px 24px;
+  box-shadow:0 22px 60px rgba(0,0,0,.30);
+}
+.loading-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.loading-title{font-size:14px;font-weight:800;letter-spacing:.12em}
+.loading-sub{font-size:11px;color:rgba(255,255,255,.62);line-height:1.45;margin-top:3px}
+.loading-bar{height:5px;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:16px}
+.loading-bar span{display:block;height:100%;width:38%;border-radius:999px;background:#93c5fd;animation:gapsLoad 1.35s ease-in-out infinite;will-change:transform}
+@keyframes gapsLoad{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
+.loading-foot{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.50);margin-top:12px}
+.production-note{font-size:10px;color:rgba(255,255,255,.46);font-family:'JetBrains Mono',monospace}
+@media(max-width:700px){
+  .brand-mark{width:30px;height:30px}
+  .hdr-title-main{font-size:16px}
+}
+
+
+@media(prefers-reduced-motion:reduce){
+  .hdr-live{animation:none;opacity:1}
+  .loading-bar span{animation:none;width:72%}
+  .st.alert-high{animation:none}
+}
+
+/* VORONOI FOOTER */
+.voronoi-footer{
+  border-top:1px solid #e6ecf2;
+  padding:20px 28px;
+  background:#f4f7fb;
+  display:flex;
+  align-items:center;
+  gap:20px;
+}
+.vf-img-btn{
+  flex:0 0 auto;
+  background:none;border:none;padding:0;cursor:zoom-in;
+  border-radius:50%;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.vf-img-btn:hover{transform:scale(1.06);box-shadow:0 6px 22px rgba(11,42,74,.16)}
+.vf-img-btn img{
+  width:80px;height:80px;border-radius:50%;
+  object-fit:cover;
+  border:2px solid #d1dde9;
+  display:block;
+}
+.vf-text{}
+.vf-title{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:12px;font-weight:700;color:#0b2a4a;
+  margin-bottom:4px;
+}
+.vf-desc{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:11px;color:#5b6b7c;line-height:1.6;max-width:680px;
+}
+.vf-hint{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:#94a3b8;margin-top:5px;
+}
+/* Modal */
+.vf-modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(7,26,47,.82);
+  z-index:9998;align-items:center;justify-content:center;
+}
+.vf-modal-overlay.open{display:flex}
+.vf-modal-box{
+  background:#fff;border-radius:14px;
+  padding:20px;max-width:580px;width:calc(100vw - 40px);
+  box-shadow:0 24px 64px rgba(0,0,0,.40);
+  position:relative;text-align:center;
+}
+.vf-modal-box img{
+  width:100%;max-width:500px;border-radius:10px;
+  border:2px solid #e6ecf2;display:block;margin:0 auto 14px;
+}
+.vf-modal-title{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:15px;font-weight:700;color:#0b2a4a;margin-bottom:6px;
+}
+.vf-modal-body{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:12px;color:#5b6b7c;line-height:1.65;
+}
+.vf-modal-close{
+  position:absolute;top:12px;right:14px;
+  background:none;border:none;font-size:20px;cursor:pointer;
+  color:#94a3b8;line-height:1;padding:4px;
+}
+.vf-modal-close:hover{color:#0b2a4a}
+
+/* ACTION LAYER */
+.action-layer{
+  background:#0b2a4a;
+  padding:0 24px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:stretch;
+  border-bottom:2px solid #1a3f6f;
+  position:relative;
+}
+.al-status{
+  display:flex;align-items:center;gap:14px;
+  padding:13px 20px 13px 0;
+  border-right:1px solid rgba(255,255,255,.12);
+  min-width:220px;
+}
+.al-status-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  background:#15803d;
+  box-shadow:0 0 0 4px rgba(21,128,61,.18);
+}
+.al-status-dot.warn{background:#ca8a04;box-shadow:0 0 0 4px rgba(202,138,4,.18);}
+.al-status-dot.high{background:#dc2626;box-shadow:0 0 0 4px rgba(220,38,38,.18);animation:pulse-dot 1.8s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 4px rgba(220,38,38,.18)}50%{box-shadow:0 0 0 8px rgba(220,38,38,.06)}}
+.al-status-label{font-size:9px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.42);margin-bottom:3px}
+.al-status-val{font-size:15px;font-weight:800;color:#fff;line-height:1.1}
+.al-body{padding:13px 20px;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.al-action{font-size:12px;font-weight:600;color:rgba(255,255,255,.88);line-height:1.4}
+.al-action strong{color:#fff;font-weight:800}
+.al-horizon{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.al-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:4px;padding:2px 8px;color:rgba(255,255,255,.55)}
+.al-chip b{color:rgba(147,197,253,.9);font-weight:700}
+.al-contrib{
+  display:flex;align-items:center;gap:0;
+  padding:13px 0 13px 20px;
+  border-left:1px solid rgba(255,255,255,.12);
+}
+.al-bar-group{display:flex;flex-direction:column;gap:5px;min-width:180px;}
+.al-bar-row{display:flex;align-items:center;gap:8px}
+.al-bar-lbl{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.40);width:56px;flex-shrink:0;text-align:right}
+.al-bar-track{height:6px;background:rgba(255,255,255,.10);border-radius:4px;flex:1;overflow:hidden}
+.al-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.al-bar-val{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:rgba(255,255,255,.70);width:32px;text-align:right;flex-shrink:0}
+.al-bar-fill.traffic{background:#60a5fa}
+.al-bar-fill.weather{background:#34d399}
+.al-bar-fill.jet{background:#a78bfa}
+@media(max-width:900px){.action-layer{grid-template-columns:1fr}.al-status{border-right:none;border-bottom:1px solid rgba(255,255,255,.1)}.al-contrib{border-left:none;border-top:1px solid rgba(255,255,255,.1);padding:10px 0}}
+
+/* SFI CONTRIBUTION BREAKDOWN in direction bar */
+.dir-contrib{margin-top:8px}
+.dir-contrib-row{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--secondary);margin-top:3px}
+.dir-contrib-row span{font-family:'JetBrains Mono',monospace;font-size:10px}
+.dir-contrib-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.dc-traffic{background:#3b82f6}.dc-weather{background:#10b981}.dc-jet{background:#8b5cf6}
+
+/* PROBABILITY BANDS */
+.prob-bands{display:flex;gap:0;margin-top:8px;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+.pb{flex:1;padding:6px 8px;text-align:center;border-right:1px solid var(--border)}
+.pb:last-child{border-right:none}
+.pb-pct{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;color:var(--navy)}
+.pb-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--secondary);margin-top:2px}
+.pb.active{background:#fef2f2}.pb.active .pb-pct{color:var(--red)}
+.pb.mid{background:#fefce8}.pb.mid .pb-pct{color:var(--yellow)}
+.pb.low{background:#f0fdf4}.pb.low .pb-pct{color:var(--green)}
+/* live-data states */
+.pill-nodata{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}
+.st.no-data .st-score{color:#94a3b8}
+.st.no-data .pos{opacity:.35}
+.alert-panel.muted{color:var(--secondary);background:#f8fafc}
+.alert-panel.stale{opacity:.75}
+.stale-note{font-size:10px;color:#b45309;margin-top:4px}
+.faa-list{margin-top:5px;display:grid;gap:3px}
+.faa-row{font-size:11px;line-height:1.4;color:var(--navy)}
+.faa-row b{display:inline-block;min-width:34px}
+.faa-row.high b{color:var(--red)}
+.fresh-ok{color:var(--green)}
+.fresh-bad{color:#b45309}
+.hdr-live.partial{background:#b45309}
+.hdr-live.down{background:#64748b;animation:none}
+</style>
+</head>
+<body>
+<div style="width:100%;overflow:hidden;max-height:320px;position:relative;background:#0b2a4a;">
+  <img src="img/runway.webp" srcset="img/runway-1200.webp 1200w, img/runway.webp 2400w" sizes="100vw" fetchpriority="high" width="2400" height="1807" alt="Runway view — dashboardrunway.live" style="width:100%;object-fit:cover;max-height:320px;display:block;opacity:0.88;" />
+  <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to bottom,transparent,#0b2a4a);"></div>
+</div>
+<div style="height:5px;background:#dc2626;width:100%;position:fixed;top:0;left:0;z-index:99999;"></div>
+
+<div class="loading-state" id="gapsLoading">
+  <div class="loading-card">
+    <div class="loading-top">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none">
+          <path d="M12 35 L52 18 L40 35 L52 46 L31 40 L23 54 L24 38 Z" fill="white" opacity=".95"/>
+          <path d="M18 38 L32 33" stroke="#93c5fd" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="loading-title">GAPS</div>
+        <div class="loading-sub">Loading Traffic · Weather · Upper-Air feeds…</div>
+      </div>
+    </div>
+    <div class="loading-bar"><span></span></div>
+    <div class="loading-foot">Heuristic monitor · public data · no accident prediction</div>
+  </div>
+</div>
+
+
+<header class="header">
+  <div class="hdr-brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 64 64" fill="none">
+        <path d="M12 35 L52 18 L40 35 L52 46 L31 40 L23 54 L24 38 Z" fill="white" opacity=".95"/>
+        <path d="M18 38 L32 33" stroke="#93c5fd" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="hdr-title-main">GAPS</div>
+      <div class="hdr-title-sub">GLOBAL AIRLINE PRESSURE SYSTEM</div>
+      <div class="hdr-sub">Real-time network pressure across traffic, weather, and upper-air conditions</div>
+    </div>
+    <div class="hdr-live" id="hdrLive">● CONNECTING…</div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-metric" style="text-align:right;">
+      <div class="lbl">Aircraft Airborne <span class="metric-tag observed">OpenSky</span><span id="staleBadge" class="stale-badge" style="display:none">DATA STALE</span></div>
+      <div class="val" id="flightCount">--</div>
+    </div>
+    <div class="hdr-clock" id="utcClock">00:00:00 UTC</div>
+  </div>
+</header>
+
+<div class="trust-bar" id="trustBar">
+  <div><strong>SFI = Traffic ×0.42 + Weather ×0.36 + Upper-Air ×0.22</strong> · Contributions shown live in the Action Layer above <span class="metric-tag predictive">Heuristic weights · not fitted</span></div>
+  <div class="trust-meter">
+    <span class="trust-chip"><b>Observed:</b> aircraft + weather where live</span>
+    <span class="trust-chip"><b>SFI inputs:</b> Traffic · Weather · Upper-Air</span>
+    <span class="trust-chip"><b>Diagnostics:</b> delay/stress shown separately</span>
+    <span class="trust-chip" id="feedFreshness"><b>Freshness:</b> checking feeds…</span>
+  </div>
+</div>
+
+<div class="system-status" id="liveStatusBar">
+  <div class="status-left"><span class="live-dot warn" id="sourceDot"></span><strong>Data Layer</strong><span id="sourceSummary">Live feeds loading…</span></div>
+  <div class="status-right">
+    <span class="status-chip"><b>Feeds:</b> OpenSky · FAA NAS · AviationWeather METAR/SIGMET · Open-Meteo · NOAA Kp · adsb.lol</span>
+    <span class="status-chip"><b>Model outputs:</b> SFI · Traffic · Weather · Upper-Air · directional outlook</span>
+  </div>
+</div>
+
+<div class="action-layer" id="actionLayer">
+  <div class="al-status">
+    <div class="al-status-dot" id="actionDot"></div>
+    <div>
+      <div class="al-status-label">System Status</div>
+      <div class="al-status-val" id="actionStatus" aria-live="polite" aria-label="System status">Checking…</div>
+    </div>
+  </div>
+  <div class="al-body">
+    <div class="al-action" id="actionExpect"><strong>Expect:</strong> Acquiring live data…</div>
+    <div class="al-horizon">
+      <span class="al-chip"><b>Horizon</b> <span id="actionHorizon">--</span></span>
+      <span class="al-chip"><b>Driver</b> <span id="actionDriver">--</span></span>
+      <span class="al-chip"><b>Trajectory</b> <span id="actionTrajectory">--</span></span>
+    </div>
+  </div>
+  <div class="al-contrib">
+    <div class="al-bar-group">
+      <div class="al-bar-row">
+        <div class="al-bar-lbl">Traffic</div>
+        <div class="al-bar-track"><div class="al-bar-fill traffic" id="alBarTraffic" style="width:0%"></div></div>
+        <div class="al-bar-val" id="alValTraffic">--</div>
+      </div>
+      <div class="al-bar-row">
+        <div class="al-bar-lbl">Weather</div>
+        <div class="al-bar-track"><div class="al-bar-fill weather" id="alBarWeather" style="width:0%"></div></div>
+        <div class="al-bar-val" id="alValWeather">--</div>
+      </div>
+      <div class="al-bar-row">
+        <div class="al-bar-lbl">Upper-Air</div>
+        <div class="al-bar-track"><div class="al-bar-fill jet" id="alBarJet" style="width:0%"></div></div>
+        <div class="al-bar-val" id="alValJet">--</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="quickread" aria-label="Quick status summary">
+
+  <!-- LEFT: SFI score -->
+  <div class="qr-block">
+    <div class="qr-eyebrow">Sky Friction Index (SFI)</div>
+    <div class="qr-big" id="qrSfiScore">--<span class="qr-big-denom">/100</span></div>
+    <div class="qr-bar-track"><div class="qr-bar-fill watch" id="qrSfiBar" style="width:0%"></div></div>
+    <div class="qr-status-row">
+      <span class="pill pill-nodata" id="qrSfiPill">Loading</span>
+      <span class="trend trend-flat" id="qrSfiTrend"></span>
+    </div>
+  </div>
+
+  <!-- CENTER: Plain English Status -->
+  <div class="qr-block">
+    <div class="qr-eyebrow">What This Means Now</div>
+    <div class="qr-delay-num" id="plainTermsHero" style="font-size:17px;font-weight:800;color:var(--navy);line-height:1.35;margin:4px 0 10px">Acquiring live inputs…</div>
+    <div style="border-top:1px solid var(--border);padding-top:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary);margin-bottom:6px">Primary Driver</div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy)" id="primaryDriverHero">--</div>
+      <div style="font-size:10px;color:var(--secondary);margin-top:3px" id="primaryDriverContext">Checking live inputs…</div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary);margin-bottom:4px">Systemic Fragility</div>
+      <div style="font-size:13px;font-weight:700;color:var(--navy)" id="fragilityHero">--</div>
+      <div style="font-size:10px;color:var(--secondary);margin-top:2px">Rises when 2+ inputs compound above 65 simultaneously</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Predictive outlook -->
+  <div class="qr-block" style="background:#f8fbff;border-left:1px solid var(--border)">
+    <div class="qr-eyebrow">Directional Outlook · +1h / +3h / +6h</div>
+    <div id="forecastBig" class="qr-delay-num" style="font-size:28px;color:var(--navy)">--</div>
+    <div class="qr-delay-note" style="margin-bottom:8px" id="qrForecastNote">Straight-line projection from recent readings · not a forecast</div>
+    <div id="probBands" class="prob-bands" style="display:none" aria-hidden="true">
+      <div class="pb active" id="pb-w"><div class="pb-pct" id="pbWorsening">--</div><div class="pb-lbl">Worsening</div></div>
+      <div class="pb mid" id="pb-s"><div class="pb-pct" id="pbStable">--</div><div class="pb-lbl">Stable</div></div>
+      <div class="pb low" id="pb-i"><div class="pb-pct" id="pbImproving">--</div><div class="pb-lbl">Improving</div></div>
+    </div>
+    <div class="qr-delay-note" style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px">
+      US delay programs (FAA) <span class="pill pill-nodata" id="qrDelayPill" style="margin-bottom:0">Loading</span>
+      <span id="qrDelayVal" style="font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--navy);font-size:13px;margin-left:4px">--</span>
+      · <b>not part of the SFI</b>
+    </div>
+  </div>
+
+</section>
+
+<section class="direction" style="grid-template-columns:1.2fr 1fr 1fr 1fr 1.5fr">
+  <div class="dir-cell" style="background:#fafbff;border-left:3px solid var(--navy)">
+    <div class="dir-lbl" style="color:var(--navy);font-weight:900">Operator Read</div>
+    <div class="dir-val" id="plainTermsVal" style="font-size:14px;font-weight:800">Acquiring live inputs…</div>
+  </div>
+  <div class="dir-cell">
+    <div class="dir-lbl">Trajectory</div>
+    <div class="dir-val red" id="systemDirectionVal" aria-live="polite">Checking…</div>
+    <div class="status-track"><div class="status-marker" id="systemStatusMarker"></div></div>
+  </div>
+  <div class="dir-cell">
+    <div class="dir-lbl">Pressure Threshold</div>
+    <div class="dir-val" id="riskWindowVal">--</div>
+    <div class="dir-sub">Horizon to SFI ≥70</div>
+  </div>
+  <div class="dir-cell">
+    <div class="dir-lbl">Data Status</div>
+    <div class="dir-val" id="topDataStatus">Connecting…</div>
+  </div>
+  <div class="dir-cell" style="background:#fffbf0">
+    <div class="dir-lbl" style="color:#b45309">⚠ Heuristic Model</div>
+    <div class="dir-sub" style="color:var(--navy);font-size:11px;line-height:1.5;margin-top:2px">SFI weights are <b>not statistically fitted</b> — they are expert estimates. This is a pressure monitor, not a forecast. It does not predict accidents or specific delays.</div>
+  </div>
+</section>
+<!-- hidden IDs still needed by JS -->
+<span id="primaryDriverVal" style="display:none"></span>
+<span id="confidenceVal" style="display:none"></span>
+<span id="fragilitySub" style="display:none"></span>
+<span id="sfiFormulaLine" style="display:none"></span>
+
+<section class="strip" aria-label="SFI inputs and diagnostics">
+  <!-- SFI INPUTS (4) -->
+  <div class="st">
+    <div class="st-lbl">Sky Friction Index <span class="metric-tag modeled">Modeled</span> <span class="metric-tag predictive">3-input SFI</span></div>
+    <div class="st-score" id="sfiScore" aria-label="Sky Friction Index score">--<span class="st-denom">/100</span></div>
+    <div class="st-raw" id="sfiRaw">Waiting for live data</div>
+    <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now yellow" style="left:67%" id="sfiNow"></span></div></div>
+    <div class="st-foot"><span class="pill pill-nodata" id="sfiStatusPill">Loading</span><span class="trend trend-flat" id="sfiTrend"></span></div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> A single 0–100 score combining the three inputs below. Above 70 = capacity degrading. 55–70 = watch. Below 55 = normal.</div>
+  </div>
+  <div class="st">
+    <div class="st-lbl">Traffic <span class="metric-tag derived">Derived</span> <span class="metric-tag predictive">42% of SFI</span></div>
+    <div class="st-score" id="corridorScore">--<span class="st-denom">/100</span></div>
+    <div class="st-raw" id="corridorRaw">Live aircraft density proxy · corridor model</div>
+    <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now red" style="left:73%" id="corridorNow"></span></div></div>
+    <div class="st-foot"><span class="pill pill-nodata" id="corridorPill">Loading</span><span class="trend trend-flat" id="corridorTrend"></span></div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Aircraft airborne as seen by OpenSky receivers, adjusted for time of day. Scaling is provisional until stored history can calibrate it.</div>
+  </div>
+  <div class="st">
+    <div class="st-lbl">Weather <span class="metric-tag derived">Analyzed</span> <span class="metric-tag predictive">36% of SFI</span></div>
+    <div class="st-score" id="weatherScore">--<span class="st-denom">/100</span></div>
+    <div class="st-raw" id="weatherRaw">Live weather sampling · key hubs</div>
+    <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now yellow" style="left:58%" id="weatherNow"></span></div></div>
+    <div class="st-foot"><span class="pill pill-nodata" id="weatherPill">Loading</span><span class="trend trend-flat" id="weatherTrend"></span></div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Thunderstorms, wind, visibility and precipitation at 23 major airports worldwide (live METAR reports), blended with an 8-point Open-Meteo sample.</div>
+  </div>
+  <div class="st">
+    <div class="st-lbl">Upper-Air <span class="metric-tag derived">Derived</span> <span class="metric-tag predictive">22% of SFI</span></div>
+    <div class="st-score" id="edrScore">--<span class="st-denom">/100</span></div>
+    <div class="st-raw" id="edrRaw">250 hPa pressure-level wind · cruise-altitude signal</div>
+    <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now yellow" style="left:62%" id="jetNow"></span></div></div>
+    <div class="st-foot"><span class="pill pill-nodata" id="edrPill">Loading</span><span class="trend trend-flat" id="edrTrend"></span></div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Wind speed at 250 hPa (~35,000 ft cruise altitude). Strong jet stream = longer routes, more fuel burn, cascading delays.</div>
+  </div>
+  <!-- DIVIDER -->
+  <div class="strip-divider" aria-hidden="true"></div>
+  <!-- DIAGNOSTICS (excluded from SFI) -->
+  <div class="st diagnostic">
+    <div class="st-lbl">US Delay Programs <span class="metric-tag observed">FAA</span> <span class="metric-tag" style="color:#94a3b8;border-color:#e2e8f0;background:#f8f8fb;">Not in SFI</span></div>
+    <div class="st-score" id="delayScore">--<span class="st-denom">/100</span></div>
+    <div class="st-raw" id="delayRaw">Waiting for FAA data</div>
+    <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now red" style="left:71%" id="delayNow"></span></div></div>
+    <div class="st-foot"><span class="pill pill-nodata" id="delayPill">Loading</span><span class="trend trend-flat" id="delayTrend"></span></div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> A count-based load score of active FAA ground stops, ground delay programs and other initiatives (US only). Actual disruption, so it is the yardstick the SFI will be tested against.</div>
+  </div>
+  <div class="st diagnostic">
+    <div class="st-lbl">Aircraft Airborne <span class="metric-tag observed">Observed</span> <span class="metric-tag derived">Context</span></div>
+    <div class="st-score" id="ft-strip" style="font-size:24px;">--</div>
+    <div class="st-raw" id="flightRaw">Waiting for OpenSky data</div>
+    <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now green" style="left:55%" id="flightNow"></span></div></div>
+    <div class="st-foot"><span class="pill pill-nodata" id="flightStatusPill">Loading</span><span class="trend trend-flat" id="flightTrend">→</span></div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>Why shown:</b> Raw input to the Traffic score. OpenSky receivers see a large share of aircraft, but coverage is thin over oceans, Africa and parts of Asia.</div>
+  </div>
+  <div class="st diagnostic">
+    <div class="st-lbl">Space Weather <span class="metric-tag observed">NOAA</span> <span class="metric-tag modeled">Diagnostic</span></div>
+    <div class="st-score" id="kpScore">--<span class="st-denom">Kp</span></div>
+    <div class="st-raw" id="kpRaw">NOAA planetary K-index · polar/HF route pressure</div>
+    <div class="pos"><div class="pos-labels"><span>0</span><span>4</span><span>9</span></div><div class="pos-track"><span class="pos-now green" style="left:0%" id="kpNow"></span></div></div>
+    <div class="st-foot"><span class="pill pill-nodata" id="kpPill">Loading</span><span class="trend trend-flat" id="kpTrend">→</span></div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>Why shown:</b> Kp ≥5 disrupts HF radio on polar/Atlantic routes. Not in SFI but can amplify operational pressure independently.</div>
+  </div>
+</section>
+
+<section class="main">
+  <aside class="left-pane">
+    <div class="pane-title">Map-Driven Insights</div>
+    <div class="takeaway ta-watch" id="insightOneCard"><div class="ta-num">01</div><div class="ta-text" id="insightOneText">Checking traffic-density pressure from live aircraft states.</div><span class="ta-badge pill pill-watch" id="insightOneBadge">Checking</span></div>
+    <div class="takeaway ta-watch" id="insightTwoCard"><div class="ta-num">02</div><div class="ta-text" id="insightTwoText">Checking upper-air jet-stream pressure from current-hour 250 hPa winds.</div><span class="ta-badge pill pill-watch" id="insightTwoBadge">Checking</span></div>
+    <div class="takeaway ta-watch" id="insightThreeCard"><div class="ta-num">03</div><div class="ta-text" id="insightThreeText">Checking hub weather and METAR pressure.</div><span class="ta-badge pill pill-watch" id="insightThreeBadge">Checking</span></div>
+    <div class="alert-panel" id="faaPanel"><strong>FAA NAS:</strong> Loading…</div>
+    <div class="alert-panel" id="ecPanel"><strong>Europe (EUROCONTROL):</strong> Not connected.</div>
+    <div class="alert-panel" id="adsbAlertPanel"><strong>Emergency transponder codes:</strong> Loading…</div>
+    <div class="alert-panel" id="sigmetPanel"><strong>Active SIGMETs:</strong> Loading…</div>
+    <!-- causal panel moved to Trend Analysis bottom module -->
+
+  </aside>
+
+  <main class="map-pane">
+    <div class="map-bar">
+      <span class="map-bar-title">Live Network View — aircraft, hazards and hub status</span>
+      <div class="legend">
+        <div class="leg"><div class="leg-dot" style="background:rgba(29,78,216,.5)"></div>Aircraft density</div>
+        <div class="leg"><div class="leg-dot" style="background:#ea580c"></div>Thunderstorm SIGMET</div>
+        <div class="leg"><div class="leg-dot" style="background:#7c3aed"></div>Turbulence SIGMET</div>
+        <div class="leg"><div class="leg-dot" style="background:#b91c1c"></div>Hub disruption</div>
+      </div>
+    </div>
+    <div class="map-wrap">
+      <canvas id="mapCanvas"></canvas>
+      <div class="map-note map-read">
+        <strong>Reading the map:</strong><ul style="margin:5px 0 0 14px;font-size:11px;color:var(--secondary);line-height:1.6"><li>Blue shading = where OpenSky sees aircraft now</li><li>Small coloured dots = centres of active SIGMET hazard areas</li><li>Hubs: red = ground stop, long delay program or very low visibility · amber = delay program, storms or IFR · green = normal · grey = no data</li><li>Lines link major hubs; colour = worst conditions at either end</li></ul>
+        <div class="map-pill-row">
+          <span class="map-pill"><span class="leg-dot" style="background:#b91c1c"></span>▲ Emergency squawk</span>
+        </div>
+      </div>
+      <div class="map-symbols">
+        <strong>Map Symbology:</strong><p style="font-size:10px;color:var(--secondary);margin-top:4px">Everything drawn comes from live feeds: OpenSky positions, AviationWeather SIGMETs and METARs, FAA NAS Status, adsb.lol squawks.</p>
+      </div>
+    </div>
+  </main>
+
+  <aside class="right-pane">
+    <div class="pane-title">System Summary</div>
+    <div class="sum-card predictive hl">
+      <div class="sum-lbl">Pressure Trend <span class="metric-tag predictive">Directional</span></div>
+      <div class="sum-val trend-flat" id="riskTrendVal">--</div>
+      <div class="sum-sub" id="riskTrendSub">Velocity-extrapolated. Not a trained forecast — direction only.</div>
+    </div>
+    <!-- hidden IDs still needed by JS -->
+    <span id="ttiVal" style="display:none"></span>
+    <span id="ttiSub" style="display:none"></span>
+    <span id="trendOutlookPanel" style="display:none"></span>
+    <div class="sum-card" id="deltaCard" style="background:#f8fbff">
+      <div class="sum-lbl">What Changed <span class="metric-tag derived">Last cycle</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px;text-align:center">
+        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">Traffic</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaTraffic">--</div></div>
+        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">Weather</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaWeather">--</div></div>
+        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">SFI</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaSfi">--</div></div>
+      </div>
+    </div>
+    <div class="sum-card hl"><div class="sum-lbl">Busiest Regions <span class="metric-tag observed">OpenSky</span></div><div class="sum-val" id="topCorridorVal">--</div><div class="sum-sub" id="topCorridorSub">Updating…</div></div>
+    <div class="sum-card"><div class="sum-lbl">Worst US Airport Now <span class="metric-tag observed">FAA</span></div><div class="sum-val" id="delayAirportVal">--</div><div class="sum-sub" id="delayAirportSub">Updating…</div></div>
+    <!-- hidden IDs still needed by JS -->
+    <span id="upperAirVal" style="display:none"></span><span id="upperAirSub" style="display:none"></span>
+    <span id="weatherDriverVal" style="display:none"></span><span id="weatherDriverSub" style="display:none"></span>
+
+
+    <div class="provenance-panel">
+      <div class="prov-head"><div class="prov-title">Observed / Derived / Modeled</div><span class="pill pill-normal">No stand-in values</span></div>
+      <div class="prov-grid">
+        <div class="prov-item"><span class="prov-tag tag-observed">Observed</span><div class="prov-copy">OpenSky aircraft positions, FAA NAS programs, METARs, SIGMETs, Open-Meteo weather, NOAA Kp, adsb.lol squawks.</div></div>
+        <div class="prov-item"><span class="prov-tag tag-derived">Derived</span><div class="prov-copy">Aircraft density by region, cruise count, FAA program load, hub status.</div></div>
+        <div class="prov-item"><span class="prov-tag tag-modeled">Modeled</span><div class="prov-copy">SFI and delay diagnostics from traffic, weather, and upper-air inputs.</div></div>
+        <div class="prov-item"><span class="prov-tag tag-predictive">Directional</span><div class="prov-copy">Short-Term Direction from current inputs; not a trained forecast.</div></div>
+      </div>
+      <div class="confidence-list">
+        <div class="conf-row"><b>Aircraft count / positions</b><span class="conf-pill high" id="confTraffic">Loading</span></div>
+        <div class="conf-row"><b>Upper-air winds</b><span class="conf-pill med" id="confVertical">Loading</span></div>
+        <div class="conf-row"><b>Upper-air jet stream</b><span class="conf-pill med">Medium · Open-Meteo 250 hPa</span></div>
+        <div class="conf-row"><b>Projected path</b><span class="conf-pill low">Low–Medium · model output</span></div>
+      </div>
+      <div class="assumption-note">No fallback values: when a feed is down, its panel says so and shows the age of the last data. Directional language means “operational pressure likely to rise/fall,” not accident probability.</div>
+    </div>
+    <div class="data-status tight">
+      <p><strong>Data:</strong> fetched by the GAPS server every 10 minutes and shared by all visitors.</p>
+      <div class="source-row">
+        <span class="source-chip"><a href="https://opensky-network.org/api/states/all" target="_blank" rel="noopener">OpenSky</a></span>
+        <span class="source-chip"><a href="https://nasstatus.faa.gov/" target="_blank" rel="noopener">FAA NAS</a></span>
+        <span class="source-chip"><a href="https://aviationweather.gov/data/api/" target="_blank" rel="noopener">AviationWeather</a></span>
+      </div>
+      <div class="pulse-note" id="apiStatus">Connecting to the GAPS data server…</div>
+    </div>
+  </aside>
+</section>
+
+<section class="bottom">
+  <!-- hidden IDs still needed by JS -->
+  <span id="compCorridor" style="display:none"></span>
+  <span id="compWeather" style="display:none"></span>
+  <span id="compJet" style="display:none"></span>
+  <span id="compEdr" style="display:none"></span>
+  <span id="researchModifier" style="display:none"></span>
+
+  <div class="module-card">
+    <div class="module-head"><div class="module-title">How SFI Works</div><span class="score-badge" style="background:#fff3cd;color:#856404;border-color:#ffc107">Heuristic — not fitted</span></div>
+    <div class="module-sub">One number. Three inputs. Data refreshed every 10 minutes on the server; this page checks every 2.</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#f8fbff;border:1px solid var(--border);border-radius:6px;padding:9px 10px;margin:8px 0;color:var(--navy)">SFI = Traffic×0.42 + Weather×0.36 + Upper-Air×0.22</div>
+    <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">
+      <div style="font-size:11px;color:var(--secondary);line-height:1.55;border-left:3px solid #2563eb;padding-left:8px"><b style="color:var(--navy)">Traffic (42%)</b> — Aircraft count from OpenSky ADS-B, normalised for time of day. High count in peak hours = higher pressure than the same count overnight.</div>
+      <div style="font-size:11px;color:var(--secondary);line-height:1.55;border-left:3px solid #b45309;padding-left:8px"><b style="color:var(--navy)">Weather (36%)</b> — Thunderstorm, wind and visibility at 23 major airports worldwide (live METARs), blended with an 8-point Open-Meteo sample.</div>
+      <div style="font-size:11px;color:var(--secondary);line-height:1.55;border-left:3px solid #6d28d9;padding-left:8px"><b style="color:var(--navy)">Upper-Air (22%)</b> — 250 hPa wind speed at cruise altitude. Strong jet stream compresses routes and propagates delays.</div>
+    </div>
+    <div style="margin-top:10px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:8px 10px;font-size:10.5px;color:#856404;line-height:1.5">
+      <b>Heuristic weights:</b> The 42/36/22 split is expert-estimated, not statistically fitted to historical data. SFI measures operational pressure — it is not an accident predictor or delay guarantee. If fewer than 2 of the 3 inputs are live, no SFI is shown.
+    </div>
+    <span id="compEdr" style="display:none"></span><span id="researchModifier" style="display:none"></span>
+  </div>
+
+  <div class="module-card forecast-module">
+    <div class="forecast-chart">
+      <div class="module-head"><div class="module-title">Straight-Line Projection (SFI)</div><span class="pill pill-nodata">Not a forecast</span></div>
+      <svg viewBox="0 0 210 72" width="100%" height="72">
+        <line x1="0" y1="48" x2="210" y2="48" stroke="#c7d2df" stroke-width="2"/>
+        <line x1="0" y1="33" x2="210" y2="33" stroke="#9fb2c7" stroke-width="2" stroke-dasharray="5 5"/>
+        <path id="fcArea" d="" fill="rgba(11,42,74,.08)"/>
+        <polyline id="fcLine" points="" fill="none" stroke="#0b2a4a" stroke-width="2.5"/>
+        <circle id="fcDot0" cx="0" cy="0" r="0" fill="#0b2a4a"/>
+        <circle id="fcDot1" cx="0" cy="0" r="0" fill="#0b2a4a"/>
+        <circle id="fcDot2" cx="0" cy="0" r="0" fill="#0b2a4a"/>
+        <circle id="fcDot3" cx="0" cy="0" r="0" fill="#0b2a4a"/>
+      </svg>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:10px;text-align:center;color:var(--secondary);font-weight:700">
+        <div><span class="mono" style="color:var(--navy)" id="fcNow">--</span><br>Now</div>
+        <div><span class="mono" style="color:var(--red)" id="fcP1">--</span><br>+1H</div>
+        <div><span class="mono" style="color:var(--yellow)" id="fcP3">--</span><br>+3H</div>
+        <div><span class="mono" style="color:var(--green)" id="fcP6">--</span><br>+6H</div>
+      </div>
+    </div>
+    <div class="forecast-read">
+      <div class="forecast-big" id="forecastBigBottom">--</div><div class="metric-note">Extends the recent trend in a straight line. Not a trained forecast.</div>
+      <div class="forecast-copy" id="forecastCopy">Waiting for live data.</div>
+      <div class="forecast-source">Directional extrapolation from live inputs. Not a trained forecast — direction only.</div>
+    </div>
+  </div>
+
+  <div class="module-card">
+    <div class="module-head"><div class="module-title">Trend Analysis</div><span class="metric-tag predictive">Builds after ~30 min</span></div>
+    <div class="module-sub">Tracks how SFI is moving — rate, acceleration, and which input is leading. All values are local session history only and reset on page reload.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <div style="border:1px solid var(--border);border-radius:7px;background:#fff;padding:9px 10px">
+        <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary)">Rate of Change</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:800;color:var(--navy);margin-top:3px" id="velocityVal">--</div>
+        <div style="font-size:10px;color:var(--secondary);margin-top:3px" id="velocityNote">Collecting — updates every 2 min</div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:7px;background:#fff;padding:9px 10px">
+        <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary)">Acceleration</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:800;color:var(--navy);margin-top:3px" id="accelerationVal">--</div>
+        <div style="font-size:10px;color:var(--secondary);margin-top:3px" id="accelerationNote">Needs 7+ cycles</div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:7px;background:#fff;padding:9px 10px">
+        <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary)">vs Session Baseline</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:800;color:var(--navy);margin-top:3px" id="anomalyVal">--</div>
+        <div style="font-size:10px;color:var(--secondary);margin-top:3px" id="anomalyNote">Needs local history</div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:7px;background:#fff;padding:9px 10px">
+        <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary)">Traffic Momentum (RSI)</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:800;color:var(--navy);margin-top:3px" id="trafficRsiVal">--</div>
+        <div style="font-size:10px;color:var(--secondary);margin-top:3px" id="trafficRsiNote">Needs 14+ data points</div>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary);margin-bottom:5px">Which input is leading the move</div>
+      <div id="leadLagPanel" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+        <div class="causal-row"><span>Traffic</span><span class="causal-status flat" id="leadTraffic">Collecting</span></div>
+        <div class="causal-row"><span>Weather</span><span class="causal-status flat" id="leadWeather">Collecting</span></div>
+        <div class="causal-row"><span>Upper-Air</span><span class="causal-status flat" id="leadJet">Collecting</span></div>
+      </div>
+    </div>
+    <div style="font-size:9px;color:var(--secondary);margin-top:8px;line-height:1.45">Rate of Change = SFI points per minute. Acceleration = is the rate itself speeding up? RSI > 70 = momentum overbought, correction-prone. All based on this session only.</div>
+  </div>
+
+  <div class="bc" style="grid-column:1/-1">
+    <div class="bc-lbl">Historical Pressure Events <span class="metric-tag modeled">Validation log</span></div>
+    <div id="pressureEventLog"></div>
+    <div class="data-source" style="margin-top:8px">Records each time SFI exceeded 70 then recovered. Compare against known disruptions to validate model signal. Stored locally — resets if browser data is cleared.</div>
+  </div>
+</section>
+
+</section>
+
+<script>
+// UTC CLOCK
+function tick(){
+  const n=new Date();
+  const p=x=>String(x).padStart(2,'0');
+  document.getElementById('utcClock').textContent=`${p(n.getUTCHours())}:${p(n.getUTCMinutes())}:${p(n.getUTCSeconds())} UTC`;
+}
+setInterval(tick,1000);tick();
+
+
+// DELTA TRACKING
+let _prevSfi=null, _prevTraffic=null, _prevWeather=null;
+function updateDeltaCard(sfi,traffic,weather){
+  function fmt(now,prev){if(prev===null||!Number.isFinite(now))return '--'; const d=Math.round(now-prev); return (d>=0?'+':'')+d;}
+  function col(v){return v>0?'var(--red)':v<0?'var(--green)':'var(--secondary)';}
+  ['deltaSfi','deltaTraffic','deltaWeather'].forEach((id,i)=>{
+    const el=document.getElementById(id); if(!el)return;
+    const vals=[sfi,traffic,weather]; const prevs=[_prevSfi,_prevTraffic,_prevWeather];
+    const d=prevs[i]!==null&&Number.isFinite(vals[i])?Math.round(vals[i]-prevs[i]):null;
+    el.textContent=d!==null?(d>=0?'+':'')+d:'--';
+    el.style.color=d!==null?col(d):'var(--secondary)';
+  });
+  _prevSfi=sfi; _prevTraffic=traffic; _prevWeather=weather;
+}
+
+
+// ── QUICKREAD HERO UPDATE ─────────────────────────────────────────────────
+function updateQuickRead(sfi, trafficScore, weatherScore, jetScore, delayScore, driver){
+  // SFI score + bar
+  const sfiEl=document.getElementById('qrSfiScore');
+  if(sfiEl) sfiEl.innerHTML=sfi+'<span class="qr-big-denom">/100</span>';
+  const sfiBar=document.getElementById('qrSfiBar');
+  if(sfiBar){
+    const cls=sfi>=70?'high':sfi>=60?'elevated':sfi>=55?'watch':'normal';
+    sfiBar.className='qr-bar-fill '+cls;
+    sfiBar.style.width=sfi+'%';
+  }
+  // SFI pill + trend
+  const qrPill=document.getElementById('qrSfiPill');
+  if(qrPill){
+    const cls=sfi>=70?'pill-high':sfi>=60?'pill-elevated':sfi>=55?'pill-watch':'pill-normal';
+    const lbl=sfi>=70?'High':sfi>=60?'Elevated':sfi>=55?'Watch':'Normal';
+    qrPill.className='pill '+cls; qrPill.textContent=lbl;
+  }
+  const qrTrend=document.getElementById('qrSfiTrend');
+  if(qrTrend){
+    const hist=SFI_HISTORY; const prev=hist.length>=2?hist[hist.length-2]:null;
+    const d=prev!==null?sfi-prev:0;
+    qrTrend.className='trend '+(d>=2?'trend-up':d<=-2?'trend-down':'trend-flat');
+    qrTrend.textContent=d>=5?'↑ Rising fast':d>=2?'↗ Rising':d<=-5?'↓ Falling fast':d<=-2?'↘ Easing':'→ Stable';
+  }
+  // Three input bars
+  const inputs=[
+    {bar:'qrTrafficBar',val:'qrTrafficVal',tag:'qrTrafficTag',score:trafficScore,key:'corridor density'},
+    {bar:'qrWeatherBar',val:'qrWeatherVal',tag:'qrWeatherTag',score:weatherScore,key:'weather pressure'},
+    {bar:'qrJetBar',val:'qrJetVal',tag:'qrJetTag',score:jetScore,key:'jet stream'},
+  ];
+  inputs.forEach(inp=>{
+    const ok=Number.isFinite(inp.score);
+    const b=document.getElementById(inp.bar); if(b) b.style.width=(ok?inp.score:0)+'%';
+    const v=document.getElementById(inp.val); if(v) v.textContent=ok?inp.score:'--';
+    const t=document.getElementById(inp.tag); if(t) t.style.visibility=driver===inp.key?'visible':'hidden';
+  });
+  // Delay
+  const dv=document.getElementById('qrDelayVal');
+  if(dv) dv.textContent=Number.isFinite(delayScore)?delayScore+'/100':'--';
+  const dp=document.getElementById('qrDelayPill');
+  if(dp && !Number.isFinite(delayScore)){dp.className='pill pill-nodata'; dp.textContent='No data';}
+  else if(dp){
+    const cls=delayScore>=70?'pill-high':delayScore>=60?'pill-elevated':delayScore>=50?'pill-watch':'pill-normal';
+    const lbl=delayScore>=70?'High':delayScore>=60?'Elevated':delayScore>=50?'Watch':'Normal';
+    dp.className='pill '+cls; dp.textContent=lbl;
+  }
+}
+// ── END QUICKREAD ─────────────────────────────────────────────────────────
+
+// SPARKLINES REMOVED
+// Credibility fix: historical trend graphics are not drawn until a real time-series store exists.
+// The previous deterministic placeholder generator was removed because it created fake historical variability.
+function drawSpark(id,data,color){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.outerHTML = `<div class="spark-placeholder">No historical series connected</div>`;
+}
+function updateLiveSparklines(){ return; }
+
+// LIVE DATA
+// The browser reads one snapshot from the GAPS server (/api/live). The server
+// fetches every public feed on a schedule. There are no fixed or made-up
+// fallback values: a feed that is down shows "No live data" and its true age.
+const FEED_LABELS={opensky:'OpenSky',faa:'FAA NAS',metar:'METAR',sigmet:'SIGMET',openmeteo:'Open-Meteo',kp:'NOAA Kp',hubTraffic:'Hub ADS-B',emergencies:'Squawks',eurocontrol:'EUROCONTROL'};
+const FEED_MAX_AGE_MIN={opensky:25,faa:25,metar:90,sigmet:60,openmeteo:90,kp:240,hubTraffic:30,emergencies:30};
+let SNAPSHOT=null, SNAPSHOT_ERROR=null, SNAPSHOT_LOADING=false;
+let fc=null;
+let liveAircraftOk=false, faaOk=false, awcOk=false;
+const FAA_STATE={programs:[],groundStops:[],groundDelays:[],arrDepDelays:[],airspaceFlows:[],closures:[],programLoad:null,affectedHubs:[],last:null};
+const HUB_TRAFFIC_STATE={radiusNm:40,hubs:{}};
+const SFI_HISTORY=[];
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function feedOf(k){return SNAPSHOT&&SNAPSHOT.feeds?SNAPSHOT.feeds[k]||null:null;}
+function feedTime(k){
+  if(k==='openmeteo' && !feedLive_raw('openmeteo') && LIVE_MODEL.weatherVia==='browser') return LIVE_MODEL.weatherAt||null;
+  const f=feedOf(k); return f&&f.data&&f.fetchedAt?Date.parse(f.fetchedAt):null;
+}
+function feedLive_raw(k){const f=feedOf(k); return !!(f&&f.data&&f.fetchedAt&&(Date.now()-Date.parse(f.fetchedAt))/60000<=(FEED_MAX_AGE_MIN[k]||30));}
+function feedLive(k){
+  if(k==='openmeteo') return weatherLive();
+  return feedLive_raw(k);
+}
+function weatherLive(){return !!(LIVE_MODEL.weather && DATA_HEALTH.openmeteo && Date.now()-DATA_HEALTH.openmeteo<=FEED_MAX_AGE_MIN.openmeteo*60000);}
+function hhmm(t){return Number.isFinite(t)?new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'--';}
+function ageLabel(k){const t=feedTime(k); if(!t)return 'no data'; const m=Math.round((Date.now()-t)/60000); return m<1?'just now':m<120?m+' min ago':Math.round(m/60)+' h ago';}
+function asOf(k){const t=feedTime(k); return t?(feedLive(k)?' · as of '+hhmm(t):' · last data '+hhmm(t)+', out of date'):'';}
+function fmtMin(m){if(!Number.isFinite(m))return '?'; return m>=60?Math.floor(m/60)+'h'+String(m%60).padStart(2,'0'):m+'m';}
+function setTileState(scoreId, live){const el=document.getElementById(scoreId); const tile=el&&el.closest('.st'); if(tile) tile.classList.toggle('no-data',!live);}
+
+function setFlightCount(v){
+  fc=Number.isFinite(v)?Math.round(v):null;
+  const fmt=fc===null?'--':fc.toLocaleString();
+  ['flightCount','ft-strip','ft-bc'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmt});
+  const up=document.getElementById('flightUpdated'); if(up) up.textContent=hhmm(feedTime('opensky'));
+  const sb=document.getElementById('staleBadge'); if(sb){sb.style.display=liveAircraftOk?'none':'inline-block'; sb.textContent=feedTime('opensky')?'OUT OF DATE':'NO LIVE DATA';}
+}
+function setApiStatus(){
+  const el=document.getElementById('apiStatus'); if(!el)return;
+  const keys=['opensky','faa','metar','sigmet','openmeteo','kp'];
+  let txt='Status: '+keys.map(k=>FEED_LABELS[k]+' '+(feedLive(k)?'live':'unavailable')).join(' · ');
+  if(SNAPSHOT&&SNAPSHOT.generatedAt) txt+=' · server snapshot '+hhmm(Date.parse(SNAPSHOT.generatedAt));
+  if(SNAPSHOT_ERROR) txt+=' · cannot reach the GAPS data server ('+SNAPSHOT_ERROR+')';
+  el.textContent=txt;
+  updateFeedFreshness();
+}
+const ADSB_STATS={observed:false,count:null,cruiseCount:null,avgAbsVerticalRate:null,emergencies:[],regions:null,lastUpdate:null};
+function metarForHub(iata){const f=feedOf('metar'); if(!f||!f.data)return null; return f.data.reports.find(r=>r.iata===iata)||null;}
+
+function applySnapshot(s){
+  SNAPSHOT=s;
+  // Aircraft (OpenSky)
+  liveAircraftOk=feedLive('opensky');
+  const os=feedOf('opensky');
+  if(liveAircraftOk){const d=os.data; Object.assign(ADSB_STATS,{observed:true,count:d.airborne,cruiseCount:d.cruise,avgAbsVerticalRate:d.avgAbsVerticalRate,regions:d.regions,lastUpdate:feedTime('opensky')});}
+  else {ADSB_STATS.observed=false; ADSB_STATS.regions=null;}
+  DATA_HEALTH.opensky=feedTime('opensky');
+  setFlightCount(liveAircraftOk?os.data.airborne:null);
+  // Emergency transponder codes: community ADS-B (adsb.lol) plus OpenSky
+  const em=[], seen=new Set();
+  const addEm=a=>{const k=a.callsign+'|'+a.code; if(!seen.has(k)){seen.add(k); em.push(a);}};
+  if(feedLive('emergencies')) feedOf('emergencies').data.items.forEach(addEm);
+  if(liveAircraftOk) (os.data.squawks||[]).forEach(addEm);
+  ADSB_STATS.emergencies=em;
+  // FAA NAS
+  faaOk=feedLive('faa'); DATA_HEALTH.faa=feedTime('faa');
+  const fa=feedOf('faa');
+  if(fa&&fa.data){
+    const d=fa.data;
+    Object.assign(FAA_STATE,{groundStops:d.groundStops||[],groundDelays:d.groundDelays||[],arrDepDelays:d.arrDepDelays||[],airspaceFlows:d.airspaceFlows||[],closures:d.closures||[],programLoad:d.programLoad,affectedHubs:d.affectedAirports||[],last:feedTime('faa')});
+    FAA_STATE.programs=[].concat(FAA_STATE.groundStops,FAA_STATE.groundDelays,FAA_STATE.airspaceFlows,FAA_STATE.arrDepDelays);
+  }
+  updateFaaPanel();
+  // METAR
+  awcOk=feedLive('metar'); DATA_HEALTH.metar=feedTime('metar');
+  if(awcOk){
+    const reports=feedOf('metar').data.reports;
+    LIVE_MODEL.metars=reports;
+    LIVE_MODEL.metarHubPressure=deriveMetarHubPressure(reports.map(r=>({rawOb:r.raw,wxString:r.wx,wspd:r.windKt,wgst:r.gustKt,visib:r.visSm})));
+  } else {LIVE_MODEL.metars=null; LIVE_MODEL.metarHubPressure=null;}
+  // Open-Meteo (the browser may also fetch this directly; see refreshLive)
+  if(feedLive_raw('openmeteo')){LIVE_MODEL.weather=feedOf('openmeteo').data.raw; DATA_HEALTH.openmeteo=Date.parse(feedOf('openmeteo').fetchedAt); LIVE_MODEL.weatherVia='server';}
+  // SIGMETs
+  DATA_HEALTH.sigmet=feedTime('sigmet');
+  SIGMET_STATE.items=feedLive('sigmet')?feedOf('sigmet').data.items:[];
+  SIGMET_STATE.counts=feedLive('sigmet')?feedOf('sigmet').data.counts:null;
+  SIGMET_STATE.relevant=SIGMET_STATE.items;
+  updateSigmetPanel();
+  // NOAA Kp
+  DATA_HEALTH.kp=feedTime('kp');
+  KP_STATE.kp=feedLive('kp')?feedOf('kp').data.kp:null;
+  updateKpDisplay();
+  // Aircraft near hubs (community ADS-B)
+  HUB_TRAFFIC_STATE.hubs=feedLive('hubTraffic')?feedOf('hubTraffic').data.hubs:{};
+  updateEcPanel();
+  updateHubsFromData();
+}
+
+async function refreshLive(){
+  if(SNAPSHOT_LOADING)return;
+  SNAPSHOT_LOADING=true;
+  try{
+    const opts={cache:'no-store'}; if(window.AbortSignal&&AbortSignal.timeout) opts.signal=AbortSignal.timeout(20000);
+    const res=await fetch('/api/live',opts);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const s=await res.json();
+    if(!s||!s.feeds)throw new Error('unexpected response');
+    SNAPSHOT_ERROR=null;
+    applySnapshot(s);
+  }catch(e){
+    SNAPSHOT_ERROR=(e&&e.name==='TimeoutError')?'timed out':((e&&e.message)||'error');
+    applySnapshot(SNAPSHOT||{feeds:{}}); // re-evaluate ages; nothing is invented
+  }finally{SNAPSHOT_LOADING=false;}
+  // Open-Meteo allows direct browser requests. If the server copy is missing,
+  // fetch it here (at most every 10 minutes) so weather stays live.
+  if(!feedLive_raw('openmeteo') && (!LIVE_MODEL.weatherAt || Date.now()-LIVE_MODEL.weatherAt>10*60000)) await fetchOpenMeteo();
+  updateDerivedLiveModel();
+  setApiStatus();
+  updateLiveBadge();
+}
+function updateLiveBadge(){
+  const el=document.getElementById('hdrLive'); if(!el)return;
+  const core=['opensky','faa','metar','openmeteo'].filter(feedLive).length;
+  el.classList.remove('partial','down');
+  if(core===4){el.textContent='● LIVE DATA';}
+  else if(core>0){el.textContent='● PARTIAL DATA · '+core+' of 4 core feeds'; el.classList.add('partial');}
+  else {el.textContent='● NO LIVE DATA'; el.classList.add('down');}
+}
+
+function updateFaaPanel(){
+  const el=document.getElementById('faaPanel'); if(!el)return;
+  const src='<div class="data-source">Source: FAA NAS Status (nasstatus.faa.gov)'+asOf('faa')+'</div>';
+  if(!feedTime('faa')){el.className='alert-panel'; el.innerHTML='<strong>FAA NAS:</strong> No live data. The FAA feed could not be reached.'+src; return;}
+  const gs=FAA_STATE.groundStops, gd=FAA_STATE.groundDelays, ad=FAA_STATE.arrDepDelays, af=FAA_STATE.airspaceFlows, cl=FAA_STATE.closures.filter(c=>c.full);
+  const stale=faaOk?'':'<div class="stale-note">Out of date: this is the last FAA data received.</div>';
+  if(!gs.length&&!gd.length&&!ad.length&&!af.length&&!cl.length){
+    el.className='alert-panel'+(faaOk?'':' stale');
+    el.innerHTML='<strong>FAA NAS:</strong> No ground stops or delay programs in effect in the US.'+stale+src; return;
+  }
+  const rows=[];
+  gs.forEach(p=>rows.push('<div class="faa-row high"><b>'+esc(p.airport)+'</b> Ground stop'+(p.reason?' · '+esc(p.reason):'')+(p.endTime?' · until '+esc(p.endTime):'')+'</div>'));
+  cl.forEach(p=>rows.push('<div class="faa-row high"><b>'+esc(p.airport)+'</b> Airport closed'+(p.reopen?' · reopens '+esc(p.reopen):'')+'</div>'));
+  gd.slice().sort((a,b)=>(b.avgMin||0)-(a.avgMin||0)).forEach(p=>rows.push('<div class="faa-row'+((p.avgMin||0)>=60?' high':'')+'"><b>'+esc(p.airport)+'</b> Delay program · avg '+fmtMin(p.avgMin)+(p.maxMin?' (max '+fmtMin(p.maxMin)+')':'')+(p.reason?' · '+esc(p.reason):'')+'</div>'));
+  af.forEach(p=>rows.push('<div class="faa-row"><b>'+esc(p.element||'Airspace')+'</b> Airspace flow program'+(p.avgMin?' · avg '+fmtMin(p.avgMin):'')+(p.reason?' · '+esc(p.reason):'')+'</div>'));
+  ad.forEach(p=>{const l=(p.legs||[])[0]||{}; rows.push('<div class="faa-row"><b>'+esc(p.airport)+'</b> '+esc((l.type||'').toLowerCase()||'')+' delays '+fmtMin(l.minMin)+'–'+fmtMin(l.maxMin)+(l.trend?' · '+esc(l.trend.toLowerCase()):'')+'</div>');});
+  const n=gs.length+gd.length+af.length+ad.length+cl.length;
+  el.className='alert-panel '+(gs.length||cl.length||gd.some(p=>(p.avgMin||0)>=60)?'high':'watch')+(faaOk?'':' stale');
+  el.innerHTML='<strong>FAA NAS · '+n+' active US initiative'+(n>1?'s':'')+'</strong><div class="faa-list">'+rows.join('')+'</div>'+stale+src;
+}
+function updateEcPanel(){
+  const el=document.getElementById('ecPanel'); if(!el)return;
+  el.className='alert-panel muted';
+  el.innerHTML='<strong>Europe (EUROCONTROL):</strong> Not connected. European flow-regulation data needs an approved EUROCONTROL B2B account; there is no free public feed, so GAPS shows no European delay data rather than an estimate.';
+}
+function deriveMetarHubPressure(metars){
+  if(!Array.isArray(metars) || !metars.length) return null;
+  let maxPressure=0, sumPressure=0, counted=0;
+  metars.forEach(m=>{
+    const raw = String(m.rawOb || m.raw_text || m.raw || '').toUpperCase();
+    const wx = String(m.wxString || m.wx_string || m.wx || '').toUpperCase();
+    const combined = (raw+' '+wx).toUpperCase();
+    const wind = Number(m.wspd ?? m.wind_speed_kt ?? m.wind_speed ?? 0);
+    const gust = Number(m.wgst ?? m.wind_gust_kt ?? m.gust ?? 0);
+    const vis = Number(m.visib ?? m.visibility_statute_mi ?? m.visibility ?? 10);
+    let pressure = 28;
+    if(/TS|\+TS|VCTS|TSRA|TSGR/.test(combined)) pressure += 32;
+    if(/\+RA|HVY|GR|SQ|FC/.test(combined)) pressure += 24;
+    if(/RA|SHRA|SN|FZRA|PL|GS/.test(combined)) pressure += 14;
+    if(/FG|BR|HZ|FU|DU|SA/.test(combined) || (Number.isFinite(vis) && vis < 3)) pressure += 18;
+    pressure += clamp(wind * 0.45 + gust * 0.85, 0, 24);
+    pressure = clamp(pressure, 15, 95);
+    maxPressure = Math.max(maxPressure, pressure);
+    sumPressure += pressure; counted++;
+  });
+  return counted ? Math.round(maxPressure*0.60 + (sumPressure/counted)*0.40) : null;
+}
+
+// DERIVED LIVE MODEL: updates SFI/GAPS-style scores from live public inputs where possible.
+
+
+const LIVE_MODEL={aircraft:null, metars:null, metarHubPressure:null, weather:null, faa:null, last:null};
+const DATA_HEALTH={opensky:null, metar:null, openmeteo:null, faa:null, eurocontrol:null, sigmet:null, kp:null};
+const SIGMET_STATE={last:null, active:[], relevant:[]};
+const KP_STATE={kp:null,last:null,status:'stale'};
+function cellRegionName(lon,lat){
+  if(lon>=-80 && lon<=10 && lat>=35 && lat<=70)return 'North Atlantic';
+  if((lon>=150 || lon<=-120) && lat>=20 && lat<=65)return 'Trans-Pacific';
+  if(lon>=80 && lon<=140 && lat>=-10 && lat<=25)return 'Southeast Asia';
+  if(lon>=-130 && lon<=-60 && lat>=20 && lat<=55)return 'North America';
+  if(lon>=-85 && lon<=-30 && lat>=-60 && lat<=15)return 'South America';
+  if(lon>=-15 && lon<=45 && lat>=30 && lat<=70)return 'Europe';
+  return 'global cell';
+}
+const SCORE_PREV=(()=>{try{return JSON.parse(localStorage.getItem('gap_last_scores')||'{}')}catch(e){return {}}})();
+function saveScorePrev(scores){try{localStorage.setItem('gap_last_scores',JSON.stringify(scores));}catch(e){}}
+function updateSfiHistory(sfi, metrics){
+  const key='gap_sfi_history_v2';
+  const now=Date.now();
+  try{
+    let log=JSON.parse(localStorage.getItem(key)||'[]')
+      .filter(x=>x && Number.isFinite(x.sfi) && now-Number(x.t)<36*3600*1000);
+    log.push({
+      t:now,
+      sfi:Number(sfi),
+      corridorScore:Number(metrics?.corridorScore ?? NaN),
+      weatherScore:Number(metrics?.weatherScore ?? NaN),
+      jetScore:Number(metrics?.jetScore ?? NaN),
+      delayScore:Number(metrics?.delayScore ?? NaN)
+    });
+    log=log.slice(-500);
+    localStorage.setItem(key,JSON.stringify(log));
+
+    const recent=log.filter(x=>now-x.t<=24*3600*1000);
+    const vals=recent.map(x=>x.sfi).filter(Number.isFinite);
+    const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+    const sd=vals.length>1?Math.sqrt(vals.reduce((a,b)=>a+Math.pow(b-avg,2),0)/(vals.length-1)):0;
+    const z=(avg!==null && sd>0)?(sfi-avg)/sd:0;
+    const delta=avg!==null?sfi-avg:0;
+
+    const old=log.slice().reverse().find(x=>now-x.t>=30*60000);
+    const vel=old ? (sfi-old.sfi)/((now-old.t)/60000) : (log.length>=2 ? (sfi-log[log.length-2].sfi)/Math.max(1,(now-log[log.length-2].t)/60000) : 0);
+
+    const momentum=['corridorScore','weatherScore','jetScore'].reduce((sum,k)=>sum+(positiveForLast(log,k,3)?1:0),0);
+    const convergence=clamp((Math.max(0,z)*28)+(Math.max(0,vel)*22)+(momentum*14),0,100);
+
+    return {avg,sd,z,delta,vel,convergence,count:vals.length,log};
+  }catch(e){
+    return {avg:null,sd:0,z:0,delta:0,vel:0,convergence:0,count:0,log:[]};
+  }
+}
+function computeSfiAcceleration(log){
+  try{
+    if(!Array.isArray(log) || log.length<7) return 0;
+    const pairs=[];
+    for(let i=Math.max(1,log.length-7); i<log.length; i++){
+      const a=log[i-1], b=log[i];
+      const mins=(b.t-a.t)/60000;
+      if(mins>0 && Number.isFinite(a.sfi) && Number.isFinite(b.sfi)){
+        pairs.push({t:b.t, vel:(b.sfi-a.sfi)/mins});
+      }
+    }
+    if(pairs.length<3) return 0;
+    const first=pairs[0], last=pairs[pairs.length-1];
+    const mins=(last.t-first.t)/60000;
+    return mins>0 ? (last.vel-first.vel)/mins : 0;
+  }catch(e){return 0;}
+}
+function computeFragility(corridorScore, weatherScore, jetScore){
+  const excess=[corridorScore,weatherScore,jetScore].map(v=>Math.max(0,Number(v)-72)).filter(v=>v>0);
+  if(!excess.length) return 0;
+  let raw=0;
+  if(excess.length===1) raw=Math.min(29,excess[0]*1.2); // one high input alone is not compounding
+  else if(excess.length===2) raw=excess[0]*excess[1]*1.6;
+  else raw=excess[0]*excess[1]*excess[2]*2.8;
+  return Math.round(clamp(raw,0,100));
+}
+function positiveForLast(log, metric, n){
+  if(!Array.isArray(log) || log.length<n+1) return false;
+  const rows=log.slice(-(n+1));
+  for(let i=1;i<rows.length;i++){
+    if(!Number.isFinite(rows[i][metric]) || !Number.isFinite(rows[i-1][metric]) || rows[i][metric]<=rows[i-1][metric]) return false;
+  }
+  return true;
+}
+
+function updatePressureEventLog(){
+  const el=document.getElementById('pressureEventLog'); if(!el)return;
+  try{
+    const evts=JSON.parse(localStorage.getItem('gap_pressure_events')||'[]').reverse();
+    if(!evts.length){el.innerHTML='<div class="ev-empty">No pressure events recorded yet. Events appear when SFI exceeds 70 then recovers below 60. Compare against known network disruptions to validate signal quality.</div>'; return;}
+    el.innerHTML=evts.map(function(e){return '<div class="ev-row"><span class="ev-ts">'+new Date(e.ts).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</span><span class="ev-sfi">Peak '+e.peakSfi+'</span><span class="ev-driver">'+e.driver+'</span><span class="ev-dur">'+e.durationMin+'m</span></div>';}).join('');
+  }catch(e){el.innerHTML='<div class="ev-empty">Log unavailable.</div>';}
+}
+
+function trafficRSI(log, period=14){
+  if(!Array.isArray(log) || log.length<period+1) return null;
+  const rows=log.slice(-(period+1));
+  let gains=0, losses=0, used=0;
+  for(let i=1;i<rows.length;i++){
+    const a=Number(rows[i-1].corridorScore), b=Number(rows[i].corridorScore);
+    if(!Number.isFinite(a)||!Number.isFinite(b)) continue;
+    const d=b-a; if(d>0) gains+=d; else losses+=Math.abs(d); used++;
+  }
+  if(used<period) return null;
+  const avgGain=gains/period, avgLoss=losses/period;
+  if(avgLoss===0) return 100;
+  const rs=avgGain/avgLoss;
+  return Math.round(100-(100/(1+rs)));
+}
+function updateLeadLagPanel(log){
+  const rows=[
+    ['corridorScore','leadTraffic'],
+    ['weatherScore','leadWeather'],
+    ['jetScore','leadJet']
+  ];
+  rows.forEach(([metric,id])=>{
+    const el=document.getElementById(id); if(!el)return;
+    let txt='↘ Lagging', cls='down';
+    if(positiveForLast(log,metric,3)){txt='↑ Leading'; cls='up';}
+    else if(positiveForLast(log,metric,2)){txt='↗ Building'; cls='build';}
+    else if(positiveForLast(log,metric,1)){txt='→ Holding'; cls='flat';}
+    el.textContent=txt; el.className='causal-status '+cls;
+  });
+}
+function updateTrendOutlook(hist, accel, sfi){
+  const vel=Number(hist?.vel||0), z=Number(hist?.z||0), delta=Number(hist?.delta||0), rsi=trafficRSI(hist?.log||[],14);
+  setText('velocityVal',(vel>=0?'+':'')+vel.toFixed(2)+' pts/min');
+  setText('velocityNote',vel>0.4?'Pressure building quickly.':vel<-0.2?'Pressure easing.':'Low momentum.');
+  setText('accelerationVal',(accel>=0?'+':'')+accel.toFixed(3)+' pts/min²');
+  let accNote='Acceleration stable.';
+  const accEl=document.getElementById('accelerationVal'); if(accEl){accEl.style.color='var(--navy)';}
+  if(accel>0 && vel>0.4){accNote='Accelerating — stress compounding.'; if(accEl)accEl.style.color='var(--red)';}
+  else if(accel<-0.08 && sfi>=60){accNote='Decelerating — recovering.'; if(accEl)accEl.style.color='var(--green)';}
+  setText('accelerationNote',accNote);
+  setText('anomalyVal',(z>=0?'+':'')+z.toFixed(2)+'σ');
+  setText('anomalyNote',(hist?.count||0)<4?'Collecting local baseline.':'Pressure delta '+(delta>=0?'+':'')+delta.toFixed(1)+' vs local baseline · convergence '+Math.round(hist.convergence||0)+'/100.');
+  if(rsi==null){setText('trafficRsiVal','--'); setText('trafficRsiNote','Collecting RSI baseline.');}
+  else{
+    setText('trafficRsiVal',String(rsi));
+    setText('trafficRsiNote',rsi>70?'Oversaturated — correction-prone':rsi<30?'Recovering':'Normal range');
+  }
+  updateLeadLagPanel(hist?.log||[]);
+}
+function sourceAgeLabel(t){if(!t)return 'stale'; const m=Math.round((Date.now()-t)/60000); return m<1?'now':m+'m ago';}
+function updateFeedFreshness(){
+  const el=document.getElementById('feedFreshness'); if(!el)return;
+  const keys=['opensky','faa','metar','sigmet','openmeteo','kp'];
+  el.innerHTML='<b>Freshness:</b> '+keys.map(k=>'<span class="'+(feedLive(k)?'fresh-ok':'fresh-bad')+'">'+FEED_LABELS[k]+' '+ageLabel(k)+'</span>').join(' · ')+' · <span class="fresh-bad">EUROCONTROL not connected</span>';
+}
+function setNowMarker(id,score){const el=document.getElementById(id); if(!el)return; if(!Number.isFinite(score)){el.style.visibility='hidden';return;} el.style.visibility='visible'; el.style.left=clamp(score,0,100)+'%'; el.classList.remove('red','yellow','green'); el.classList.add(score>=70?'red':score>=55?'yellow':'green');}
+function trendText(now,prev){if(!Number.isFinite(prev))return '→ New'; const d=now-prev; return d>=5?'↑ Rising':d>=2?'↗ Building':d<=-5?'↓ Improving':d<=-2?'↘ Easing':'→ Stable';}
+function setTrend(id,now,prev){const el=document.getElementById(id); if(!el)return; el.classList.remove('trend-up','trend-down','trend-flat'); if(!Number.isFinite(now)){el.textContent=''; return;} el.textContent=trendText(now,prev); const d=Number.isFinite(prev)?now-prev:0; el.classList.add(d>=2?'trend-up':d<=-2?'trend-down':'trend-flat');}
+function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+function setHTML(id,html){const el=document.getElementById(id); if(el)el.innerHTML=html;}
+function setText(id,text){const el=document.getElementById(id); if(el)el.textContent=(text===null||text===undefined||(typeof text==='number'&&!Number.isFinite(text)))?'--':text;}
+function scoreClass(v){return v>=70?'pill-high':v>=60?'pill-elevated':v>=45?'pill-watch':'pill-normal';}
+function statusWord(v){return v>=70?'High':v>=60?'Elevated':v>=45?'Watch':'Normal';}
+function updatePill(id,v){const el=document.getElementById(id); if(!el)return; if(!Number.isFinite(v)){el.className='pill pill-nodata'; el.textContent='No data'; return;} el.className='pill '+scoreClass(v); el.textContent=statusWord(v);}
+function updateScore(id,v){setHTML(id, (Number.isFinite(v)?Math.round(v):'--')+'<span class="st-denom">/100</span>');}
+function updateSigmetPanel(){
+  const el=document.getElementById('sigmetPanel'); if(!el)return;
+  const src='<div class="data-source">Source: AviationWeather.gov international and US SIGMETs'+asOf('sigmet')+'</div>';
+  if(!feedLive('sigmet')){el.className='alert-panel'; el.innerHTML='<strong>Active SIGMETs:</strong> No live data.'+src; return;}
+  const c=SIGMET_STATE.counts||{}, total=Object.values(c).reduce((a,b)=>a+b,0);
+  const names={TS:'Thunderstorm',TURB:'Turbulence',ICE:'Icing',VA:'Volcanic ash',MTW:'Mountain wave',TC:'Tropical cyclone'};
+  const parts=Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,n])=>'<div class="sigmet-item">'+esc(names[k]||k)+' · '+n+'</div>');
+  el.className='alert-panel'+((c.VA||0)>0?' watch':'');
+  el.innerHTML='<strong>Active SIGMETs worldwide: '+total+'</strong>'+(parts.length?'<div class="sigmet-list">'+parts.join('')+'</div>':'')+src;
+}
+function updateKpDisplay(){
+  const kp=KP_STATE.kp, ok=Number.isFinite(kp);
+  setHTML('kpScore',ok?kp.toFixed(1)+'<span class="st-denom">Kp</span>':'--<span class="st-denom">Kp</span>');
+  setNowMarker('kpNow',ok?Math.round(kp/9*100):null);
+  const pill=document.getElementById('kpPill');
+  if(pill){
+    if(!ok){pill.className='pill pill-nodata'; pill.textContent='No data';}
+    else {pill.className='pill '+(kp>=7?'pill-high':kp>=5?'pill-elevated':kp>=4?'pill-watch':'pill-normal'); pill.textContent=kp>=7?'Severe':kp>=5?'HF watch':kp>=4?'Active':'Quiet';}
+  }
+  setTileState('kpScore',ok);
+  setText('kpRaw',(ok?(kp>=5?'Geomagnetic storm · HF radio on polar/oceanic routes may degrade':'NOAA planetary K-index · quiet to unsettled'):'No live NOAA data')+asOf('kp'));
+}
+async function fetchOpenMeteo(){
+  // Browser fallback only: used when the server's copy is missing or old.
+  const lat='40.64,51.47,41.98,33.94,1.36,25.25,-33.39,35.77';
+  const lon='-73.78,-0.45,-87.9,-118.41,103.99,55.36,-70.79,140.39';
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m&hourly=wind_speed_250hPa,wind_direction_250hPa&wind_speed_unit=mph&timezone=UTC&forecast_days=2';
+  try{
+    const opts={cache:'no-store'}; if(window.AbortSignal&&AbortSignal.timeout) opts.signal=AbortSignal.timeout(12000);
+    const res=await fetch(url,opts);
+    if(!res.ok)throw new Error('Open-Meteo '+res.status);
+    const data=await res.json();
+    if(!Array.isArray(data))throw new Error('bad response');
+    LIVE_MODEL.weather=data; LIVE_MODEL.weatherVia='browser'; LIVE_MODEL.weatherAt=Date.now(); DATA_HEALTH.openmeteo=LIVE_MODEL.weatherAt;
+    return data;
+  }catch(e){
+    LIVE_MODEL.weatherAt=Date.now(); // don't retry for 10 minutes
+    if(LIVE_MODEL.weatherVia==='browser' && !weatherLive()){LIVE_MODEL.weather=null;}
+    return null;
+  }
+}
+function computeWeatherScore(){
+  const d=weatherLive()?LIVE_MODEL.weather:null;
+  let om=null;
+  if(d && Array.isArray(d) && d.length){
+    let max=0, sum=0;
+    d.forEach(point=>{
+      const c=point.current||{};
+      const wind=Number(c.wind_speed_10m||0), gust=Number(c.wind_gusts_10m||0), precip=Number(c.precipitation||0), code=Number(c.weather_code||0);
+      const convective = [95,96,99].includes(code) ? 35 : (code>=61&&code<=82?18:0);
+      const s=clamp(25 + wind*.55 + gust*.75 + precip*12 + convective, 15, 95);
+      max=Math.max(max,s); sum+=s;
+    });
+    om=Math.round((max*.6)+(sum/d.length*.4));
+  }
+  const ms=awcOk?LIVE_MODEL.metarHubPressure:null;
+  if(om!==null && Number.isFinite(ms)) return Math.round(om*.65 + ms*.35);
+  if(om!==null) return om;
+  if(Number.isFinite(ms)) return Math.round(ms);
+  return null;
+}
+function computeEdrProxy(weatherScore){
+  const d=weatherLive()?LIVE_MODEL.weather:null;
+  if(!d || !Array.isArray(d) || !Number.isFinite(weatherScore)) return null;
+  let maxGust=0;
+  d.forEach(point=>{maxGust=Math.max(maxGust, Number((point.current||{}).wind_gusts_10m||0));});
+  return Math.round(clamp(35 + maxGust*.85 + (weatherScore-50)*.25, 20, 92));
+}
+function computeCorridorScore(){
+  if(!liveAircraftOk || !Number.isFinite(fc)) return null;
+  const hour = new Date().getUTCHours();
+  // Time-of-day normalisation: global traffic is lower overnight (UTC) and peaks during the Europe/US overlap.
+  const timeOfDayMod = 1 + 0.18 * Math.sin(Math.PI * (hour - 4) / 14);
+  const adjusted = fc / Math.max(0.82, timeOfDayMod);
+  // Provisional scaling to the range OpenSky actually reports (it sees a few
+  // thousand to ~10,000 aircraft, not every aircraft airborne). To be
+  // recalibrated against stored history.
+  return Math.round(clamp(42 + ((adjusted-5000)/6000)*45, 20, 92));
+}
+function computeDelayScore(){
+  return (faaOk && Number.isFinite(FAA_STATE.programLoad)) ? FAA_STATE.programLoad : null;
+}
+
+// FINAL CLEAN MODEL OVERRIDE: three independent inputs only.
+function computeJetStreamScore(){
+  const d=weatherLive()?LIVE_MODEL.weather:null;
+  LIVE_MODEL.jetOutlookScore=null; LIVE_MODEL.jetMax=null;
+  if(!d || !Array.isArray(d)) return null;
+  const now=Date.now();
+  let maxWind=0, maxAt=null, sumWind=0, count=0, outlookMax=0;
+  const pts=['JFK','LHR','ORD','LAX','SIN','DXB','SCL','NRT'];
+  d.forEach((point,pi)=>{
+    const hourly=point.hourly||{};
+    const arr=hourly.wind_speed_250hPa||[];
+    const times=hourly.time||[];
+    if(Array.isArray(arr) && arr.length){
+      let idx=0, best=Infinity;
+      times.forEach((t,i)=>{const diff=Math.abs(new Date(String(t)+'Z').getTime()-now); if(Number.isFinite(diff) && diff<best){best=diff; idx=i;}});
+      const v=Number(arr[Math.min(idx,arr.length-1)]);
+      if(Number.isFinite(v)){ if(v>maxWind){maxWind=v; maxAt=pts[pi]||null;} sumWind+=v; count++; }
+      for(let j=idx;j<=idx+6 && j<arr.length;j++){const fv=Number(arr[j]); if(Number.isFinite(fv))outlookMax=Math.max(outlookMax,fv);}
+    }
+  });
+  if(!count) return null;
+  const avg=sumWind/count;
+  LIVE_MODEL.jetOutlookScore=Math.round(clamp(28 + outlookMax*0.48 + avg*0.10, 25, 94));
+  LIVE_MODEL.jetMax={mph:Math.round(maxWind),at:maxAt};
+  return Math.round(clamp(28 + maxWind*0.42 + avg*0.16, 25, 92));
+}
+function hubStatusFor(iata){
+  const out={status:'unknown',label:iata};
+  if(!faaOk && !awcOk) return out;
+  out.status='normal';
+  if(faaOk){
+    const gs=FAA_STATE.groundStops.find(p=>p.airport===iata), cl=FAA_STATE.closures.find(p=>p.airport===iata&&p.full);
+    const gd=FAA_STATE.groundDelays.find(p=>p.airport===iata), ad=FAA_STATE.arrDepDelays.find(p=>p.airport===iata);
+    if(gs||cl){out.status='high'; out.label=iata+(gs?' ground stop':' closed'); return out;}
+    if(gd){out.status=(gd.avgMin||0)>=60?'high':'watch'; out.label=iata+' delay prog. '+fmtMin(gd.avgMin); return out;}
+    if(ad){out.status='watch'; out.label=iata+' delays'; return out;}
+  }
+  const m=awcOk?metarForHub(iata):null;
+  if(m){
+    if(m.fltCat==='LIFR'){out.status='high'; out.label=iata+' LIFR';}
+    else if(/TS/.test(m.wx||'')){out.status='watch'; out.label=iata+' thunderstorm';}
+    else if(m.fltCat==='IFR'){out.status='watch'; out.label=iata+' IFR';}
+  }
+  return out;
+}
+function updateHubsFromData(){
+  const list=(SNAPSHOT&&SNAPSHOT.airports)||[];
+  list.forEach(a=>{const s=hubStatusFor(a.iata); HUBS[a.iata]={lat:a.lat,lon:a.lon,status:s.status,label:s.label};});
+}
+function updateRouteStatuses(){
+  const rank={unknown:0,normal:1,watch:2,high:3};
+  ROUTES.forEach(r=>{
+    const a=HUBS[r[0]], b=HUBS[r[1]];
+    const sa=a?a.status:'unknown', sb=b?b.status:'unknown';
+    r[2]=rank[sa]>=rank[sb]?sa:sb;
+  });
+}
+function directionLabel(delta){return delta>=5?'↑ Rising':delta>=2?'↗ Building':delta<=-5?'↓ Improving':delta<=-2?'↘ Easing':'→ Stable';}
+function directionalTti(sfi,delta){
+  if(sfi>=70) return 'Now';
+  if(delta>=5) return 'Near';
+  if(delta>=2) return '60+ min';
+  return 'Not near threshold';
+}
+function setDirectionClass(id,score){
+  const el=document.getElementById(id); if(!el)return;
+  el.classList.remove('red','yellow','green');
+  if(score>=70) el.classList.add('red');
+  else if(score>=55) el.classList.add('yellow');
+  else el.classList.add('green');
+}
+function setInsightBadge(id,score,label){
+  const el=document.getElementById(id); if(!el)return;
+  el.className='ta-badge pill '+scoreClass(score);
+  el.textContent=label || statusWord(score);
+}
+function setInsightCardClass(id,score){
+  const el=document.getElementById(id); if(!el)return;
+  el.classList.remove('ta-high','ta-elevated','ta-watch');
+  el.classList.add(score>=70?'ta-high':score>=60?'ta-elevated':'ta-watch');
+}
+function updateLiveInsightPanel(corridorScore,weatherScore,jetScore){
+  let items=[];
+  const em=ADSB_STATS.emergencies||[];
+  if(em.length){
+    items.push({score:90,badge:'Squawk '+em[0].code,text:'[TRANSPONDER] '+em.length+' aircraft broadcasting an emergency code: '+em.slice(0,3).map(a=>a.callsign+' ('+a.code+', '+a.region+')').join(', ')+'. Transponder codes only, not confirmed incidents.'});
+  }
+  if(faaOk){
+    const gs=FAA_STATE.groundStops, gd=FAA_STATE.groundDelays.slice().sort((a,b)=>(b.avgMin||0)-(a.avgMin||0));
+    if(gs.length) items.push({score:92,badge:'Ground stop',text:'[FAA] Ground stop'+(gs.length>1?'s':'')+' at '+gs.map(p=>p.airport+(p.reason?' ('+p.reason+')':'')).join(', ')+'.'});
+    if(gd.length) items.push({score:Math.min(88,58+gd.length*5+(gd[0].avgMin||0)/10),badge:gd.length+' delay program'+(gd.length>1?'s':''),text:'[FAA] Ground delay programs at '+gd.slice(0,4).map(p=>p.airport+' avg '+fmtMin(p.avgMin)+(p.reason?' ('+p.reason+')':'')).join(', ')+'.'});
+    if(!gs.length && !gd.length) items.push({score:30,badge:'Normal',text:'[FAA] No ground stops or ground delay programs in the US right now.'});
+  }
+  if(awcOk){
+    const low=(LIVE_MODEL.metars||[]).filter(r=>r.fltCat==='IFR'||r.fltCat==='LIFR');
+    const ts=(LIVE_MODEL.metars||[]).filter(r=>/TS/.test(r.wx||''));
+    if(ts.length) items.push({score:78,badge:'Thunderstorms',text:'[WEATHER] Thunderstorms reported at '+ts.map(r=>r.iata).join(', ')+'.'});
+    if(low.length) items.push({score:low.some(r=>r.fltCat==='LIFR')?74:64,badge:'Low ceilings',text:'[WEATHER] Instrument conditions (low cloud or visibility) at '+low.map(r=>r.iata+' '+r.fltCat).join(', ')+'.'});
+    if(!ts.length && !low.length) items.push({score:25,badge:'Normal',text:'[WEATHER] No thunderstorms or instrument conditions at the '+(LIVE_MODEL.metars||[]).length+' monitored airports.'});
+  }
+  if(Number.isFinite(KP_STATE.kp) && KP_STATE.kp>=5) items.push({score:74+KP_STATE.kp,badge:'Kp '+KP_STATE.kp.toFixed(1),text:'[SPACE WEATHER] Geomagnetic storm (Kp '+KP_STATE.kp.toFixed(1)+'). HF radio on polar and North Atlantic routes may degrade.'});
+  if(SIGMET_STATE.counts && SIGMET_STATE.counts.VA) items.push({score:70,badge:'Volcanic ash',text:'[SIGMET] '+SIGMET_STATE.counts.VA+' active volcanic ash SIGMET'+(SIGMET_STATE.counts.VA>1?'s':'')+'.'});
+  if(Number.isFinite(jetScore) && LIVE_MODEL.jetMax) items.push({score:jetScore,badge:jetScore>=60?'Upper-air watch':'Normal',text:'[UPPER-AIR] Strongest 250 hPa wind in the 8-point sample: '+LIVE_MODEL.jetMax.mph+' mph near '+LIVE_MODEL.jetMax.at+'.'});
+  items=items.sort((a,b)=>b.score-a.score).slice(0,3);
+  const slots=[['insightOneText','insightOneBadge','insightOneCard'],['insightTwoText','insightTwoBadge','insightTwoCard'],['insightThreeText','insightThreeBadge','insightThreeCard']];
+  slots.forEach(([textId,badgeId,cardId],i)=>{
+    const item=items[i];
+    if(item){setText(textId,item.text); setInsightBadge(badgeId,item.score,item.badge); setInsightCardClass(cardId,item.score);}
+    else {setText(textId,'No live data for this slot.'); const b=document.getElementById(badgeId); if(b){b.className='ta-badge pill pill-nodata'; b.textContent='No data';}}
+  });
+  const alert=document.getElementById('adsbAlertPanel');
+  if(alert){
+    const src='<div class="data-source">Source: adsb.lol community receivers + OpenSky'+asOf('emergencies')+'</div>';
+    if(!feedLive('emergencies') && !liveAircraftOk){alert.className='alert-panel'; alert.innerHTML='<strong>Emergency transponder codes:</strong> No live data.'+src;}
+    else if(em.length){alert.className='alert-panel high'; alert.innerHTML='<strong>Emergency transponder codes: '+em.length+'</strong><div class="faa-list">'+em.slice(0,6).map(a=>'<div class="faa-row high"><b>'+esc(a.callsign)+'</b> squawk '+esc(a.code)+' · '+esc(a.region)+(a.alt?' · '+a.alt.toLocaleString()+' ft':'')+'</div>').join('')+'</div>'+src;}
+    else {alert.className='alert-panel'; alert.innerHTML='<strong>Emergency transponder codes:</strong> No aircraft broadcasting 7700, 7600 or 7500.'+src;}
+  }
+}
+
+
+function updateDerivedLiveModel(){
+  const weatherScore=computeWeatherScore();
+  const windStressScore=computeEdrProxy(weatherScore);
+  const corridorScore=computeCorridorScore();
+  const jetScore=computeJetStreamScore();
+  const delayScore=computeDelayScore();
+  const W={corridor:.42,weather:.36,jet:.22};
+  const avail=[['corridor',corridorScore],['weather',weatherScore],['jet',jetScore]].filter(([,v])=>Number.isFinite(v));
+  const wsum=avail.reduce((s,[k])=>s+W[k],0);
+  const sfi=avail.length>=2?Math.round(clamp(avail.reduce((s,[k,v])=>s+v*W[k],0)/wsum,0,100)):null;
+  const missing=['Traffic','Weather','Upper-Air'].filter((n,i)=>!Number.isFinite([corridorScore,weatherScore,jetScore][i]));
+
+  // Input tiles — each shows its own data age; no stand-in values.
+  updateScore('corridorScore',corridorScore); updateScore('weatherScore',weatherScore); updateScore('edrScore',jetScore); updateScore('delayScore',delayScore); updateScore('sfiScore',sfi);
+  setText('compCorridor',corridorScore); setText('compWeather',weatherScore); setText('compJet',jetScore); setText('compEdr',windStressScore); setText('compDelay',delayScore);
+  setTileState('corridorScore',corridorScore!=null); setTileState('weatherScore',weatherScore!=null); setTileState('edrScore',jetScore!=null); setTileState('delayScore',delayScore!=null); setTileState('sfiScore',sfi!=null); setTileState('ft-strip',liveAircraftOk);
+  setText('corridorRaw', corridorScore!=null ? fc.toLocaleString()+' aircraft airborne (OpenSky) · provisional scaling'+asOf('opensky') : 'No live aircraft data'+asOf('opensky'));
+  const wxSrc=[weatherLive()?'Open-Meteo 8 points':null, awcOk?'METAR '+(LIVE_MODEL.metars||[]).length+' airports':null].filter(Boolean).join(' + ');
+  setText('weatherRaw', weatherScore!=null ? wxSrc+asOf(awcOk?'metar':'openmeteo') : 'No live weather data'+asOf('metar'));
+  setText('edrRaw', jetScore!=null ? '250 hPa wind · max '+LIVE_MODEL.jetMax.mph+' mph near '+LIVE_MODEL.jetMax.at+' · +6h outlook '+LIVE_MODEL.jetOutlookScore+'/100'+asOf('openmeteo') : 'No live upper-air data'+asOf('openmeteo'));
+  const gsN=FAA_STATE.groundStops.length, gdN=FAA_STATE.groundDelays.length, otherN=FAA_STATE.arrDepDelays.length+FAA_STATE.airspaceFlows.length;
+  setText('delayRaw', delayScore!=null ? gsN+' ground stop'+(gsN===1?'':'s')+' · '+gdN+' delay program'+(gdN===1?'':'s')+(otherN?' · '+otherN+' other':'')+asOf('faa') : 'No live FAA data'+asOf('faa'));
+  setText('flightRaw', liveAircraftOk ? (ADSB_STATS.cruiseCount||0).toLocaleString()+' at cruise altitude · OpenSky receivers'+asOf('opensky') : 'No live aircraft data'+asOf('opensky'));
+  setText('sfiRaw', sfi===null ? 'Needs at least 2 of 3 live inputs' : (missing.length?'Partial: '+missing.join(', ')+' unavailable, weights rescaled':'All 3 inputs live')+' · '+hhmm(Date.now()));
+  updatePill('sfiStatusPill',sfi); updatePill('weatherPill',weatherScore); updatePill('edrPill',jetScore); updatePill('delayPill',delayScore); updatePill('corridorPill',corridorScore);
+  const fp=document.getElementById('flightStatusPill'); if(fp){fp.className='pill '+(liveAircraftOk?'pill-normal':'pill-nodata'); fp.textContent=liveAircraftOk?'Live':'No data';}
+  setNowMarker('sfiNow',sfi); setNowMarker('flightNow',corridorScore); setNowMarker('weatherNow',weatherScore); setNowMarker('jetNow',jetScore); setNowMarker('delayNow',delayScore); setNowMarker('corridorNow',corridorScore); updateKpDisplay();
+  setTrend('sfiTrend',sfi,SCORE_PREV.sfi); setTrend('flightTrend',corridorScore,SCORE_PREV.corridor); setTrend('weatherTrend',weatherScore,SCORE_PREV.weather); setTrend('edrTrend',jetScore,SCORE_PREV.jet); setTrend('delayTrend',delayScore,SCORE_PREV.delay); setTrend('corridorTrend',corridorScore,SCORE_PREV.corridor);
+  document.querySelectorAll('.st').forEach(el=>el.classList.remove('alert-high')); const sfiTile=document.getElementById('sfiScore')?.closest('.st'); if(sfiTile && sfi>=70)sfiTile.classList.add('alert-high');
+  const liveCore=['opensky','faa','metar','openmeteo'].filter(feedLive);
+  setText('topDataStatus', liveCore.length===4?'All core feeds live':liveCore.length?'Partial · '+liveCore.length+' of 4 core feeds live':'No live data');
+  setDirectionClass('topDataStatus', liveCore.length===4?0:liveCore.length?60:80);
+  const src=Object.keys(FEED_MAX_AGE_MIN).filter(k=>k!=='hubTraffic').map(k=>FEED_LABELS[k]+(feedLive(k)?' live':' unavailable'));
+  const dot=document.getElementById('sourceDot'); if(dot) dot.className='live-dot '+(liveCore.length===4?'':'warn');
+  setText('sourceSummary',src.join(' · ')+' · EUROCONTROL not connected');
+  updateFeedFreshness();
+  updateRouteStatuses();
+  updateLiveInsightPanel(corridorScore,weatherScore,jetScore);
+  updateRegionAndDelaySummary();
+
+  if(sfi===null){ renderNoIndex(avail.length); drawMap(); return; }
+
+  const driverKey=avail.slice().sort((a,b)=>b[1]-a[1])[0][0];
+  const driver = driverKey==='corridor' ? 'corridor density' : driverKey==='weather' ? 'weather pressure' : 'upper-air jet stream';
+  const driverDisplay = driverKey==='corridor' ? 'Traffic' : driverKey==='weather' ? 'Weather' : 'Upper-Air';
+  let fragilityScore=computeFragility(corridorScore??0,weatherScore??0,jetScore??0);
+  const hist=updateSfiHistory(sfi,{corridorScore,weatherScore,jetScore,delayScore});
+  const accel=computeSfiAcceleration(hist.log);
+  SFI_HISTORY.push(sfi); if(SFI_HISTORY.length>500) SFI_HISTORY.shift();
+
+  // Pressure event tracker (this browser only, until server history is shown)
+  if(!window.GAP_PEAK){window.GAP_PEAK={active:false,peakSfi:0,peakDriver:'',startTime:null};}
+  const pk=window.GAP_PEAK;
+  if(!pk.active && sfi>=70){pk.active=true; pk.peakSfi=sfi; pk.peakDriver=driver; pk.startTime=Date.now();}
+  if(pk.active && sfi>pk.peakSfi){pk.peakSfi=sfi; pk.peakDriver=driver;}
+  if(pk.active && sfi<60){
+    try{
+      const evKey='gap_pressure_events';
+      const evts=JSON.parse(localStorage.getItem(evKey)||'[]');
+      evts.push({ts:new Date(pk.startTime).toISOString(),peakSfi:pk.peakSfi,driver:pk.peakDriver,durationMin:Math.round((Date.now()-pk.startTime)/60000)});
+      localStorage.setItem(evKey,JSON.stringify(evts.slice(-20)));
+    }catch(e){}
+    pk.active=false; pk.peakSfi=0; pk.startTime=null;
+  }
+
+  // Straight-line projection from this browser's recent SFI readings. Not a forecast.
+  const vel = Number.isFinite(hist.vel) && hist.count >= 4 ? hist.vel : 0;
+  const f1 = Math.round(clamp(sfi + vel*60, 0, 100));
+  const f3 = Math.round(clamp(sfi + vel*180, 0, 100));
+  const f6 = Math.round(clamp(sfi + vel*360, 0, 100));
+  const delta60=f1-sfi;
+  const faaLine = !faaOk ? '' : FAA_STATE.groundStops.length ? ' '+FAA_STATE.groundStops.length+' US ground stop'+(FAA_STATE.groundStops.length>1?'s':'')+' in effect.' : FAA_STATE.groundDelays.length ? ' US delay programs at '+FAA_STATE.groundDelays.map(p=>p.airport).join(', ')+'.' : ' No US delay programs.';
+  const level = sfi>=70 ? 'Network pressure high, driven by '+driverDisplay.toLowerCase()+'.' : sfi>=55 ? 'Pressure elevated, mainly '+driverDisplay.toLowerCase()+'.' : sfi>=45 ? 'Slight pressure, mainly '+driverDisplay.toLowerCase()+'.' : 'Conditions near normal.';
+  const plainTerms = level+faaLine;
+  const systemDirection = directionLabel(delta60).replace(/^[^ ]+ /,'') + ' / ' + statusWord(sfi);
+  const riskWindow = sfi>=70 ? 'Active now' : delta60>=2 ? 'Rising — watch the next hour' : 'Not near threshold';
+  LIVE_MODEL.snapshot={sfi,weatherScore,corridorScore,jetScore,delayScore,windStressScore,delta60,driver};
+
+  updateTrendOutlook(hist,accel,sfi);
+  const rv=document.getElementById('riskTrendVal'); if(rv){rv.className='sum-val '+(delta60>=2?'trend-up':delta60<=-2?'trend-down':'trend-flat'); rv.textContent=directionLabel(delta60)+(delta60>=2?' · Pressure building':delta60<=-2?' · Pressure easing':' · Holding steady');}
+  setText('riskTrendSub', hist.count>=4 ? 'Straight-line projection from this session: SFI '+sfi+' now → '+f1+' in 60 minutes. Main driver: '+driverDisplay+'.' : 'Collecting readings in this browser (needs ~4 updates). Main driver: '+driverDisplay+'.');
+  setText('ttiVal',directionalTti(sfi,delta60));
+  setText('ttiSub',sfi>=70?'Pressure threshold already active.':'Directional readout only.');
+  setText('forecastBig','Now '+sfi+' → '+f1+' / +1h');
+  setText('forecastBigBottom', hist.count>=4 ? 'Now '+sfi+' → '+f6+' at +6h (straight line)' : 'Collecting readings…');
+  setText('fcNow',String(sfi)); setText('fcP1',String(f1)); setText('fcP3',String(f3)); setText('fcP6',String(f6));
+  drawOutlookChart([sfi,f1,f3,f6]);
+  setText('forecastCopy','Straight-line projection from the SFI readings this browser has collected. '+driverDisplay+' is the largest input right now. Not a forecast: real 3–6 hour forecasts come later, once stored history can test them.');
+  const allLive=missing.length===0;
+  updateDeltaCard(sfi,corridorScore,weatherScore);
+  updateQuickRead(sfi,corridorScore,weatherScore,jetScore,delayScore,driver);
+  setText('systemDirectionVal', systemDirection); setDirectionClass('systemDirectionVal', sfi);
+  const statusMarker=document.getElementById('systemStatusMarker'); if(statusMarker) statusMarker.style.left=clamp(sfi,0,100)+'%';
+  setText('primaryDriverVal', driverDisplay);
+  setText('riskWindowVal', riskWindow); setDirectionClass('riskWindowVal', sfi);
+  setText('confidenceVal', fragilityScore+'/100'); setDirectionClass('confidenceVal', fragilityScore); setText('fragilitySub','Rises non-linearly when inputs compound. '+(fragilityScore>=60?'Fragility building.':fragilityScore>=30?'Compound pressure watch.':'Low compound fragility.'));
+  setText('plainTermsVal',plainTerms);
+  setText('plainTermsHero',plainTerms);
+  setText('primaryDriverHero', driverDisplay+(allLive?'':' (partial inputs)'));
+  setText('primaryDriverContext', driverKey==='corridor'?'Aircraft count relative to time of day is the largest input right now.':driverKey==='weather'?'Airport weather is the largest input right now.':'Cruise-altitude (250 hPa) winds are the largest input right now.');
+  setText('fragilityHero', fragilityScore>=60?'High — inputs compounding':fragilityScore>=30?'Moderate — watch for convergence':'Low — inputs not compounding');
+  setText('confTraffic', liveAircraftOk?'Live · OpenSky'+asOf('opensky'):'No live data');
+  setText('confVertical', weatherLive()?'Live · Open-Meteo upper-air':'No live data');
+
+  // Action layer
+  (function(){
+    const dot=document.getElementById('actionDot');
+    let statusLabel, statusCls;
+    if(sfi>=70){statusLabel='High pressure'; statusCls='high';}
+    else if(sfi>=55){statusLabel='Elevated'; statusCls='warn';}
+    else if(sfi>=45){statusLabel='Watch'; statusCls='warn';}
+    else {statusLabel='Normal'; statusCls='';}
+    const trajText = hist.count<4 ? 'Collecting' : delta60>=4 ? '↑ Rising fast' : delta60>=2 ? '↗ Building' : delta60<=-4 ? '↓ Easing fast' : delta60<=-2 ? '↘ Easing' : '→ Stable';
+    if(dot) dot.className='al-status-dot'+(statusCls==='high'?' high':statusCls==='warn'?' warn':'');
+    setText('actionStatus', statusLabel+(allLive?'':' · partial data'));
+    setHTML('actionExpect','<strong>Now:</strong> '+esc(plainTerms));
+    setText('actionHorizon', riskWindow);
+    setText('actionDriver', driverDisplay);
+    setText('actionTrajectory', trajText);
+    [['Traffic',corridorScore,.42],['Weather',weatherScore,.36],['Jet',jetScore,.22]].forEach(([n,v,w])=>{
+      const bar=document.getElementById('alBar'+n), val=document.getElementById('alVal'+n);
+      if(!Number.isFinite(v)){ if(bar) bar.style.width='0%'; if(val) val.textContent='--'; return; }
+      const c=Math.round(v*w/wsum);
+      if(bar) bar.style.width=Math.round(v)+'%';
+      if(val) val.textContent='+'+c;
+    });
+  })();
+
+  LIVE_MODEL.last=new Date();
+  SCORE_PREV.sfi=sfi; SCORE_PREV.weather=weatherScore; SCORE_PREV.jet=jetScore; SCORE_PREV.delay=delayScore; SCORE_PREV.corridor=corridorScore; saveScorePrev(SCORE_PREV);
+  updatePressureEventLog();
+  drawMap();
+}
+function renderNoIndex(n){
+  const msg = n===1 ? 'Only 1 of 3 inputs is live, so the index is not shown.' : 'No live inputs right now, so the index is not shown.';
+  setHTML('qrSfiScore','--<span class="qr-big-denom">/100</span>');
+  const bar=document.getElementById('qrSfiBar'); if(bar){bar.style.width='0%';}
+  const p=document.getElementById('qrSfiPill'); if(p){p.className='pill pill-nodata'; p.textContent='No data';}
+  setText('qrSfiTrend','');
+  setText('plainTermsHero',msg); setText('plainTermsVal',msg);
+  setText('primaryDriverHero','--'); setText('primaryDriverContext','Waiting for live inputs.');
+  setText('fragilityHero','--');
+  setText('actionStatus','Insufficient live data'); setHTML('actionExpect','<strong>Now:</strong> '+msg);
+  const dot=document.getElementById('actionDot'); if(dot) dot.className='al-status-dot warn';
+  ['actionHorizon','actionDriver','actionTrajectory','systemDirectionVal','riskWindowVal','forecastBig','forecastBigBottom','fcNow','fcP1','fcP3','fcP6','riskTrendVal'].forEach(id=>setText(id,'--'));
+  setText('riskTrendSub',msg);
+  drawOutlookChart(null);
+}
+function updateRegionAndDelaySummary(){
+  const r=ADSB_STATS.regions;
+  if(liveAircraftOk && r){
+    const top=Object.entries(r).filter(([k])=>k!=='Other').sort((a,b)=>b[1]-a[1]).slice(0,3);
+    setText('topCorridorVal', top.length?top[0][0]:'--');
+    setText('topCorridorSub', top.map(([k,n])=>k+' '+n.toLocaleString()).join(' · ')+' aircraft (OpenSky)'+asOf('opensky'));
+  } else {setText('topCorridorVal','No live data'); setText('topCorridorSub','OpenSky aircraft positions unavailable'+asOf('opensky'));}
+  if(faaOk){
+    const gs=FAA_STATE.groundStops[0], gd=FAA_STATE.groundDelays.slice().sort((a,b)=>(b.avgMin||0)-(a.avgMin||0))[0];
+    if(gs){setText('delayAirportVal',gs.airport+' · ground stop'); setText('delayAirportSub',(gs.reason||'')+asOf('faa'));}
+    else if(gd){setText('delayAirportVal',gd.airport+' · avg '+fmtMin(gd.avgMin)); setText('delayAirportSub','Ground delay program'+(gd.reason?' · '+gd.reason:'')+asOf('faa'));}
+    else {setText('delayAirportVal','No US delay programs'); setText('delayAirportSub','FAA NAS Status'+asOf('faa'));}
+  } else {setText('delayAirportVal','No live data'); setText('delayAirportSub','FAA feed unavailable'+asOf('faa'));}
+}
+function drawOutlookChart(vals){
+  const line=document.getElementById('fcLine'), area=document.getElementById('fcArea');
+  const dots=['fcDot0','fcDot1','fcDot2','fcDot3'].map(id=>document.getElementById(id));
+  if(!line||!area)return;
+  if(!vals){line.setAttribute('points',''); area.setAttribute('d',''); dots.forEach(d=>d&&d.setAttribute('r','0')); return;}
+  const xs=[0,70,140,210], y=v=>Math.round(68-v*0.6);
+  const pts=vals.map((v,i)=>xs[i]+','+y(v));
+  line.setAttribute('points',pts.join(' '));
+  area.setAttribute('d','M'+pts.join(' L')+' L210 72 L0 72Z');
+  dots.forEach((d,i)=>{if(d){d.setAttribute('cx',xs[i]); d.setAttribute('cy',y(vals[i])); d.setAttribute('r','4');}});
+}
+
+
+// MAP
+// Reference positions only. Status and labels come from live FAA and METAR data.
+const HUBS={
+  JFK:{lat:40.64,lon:-73.78,status:'unknown',label:'JFK'}, ORD:{lat:41.98,lon:-87.90,status:'unknown',label:'ORD'},
+  LAX:{lat:33.94,lon:-118.41,status:'unknown',label:'LAX'}, LHR:{lat:51.47,lon:-0.45,status:'unknown',label:'LHR'},
+  DXB:{lat:25.25,lon:55.36,status:'unknown',label:'DXB'}, SIN:{lat:1.36,lon:103.99,status:'unknown',label:'SIN'},
+  NRT:{lat:35.77,lon:140.39,status:'unknown',label:'NRT'}, SCL:{lat:-33.39,lon:-70.79,status:'unknown',label:'SCL'}
+};
+// Reference network lines between major hubs (not live flight paths).
+const ROUTES=[['JFK','LHR','unknown'],['LAX','JFK','unknown'],['LAX','NRT','unknown'],['LHR','DXB','unknown'],['DXB','SIN','unknown'],['SCL','JFK','unknown'],['LHR','SIN','unknown']];
+// Land outlines: Natural Earth 1:110m (public domain), via the world-atlas package.
+let LAND=null;
+// Shapes that cross the 180° line (Russia, Fiji) are unwrapped and also drawn shifted by 360°.
+function prepLand(rings){
+  const out=[];
+  rings.forEach(r=>{
+    const u=[]; let off=0;
+    r.forEach((p,i)=>{ if(i){const d=p[0]+off-u[i-1][0]; if(d>180)off-=360; else if(d<-180)off+=360;} u.push([p[0]+off,p[1]]); });
+    out.push(u);
+    const minX=Math.min(...u.map(p=>p[0])), maxX=Math.max(...u.map(p=>p[0]));
+    if(maxX>180) out.push(u.map(p=>[p[0]-360,p[1]]));
+    if(minX<-180) out.push(u.map(p=>[p[0]+360,p[1]]));
+  });
+  return out;
+}
+fetch('data/land-110m.json').then(r=>r.ok?r.json():null).then(d=>{if(Array.isArray(d)){LAND=prepLand(d); drawMap();}}).catch(()=>{});
+function drawMap(){
+  const c=document.getElementById('mapCanvas'); if(!c)return;
+  const rect=c.getBoundingClientRect(); const dpr=window.devicePixelRatio||1;
+  if(!rect.width||!rect.height)return;
+  c.width=rect.width*dpr;c.height=rect.height*dpr;
+  const ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=rect.width,H=rect.height;
+  // Keep the true 2:1 shape of the world map; centre it in the panel.
+  // Latitudes shown: 80°N to 58°S (almost no air traffic beyond).
+  const LATN=80, LATS=-58, SPAN=LATN-LATS;
+  const MW=Math.min(W,H*360/SPAN), MH=MW*SPAN/360, OX=(W-MW)/2, OY=(H-MH)/2;
+  const x=lon=>OX+(lon+180)/360*MW;
+  const y=lat=>OY+(LATN-lat)/SPAN*MH;
+
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#f8fbff');g.addColorStop(1,'#eef5fb');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#dbe6f1';ctx.lineWidth=1;
+  for(let lon=-150;lon<180;lon+=30){ctx.beginPath();ctx.moveTo(x(lon),y(LATN));ctx.lineTo(x(lon),y(LATS));ctx.stroke()}
+  for(let lat=-60;lat<90;lat+=30){ctx.beginPath();ctx.moveTo(x(-180),y(lat));ctx.lineTo(x(180),y(lat));ctx.stroke()}
+  ctx.save();ctx.beginPath();ctx.rect(x(-180),y(LATN),MW,MH);ctx.clip();
+  ctx.fillStyle='#dde7f2';ctx.strokeStyle='#b7c8da';ctx.lineWidth=1;
+  (LAND||[]).forEach(poly=>{
+    ctx.beginPath();poly.forEach((p,i)=>{i?ctx.lineTo(x(p[0]),y(p[1])):ctx.moveTo(x(p[0]),y(p[1]))});
+    ctx.closePath();ctx.fill();ctx.stroke();
+  });
+  ctx.restore();
+
+  // Live aircraft density (OpenSky positions, grouped into 3° cells)
+  const os=feedOf('opensky');
+  if(liveAircraftOk && os && os.data && Array.isArray(os.data.density)){
+    const cell=os.data.densityCellDeg||3, cw=MW*cell/360, ch=MH*cell/SPAN;
+    const maxN=os.data.density.reduce((m,d)=>Math.max(m,d[2]),1), lmax=Math.log(1+maxN);
+    os.data.density.forEach(([i,j,n])=>{
+      ctx.fillStyle='rgba(29,78,216,'+(0.10+0.55*Math.log(1+n)/lmax).toFixed(3)+')';
+      ctx.fillRect(x(i*cell-180), y(j*cell-90+cell), cw+0.5, ch+0.5);
+    });
+  }
+
+  // Routes: colour = worst current conditions at either end
+  const colors={high:'#b91c1c',watch:'#b45309',normal:'#15803d',unknown:'#94a3b8'};
+  ROUTES.forEach(r=>{
+    const A=HUBS[r[0]],B=HUBS[r[1]]; if(!A||!B)return;
+    const ax=x(A.lon),ay=y(A.lat),bx=x(B.lon),by=y(B.lat);
+    const mx=(ax+bx)/2,my=(ay+by)/2-Math.min(90,Math.abs(bx-ax)*.18);
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.quadraticCurveTo(mx,my,bx,by);
+    ctx.strokeStyle=colors[r[2]]||colors.unknown;ctx.globalAlpha=.55;ctx.lineWidth=r[2]==='high'?3:2;ctx.stroke();ctx.globalAlpha=1;
+  });
+
+  // Active SIGMET hazard areas (centre points)
+  const hz={TS:'234,88,12',TURB:'124,58,237',ICE:'2,132,199',VA:'71,85,105'};
+  (SIGMET_STATE.items||[]).forEach(s=>{
+    const col=hz[s.hazard]||'100,116,139', X=x(s.lon), Y=y(s.lat);
+    ctx.beginPath();ctx.fillStyle='rgba('+col+',.22)';ctx.arc(X,Y,9,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.fillStyle='rgba('+col+',.9)';ctx.arc(X,Y,2.6,0,Math.PI*2);ctx.fill();
+  });
+
+  // Emergency transponder codes
+  (ADSB_STATS.emergencies||[]).forEach(a=>{
+    const X=x(a.lon),Y=y(a.lat);
+    ctx.beginPath();ctx.fillStyle='#b91c1c';ctx.moveTo(X,Y-7);ctx.lineTo(X+6,Y+5);ctx.lineTo(X-6,Y+5);ctx.closePath();ctx.fill();
+    ctx.font='700 10px IBM Plex Sans';ctx.fillStyle='#7f1d1d';ctx.fillText(a.callsign+' '+a.code,X+8,Y+4);
+  });
+
+  // Hubs
+  const key=['JFK','ORD','LAX','LHR','DXB','SIN','NRT','SCL'];
+  const rankH={high:3,watch:2,normal:1,unknown:0};
+  const boxes=[], labels=[];
+  Object.entries(HUBS).sort((a,b)=>rankH[a[1].status]-rankH[b[1].status]).forEach(([code,h])=>{
+    const X=x(h.lon),Y=y(h.lat);
+    const col=colors[h.status]||colors.unknown;
+    const r=h.status==='high'?7:h.status==='watch'?5.5:4;
+    if(h.status==='high'){ctx.beginPath();ctx.strokeStyle='rgba(185,28,28,.35)';ctx.lineWidth=2;ctx.arc(X,Y,r+7,0,Math.PI*2);ctx.stroke();}
+    ctx.beginPath();ctx.fillStyle='rgba(255,255,255,.9)';ctx.arc(X,Y,r+2.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.fillStyle=col;ctx.arc(X,Y,r,0,Math.PI*2);ctx.fill();
+    if(h.status==='high'||h.status==='watch'||key.includes(code)) labels.push({code,h,X,Y});
+  });
+  // labels: most disrupted first; skip any that would overlap one already drawn
+  labels.sort((a,b)=>rankH[b.h.status]-rankH[a.h.status]).forEach(({code,h,X,Y})=>{
+    const strong=h.status==='high'||h.status==='watch';
+    ctx.font=(strong?'700 ':'600 ')+'11px IBM Plex Sans';
+    const text=h.label||code, w=ctx.measureText(text).width;
+    const spots=[[X+8,Y-7],[X+8,Y+14],[X-8-w,Y-7],[X-8-w,Y+14]];
+    for(const [lx,ly] of spots){
+      const bx={x:lx-2,y:ly-11,w:w+4,h:14};
+      if(bx.x<0||bx.x+bx.w>W) continue;
+      if(boxes.some(o=>bx.x<o.x+o.w&&bx.x+bx.w>o.x&&bx.y<o.y+o.h&&bx.y+bx.h>o.y)) continue;
+      boxes.push(bx);
+      ctx.fillStyle='rgba(255,255,255,.82)';ctx.fillRect(bx.x,bx.y,bx.w,bx.h);
+      ctx.fillStyle=strong?(h.status==='high'?'#991b1b':'#92400e'):'#0b2a4a';ctx.fillText(text,lx,ly);
+      break;
+    }
+  });
+
+  if(!SNAPSHOT||!SNAPSHOT.generatedAt){
+    ctx.font='700 13px IBM Plex Sans';ctx.fillStyle='#5b6b7c';ctx.fillText(SNAPSHOT_ERROR?'Live data unavailable':'Loading live data…',16,24);
+  }
+}
+let _resizeT=null; window.addEventListener('resize',()=>{clearTimeout(_resizeT); _resizeT=setTimeout(drawMap,120);});
+
+refreshLive();
+setInterval(refreshLive,120000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshLive();});
+setInterval(()=>{setApiStatus(); updateLiveBadge();},60000);
+
+function hideGapsLoading(){
+  const el=document.getElementById('gapsLoading');
+  if(el) el.classList.add('done');
+}
+window.addEventListener('load',()=>setTimeout(hideGapsLoading,700));
+setTimeout(hideGapsLoading,4200);
+
+</script>
+
+<!-- ============================================================
+GAPS CURRENT MODEL DISCLOSURE
+Production readout uses one intentionally simple three-input heuristic:
+SFI = 42% corridor density (OpenSky aircraft states) + 36% weather/METAR
+(Open-Meteo + AviationWeather) + 22% upper-air jet stream
+(Open-Meteo 250 hPa current-hour winds).
+
+Delay pressure and wind/vertical stress are diagnostics, not independent SFI
+inputs. There is no visible research modifier or HMM probability panel in the
+production readout. Trend, fragility, RSI, acceleration and anomaly labels are directional monitoring signals only,
+not calibrated probabilities, trained forecasts, or aviation safety predictions.
+============================================================ -->
+
+
+<section class="details" id="model-sources" style="padding-top:14px;">
+  <details>
+    <summary style="cursor:pointer;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary);border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:#fff;max-width:320px;">▸ Model & Sources</summary>
+    <div class="metric-box">
+      <h3>Model & Sources</h3>
+      <p><strong>Purpose:</strong> GAPS is a situational-awareness prototype. It combines three independent inputs into one operational-pressure score: OpenSky aircraft density, Open-Meteo/AviationWeather hub weather, and Open-Meteo current-hour 250 hPa upper-air winds.</p>
+      <div class="formula">SFI = 42% Traffic + 36% Weather + 22% Upper-Air<br>Weights are heuristic and not fitted coefficients.<br>Delay pressure and wind/vertical stress are diagnostics, not independent SFI inputs.</div>
+      <p><strong>Limits:</strong> This is not an aviation safety system, accident predictor, or trained forecast. It shows when traffic, weather, and upper-air conditions are compounding at the same time.</p>
+    </div>
+  </details>
+</section>
+
+
+
+<section style="background:#fff;border-top:2px solid #e6ecf2;padding:40px 24px 56px;max-width:1040px;margin:0 auto;">
+  <h2 style="font-family:'IBM Plex Sans',sans-serif;font-size:22px;font-weight:700;color:#0b2a4a;margin-bottom:6px;">About GAPS</h2>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#5b6b7c;margin-bottom:28px;line-height:1.6;">GAPS is a public tool. It costs nothing to use and has no affiliation with any airline, government agency, or aviation authority.</p>
+
+  <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">What GAPS Does</h3>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:20px;line-height:1.7;">GAPS watches the global commercial airline network and asks one question: is the system under unusual stress right now, and is that stress building? It does not track individual flights. It watches the whole network — the way you would watch traffic on a highway system from a helicopter, not from inside one car.</p>
+
+  <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">What We Measure</h3>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:8px;line-height:1.7;"><strong style="color:#0b2a4a;">Traffic</strong> — We count every aircraft broadcasting its position via ADS-B right now. GAPS uses the OpenSky Network, whose volunteer receivers see a few thousand to about ten thousand aircraft at a time (coverage is thinner over oceans and remote regions). If that number is unusually high for the time of day, the corridors are congested and the system has less room to absorb problems.</p>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:8px;line-height:1.7;"><strong style="color:#0b2a4a;">Weather</strong> — We read live weather reports (METARs) from 23 major airports on every continent, including JFK, Chicago O'Hare, London Heathrow, Frankfurt, Dubai, Singapore, Tokyo Narita and Sydney. Thunderstorms, heavy rain, low visibility, and strong winds all reduce how many flights an airport can handle per hour.</p>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:20px;line-height:1.7;"><strong style="color:#0b2a4a;">Upper-Air</strong> — At cruise altitude — roughly 35,000 feet — aircraft ride or fight the jet stream. When it is unusually strong, it compresses flight paths, forces reroutes, and adds time and fuel burn. We measure this using wind data at 250 hPa pressure level.</p>
+
+  <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">The Sky Friction Index</h3>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:20px;line-height:1.7;">We combine those three readings into one number: the Sky Friction Index, or SFI, running from 0 to 100. Below 55 is normal. 55–70 is watch territory — pressure is building. Above 70 means the network is losing its ability to absorb shocks. The formula is transparent: SFI = 42% corridor congestion + 36% weather pressure + 22% upper-air jet stream.</p>
+
+  <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">What Makes It More Than a Snapshot</h3>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:6px;line-height:1.7;"><strong style="color:#0b2a4a;">Velocity</strong> — is the SFI rising or falling, and how fast?</p>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:6px;line-height:1.7;"><strong style="color:#0b2a4a;">Acceleration</strong> — is the rate of rise itself speeding up? This is the early warning signal. A system rising faster and faster is heading somewhere bad.</p>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:6px;line-height:1.7;"><strong style="color:#0b2a4a;">Systemic Fragility</strong> — when two or three inputs are high simultaneously, risk multiplies rather than adds. A crowded sky on a clear day is manageable. A crowded sky during a major storm with a powerful jet stream is a different situation entirely.</p>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:6px;line-height:1.7;"><strong style="color:#0b2a4a;">US Delay Programs</strong> — live FAA ground stops and ground delay programs. These are real, declared disruptions, and the yardstick the SFI is being tested against.</p>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:6px;line-height:1.7;"><strong style="color:#0b2a4a;">Emergency Squawk Monitoring</strong> — aircraft broadcasting emergency transponder codes (7700, 7600, 7500), from community ADS-B receivers. A code is not a confirmed incident.</p>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:6px;line-height:1.7;"><strong style="color:#0b2a4a;">SIGMET Alerts</strong> — official aviation hazard advisories for severe turbulence, volcanic ash, and major storms over key routes, pulled directly from AviationWeather.gov.</p>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:20px;line-height:1.7;"><strong style="color:#0b2a4a;">Space Weather</strong> — geomagnetic storms disrupt the radio communications that oceanic flights depend on. We read the NOAA planetary K-index (updated every 3 hours). A reading above 5 means North Atlantic and polar routes are under pressure you will not find in a weather report.</p>
+
+  <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">What GAPS Cannot Do</h3>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:20px;line-height:1.7;">GAPS cannot predict accidents. It cannot tell you a specific flight will be delayed. It cannot see inside airline operations, crew scheduling, or maintenance. It works entirely with public data. What it can do is identify when physical conditions are compounding in ways that historically precede widespread disruption — before those events appear in the news.</p>
+
+  <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">The Validation Log</h3>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;line-height:1.7;">Every time SFI exceeds 70 and then recovers, the system automatically records the event — when it peaked, how high, what was driving it, and how long it lasted. Over time that log can be compared against real disruption events to assess whether the signals are genuinely predictive. The model earns its credibility over time.</p>
+</section>
+
+<!-- Voronoi Modal -->
+<div class="vf-modal-overlay" id="vfModal" onclick="if(event.target===this)closeVfModal()">
+  <div class="vf-modal-box">
+    <button class="vf-modal-close" onclick="closeVfModal()" aria-label="Close">×</button>
+    <img src="img/voronoi.jpg" loading="lazy" alt="Voronoi diagram of global airports" />
+    <div class="vf-modal-title">Global Airport Voronoi Diagram</div>
+    <div class="vf-modal-body">
+      Each colored region on this globe shows the area of Earth that is closer to one specific airport than to any other. This is called a Voronoi partition — a way of dividing space based on nearest-neighbor distance. The dense, tiny cells over Europe and the U.S. East Coast reflect the highest concentrations of commercial airports in the world. The vast, sparse regions over oceans and remote land show where the nearest airport can be hundreds or thousands of miles away. It is, essentially, a map of how the global airline network carves up the planet.
+    </div>
+  </div>
+</div>
+
+<footer class="voronoi-footer">
+  <button class="vf-img-btn" onclick="document.getElementById('vfModal').classList.add('open')" aria-label="Expand Voronoi diagram" title="Click to expand">
+    <img src="img/voronoi.jpg" loading="lazy" alt="Voronoi diagram of global airports" />
+  </button>
+  <div class="vf-text">
+    <div class="vf-title">Global Airport Voronoi Diagram</div>
+    <div class="vf-desc">Each region shows the area of Earth closest to one specific airport — a Voronoi partition of the global airline network. Dense cells over Europe and the U.S. East Coast mark the world's highest airport concentrations; vast ocean regions reveal where the nearest airport can be hundreds of miles away.</div>
+    <div class="vf-hint">Click the globe to expand ↗</div>
+  </div>
+</footer>
+<script>
+function closeVfModal(){document.getElementById('vfModal').classList.remove('open');}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeVfModal();});
+</script>
+
+</body>
+</html>

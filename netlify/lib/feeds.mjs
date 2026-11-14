@@ -1,0 +1,362 @@
+// GAPS live-data collector.
+// Fetches every public feed on the server (not in the visitor's browser), so
+// browser cross-site blocks and per-visitor rate limits no longer apply.
+// Every feed reports { ok, fetchedAt, sourceTime, error, data }. Nothing here
+// invents a value: a failed feed returns ok:false and no data.
+
+const UA = 'GAPS-dashboard/2.0 (+https://dashboardrunway.live)';
+const TIMEOUT_MS = 7000;
+
+// Reference list of monitored airports (static coordinates, not live data).
+export const AIRPORTS = [
+  { iata: 'JFK', icao: 'KJFK', lat: 40.64, lon: -73.78, region: 'US' },
+  { iata: 'LGA', icao: 'KLGA', lat: 40.78, lon: -73.87, region: 'US' },
+  { iata: 'EWR', icao: 'KEWR', lat: 40.69, lon: -74.17, region: 'US' },
+  { iata: 'BOS', icao: 'KBOS', lat: 42.36, lon: -71.01, region: 'US' },
+  { iata: 'ORD', icao: 'KORD', lat: 41.98, lon: -87.90, region: 'US' },
+  { iata: 'ATL', icao: 'KATL', lat: 33.64, lon: -84.43, region: 'US' },
+  { iata: 'DFW', icao: 'KDFW', lat: 32.90, lon: -97.04, region: 'US' },
+  { iata: 'DEN', icao: 'KDEN', lat: 39.86, lon: -104.67, region: 'US' },
+  { iata: 'LAX', icao: 'KLAX', lat: 33.94, lon: -118.41, region: 'US' },
+  { iata: 'SFO', icao: 'KSFO', lat: 37.62, lon: -122.38, region: 'US' },
+  { iata: 'SEA', icao: 'KSEA', lat: 47.45, lon: -122.31, region: 'US' },
+  { iata: 'MIA', icao: 'KMIA', lat: 25.79, lon: -80.29, region: 'US' },
+  { iata: 'LHR', icao: 'EGLL', lat: 51.47, lon: -0.45, region: 'EU' },
+  { iata: 'CDG', icao: 'LFPG', lat: 49.01, lon: 2.55, region: 'EU' },
+  { iata: 'FRA', icao: 'EDDF', lat: 50.03, lon: 8.57, region: 'EU' },
+  { iata: 'AMS', icao: 'EHAM', lat: 52.31, lon: 4.76, region: 'EU' },
+  { iata: 'DXB', icao: 'OMDB', lat: 25.25, lon: 55.36, region: 'ME' },
+  { iata: 'SIN', icao: 'WSSS', lat: 1.36, lon: 103.99, region: 'AS' },
+  { iata: 'HKG', icao: 'VHHH', lat: 22.31, lon: 113.91, region: 'AS' },
+  { iata: 'NRT', icao: 'RJAA', lat: 35.77, lon: 140.39, region: 'AS' },
+  { iata: 'SYD', icao: 'YSSY', lat: -33.95, lon: 151.18, region: 'OC' },
+  { iata: 'GRU', icao: 'SBGR', lat: -23.43, lon: -46.47, region: 'SA' },
+  { iata: 'SCL', icao: 'SCEL', lat: -33.39, lon: -70.79, region: 'SA' },
+];
+
+// The eight points used for the Open-Meteo weather and 250 hPa wind sample.
+export const WEATHER_POINTS = ['JFK', 'LHR', 'ORD', 'LAX', 'SIN', 'DXB', 'SCL', 'NRT'];
+// Airports sampled for nearby-aircraft counts from community ADS-B receivers.
+const HUB_TRAFFIC = ['JFK', 'ORD', 'ATL', 'LAX', 'LHR', 'FRA', 'DXB', 'SIN'];
+
+const byIata = Object.fromEntries(AIRPORTS.map(a => [a.iata, a]));
+
+async function get(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { 'User-Agent': UA, ...(opts.headers || {}) },
+    signal: AbortSignal.timeout(opts.timeout || TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    const err = new Error(`HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res;
+}
+
+async function feed(name, fn) {
+  const fetchedAt = new Date().toISOString();
+  try {
+    const { data, sourceTime = null, note = null } = await fn();
+    return { ok: true, fetchedAt, sourceTime, note, error: null, data };
+  } catch (e) {
+    const msg = e?.name === 'TimeoutError' ? 'timed out' : (e?.message || String(e));
+    return { ok: false, fetchedAt, sourceTime: null, note: null, error: msg, data: null };
+  }
+}
+
+// ---------------------------------------------------------------- OpenSky
+let openskyToken = null;
+async function openskyAuthHeader() {
+  const id = process.env.OPENSKY_CLIENT_ID, secret = process.env.OPENSKY_CLIENT_SECRET;
+  if (!id || !secret) return null;
+  if (openskyToken && openskyToken.exp > Date.now() + 60000) return `Bearer ${openskyToken.value}`;
+  const res = await get('https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'client_credentials', client_id: id, client_secret: secret }),
+  });
+  const j = await res.json();
+  openskyToken = { value: j.access_token, exp: Date.now() + (j.expires_in || 1800) * 1000 };
+  return `Bearer ${openskyToken.value}`;
+}
+
+function regionName(lon, lat) {
+  if (lon >= -80 && lon <= 10 && lat >= 35 && lat <= 70) return 'North Atlantic / Europe';
+  if ((lon >= 150 || lon <= -120) && lat >= 20 && lat <= 65) return 'North Pacific';
+  if (lon >= -130 && lon <= -60 && lat >= 20 && lat <= 55) return 'North America';
+  if (lon >= 80 && lon <= 150 && lat >= -10 && lat <= 50) return 'Asia';
+  if (lon >= 30 && lon <= 80 && lat >= 0 && lat <= 45) return 'Middle East';
+  if (lon >= -85 && lon <= -30 && lat < 15) return 'South America';
+  if (lon >= 110 && lat < -10) return 'Oceania';
+  if (lon >= -20 && lon <= 55 && lat < 35) return 'Africa';
+  return 'Other';
+}
+
+export function summarizeStates(states) {
+  const CELL = 3; // degrees per density cell
+  const cells = new Map();
+  const regions = {};
+  let airborne = 0, cruise = 0, vrN = 0, absVr = 0;
+  const squawks = [];
+  for (const s of states) {
+    const lon = s[5], lat = s[6], alt = s[7] ?? s[13], onGround = s[8], vel = s[9], vr = s[11];
+    const sq = String(s[14] || '');
+    if (onGround || lon == null || lat == null) continue;
+    airborne++;
+    if (alt != null && alt >= 8500 && vel != null && vel > 150) cruise++;
+    if (typeof vr === 'number' && Number.isFinite(vr)) { vrN++; absVr += Math.abs(vr); }
+    const key = `${Math.floor((lon + 180) / CELL)},${Math.floor((lat + 90) / CELL)}`;
+    cells.set(key, (cells.get(key) || 0) + 1);
+    const r = regionName(lon, lat);
+    regions[r] = (regions[r] || 0) + 1;
+    if (sq === '7700' || sq === '7600' || sq === '7500') {
+      squawks.push({ code: sq, callsign: String(s[1] || '').trim() || s[0], lat: +lat.toFixed(2), lon: +lon.toFixed(2), region: r });
+    }
+  }
+  const density = [...cells.entries()].map(([k, n]) => { const [i, j] = k.split(',').map(Number); return [i, j, n]; });
+  return {
+    total: states.length, airborne, cruise, regions,
+    avgAbsVerticalRate: vrN ? +(absVr / vrN).toFixed(2) : null,
+    squawks, densityCellDeg: CELL, density,
+  };
+}
+
+async function fetchOpenSky(timeout = 5000) {
+  const auth = await openskyAuthHeader().catch(() => null);
+  const res = await get('https://opensky-network.org/api/states/all', { headers: auth ? { Authorization: auth } : {}, timeout });
+  const j = await res.json();
+  if (!j || !Array.isArray(j.states)) throw new Error('unexpected response');
+  const remaining = res.headers.get('x-rate-limit-remaining');
+  return {
+    data: { ...summarizeStates(j.states), authenticated: !!auth, creditsRemaining: remaining != null ? Number(remaining) : null },
+    sourceTime: new Date(j.time * 1000).toISOString(),
+  };
+}
+
+// ---------------------------------------------------------------- FAA NAS
+export function durationToMinutes(s) {
+  if (!s) return null;
+  const h = /(\d+)\s*hour/i.exec(s), m = /(\d+)\s*min/i.exec(s);
+  if (!h && !m) return null;
+  return (h ? +h[1] * 60 : 0) + (m ? +m[1] : 0);
+}
+const tag = (block, t) => { const r = new RegExp(`<${t}>([\\s\\S]*?)</${t}>`).exec(block); return r ? r[1].trim() : null; };
+
+export function parseFaaXml(xml) {
+  if (!/<AIRPORT_STATUS_INFORMATION/i.test(xml)) throw new Error('unrecognised FAA response');
+  const out = { updateTime: tag(xml, 'Update_Time'), groundStops: [], groundDelays: [], airspaceFlows: [], arrDepDelays: [], closures: [], other: [] };
+  for (const m of xml.matchAll(/<Delay_type>([\s\S]*?)<\/Delay_type>/g)) {
+    const block = m[1];
+    const name = (tag(block, 'Name') || '').toLowerCase();
+    if (name.includes('ground stop')) {
+      for (const p of block.matchAll(/<Program>([\s\S]*?)<\/Program>/g)) {
+        out.groundStops.push({ airport: tag(p[1], 'ARPT'), reason: tag(p[1], 'Reason'), endTime: tag(p[1], 'End_Time') });
+      }
+    } else if (name.includes('ground delay')) {
+      for (const p of block.matchAll(/<Ground_Delay>([\s\S]*?)<\/Ground_Delay>/g)) {
+        out.groundDelays.push({ airport: tag(p[1], 'ARPT'), reason: tag(p[1], 'Reason'), avgMin: durationToMinutes(tag(p[1], 'Avg')), maxMin: durationToMinutes(tag(p[1], 'Max')) });
+      }
+    } else if (name.includes('airspace flow')) {
+      for (const p of block.matchAll(/<Airspace_Flow>([\s\S]*?)<\/Airspace_Flow>/g)) {
+        out.airspaceFlows.push({ element: tag(p[1], 'CTL_Element'), reason: tag(p[1], 'Reason'), avgMin: durationToMinutes(tag(p[1], 'Avg')) });
+      }
+    } else if (name.includes('arrival/departure')) {
+      for (const p of block.matchAll(/<Delay>([\s\S]*?)<\/Delay>/g)) {
+        const legs = [...p[1].matchAll(/<Arrival_Departure Type="(\w+)">([\s\S]*?)<\/Arrival_Departure>/g)].map(l => ({
+          type: l[1], minMin: durationToMinutes(tag(l[2], 'Min')), maxMin: durationToMinutes(tag(l[2], 'Max')), trend: tag(l[2], 'Trend'),
+        }));
+        out.arrDepDelays.push({ airport: tag(p[1], 'ARPT'), reason: tag(p[1], 'Reason'), legs });
+      }
+    } else if (name.includes('closure')) {
+      for (const p of block.matchAll(/<Airport>([\s\S]*?)<\/Airport>/g)) {
+        const reason = tag(p[1], 'Reason') || '';
+        // Most FAA "closures" are standing restrictions (e.g. closed to transient GA
+        // except by permission). Only a closure with no exceptions counts as full.
+        const restriction = /\bEXC\b|NON SKED|TRANSIENT|PPR|\bTO\b [A-Z ]*ACFT/.test(reason);
+        out.closures.push({ airport: tag(p[1], 'ARPT'), reason, start: tag(p[1], 'Start'), reopen: tag(p[1], 'Reopen'), full: !restriction });
+      }
+    } else {
+      out.other.push(tag(block, 'Name'));
+    }
+  }
+  // Program load: a simple, transparent count-based score of active US traffic
+  // management programs (0-100). It measures only what the FAA has declared.
+  let load = 0;
+  load += out.groundStops.length * 18;
+  for (const g of out.groundDelays) load += 8 + Math.min(12, (g.avgMin || 0) / 10);
+  load += out.airspaceFlows.length * 6;
+  for (const d of out.arrDepDelays) load += 3 + Math.min(6, Math.max(...d.legs.map(l => l.maxMin || 0), 0) / 20);
+  load += out.closures.filter(c => c.full).length * 10;
+  out.programLoad = Math.min(100, Math.round(load));
+  out.affectedAirports = [...new Set([
+    ...out.groundStops, ...out.groundDelays, ...out.arrDepDelays, ...out.closures.filter(c => c.full),
+  ].map(p => p.airport).filter(Boolean))];
+  return out;
+}
+
+async function fetchFaa() {
+  const res = await get('https://nasstatus.faa.gov/api/airport-status-information', { headers: { Accept: 'application/xml' } });
+  const parsed = parseFaaXml(await res.text());
+  const t = parsed.updateTime ? Date.parse(parsed.updateTime.replace(/ GMT$/, ' UTC')) : NaN;
+  return { data: parsed, sourceTime: Number.isFinite(t) ? new Date(t).toISOString() : null };
+}
+
+// ---------------------------------------------------------------- METAR
+async function fetchMetar() {
+  const ids = AIRPORTS.map(a => a.icao).join(',');
+  const res = await get(`https://aviationweather.gov/api/data/metar?ids=${ids}&format=json`);
+  const arr = await res.json();
+  if (!Array.isArray(arr) || !arr.length) throw new Error('no reports returned');
+  const latest = {};
+  for (const m of arr) if (!latest[m.icaoId] || m.obsTime > latest[m.icaoId].obsTime) latest[m.icaoId] = m;
+  const reports = Object.values(latest).map(m => {
+    const ap = AIRPORTS.find(a => a.icao === m.icaoId);
+    const vis = typeof m.visib === 'string' ? parseFloat(m.visib) : m.visib;
+    return {
+      iata: ap?.iata || m.icaoId, icao: m.icaoId, obsTime: new Date(m.obsTime * 1000).toISOString(),
+      fltCat: m.fltCat || null, windKt: m.wspd ?? null, gustKt: m.wgst ?? null,
+      visSm: Number.isFinite(vis) ? vis : null, wx: m.wxString || '', raw: m.rawOb,
+    };
+  });
+  const newest = reports.reduce((t, r) => (r.obsTime > t ? r.obsTime : t), '');
+  return { data: { reports, requested: AIRPORTS.length }, sourceTime: newest || null };
+}
+
+// ---------------------------------------------------------------- SIGMETs
+function centroid(coords) {
+  let pts = coords;
+  if (typeof pts === 'string') { try { pts = JSON.parse(pts.replace(/'/g, '"')); } catch { pts = []; } }
+  if (!Array.isArray(pts) || !pts.length) return null;
+  const valid = pts.filter(p => Number.isFinite(+p.lat) && Number.isFinite(+p.lon));
+  if (!valid.length) return null;
+  return { lat: +(valid.reduce((s, p) => s + +p.lat, 0) / valid.length).toFixed(2), lon: +(valid.reduce((s, p) => s + +p.lon, 0) / valid.length).toFixed(2) };
+}
+function normHazard(h) {
+  h = String(h || '').toUpperCase();
+  if (h === 'CONVECTIVE' || h === 'TS' || h === 'TC') return 'TS';
+  if (h.startsWith('TURB')) return 'TURB';
+  if (h.startsWith('ICE')) return 'ICE';
+  if (h === 'VA') return 'VA';
+  return h || 'OTHER';
+}
+async function fetchSigmets() {
+  const [intl, us] = await Promise.all([
+    get('https://aviationweather.gov/api/data/isigmet?format=json').then(r => r.json()),
+    get('https://aviationweather.gov/api/data/airsigmet?format=json').then(r => r.json()),
+  ]);
+  const now = Date.now() / 1000;
+  const items = [];
+  for (const s of Array.isArray(intl) ? intl : []) {
+    if (+s.validTimeTo && +s.validTimeTo < now) continue;
+    const c = centroid(s.coords); if (!c) continue;
+    items.push({ hazard: normHazard(s.hazard), fir: s.firName || s.firId, top: +s.top || null, base: +s.base || null, ...c, validTo: new Date(+s.validTimeTo * 1000).toISOString() });
+  }
+  for (const s of Array.isArray(us) ? us : []) {
+    if (s.airSigmetType !== 'SIGMET') continue; // skip AIRMETs (lighter hazards)
+    if (+s.validTimeTo && +s.validTimeTo < now) continue;
+    const c = centroid(s.coords); if (!c) continue;
+    items.push({ hazard: normHazard(s.hazard), fir: 'United States', top: +s.altitudeHi2 || null, base: +s.altitudeLow1 || null, ...c, validTo: new Date(+s.validTimeTo * 1000).toISOString() });
+  }
+  const counts = items.reduce((o, s) => ((o[s.hazard] = (o[s.hazard] || 0) + 1), o), {});
+  return { data: { items, counts, total: items.length } };
+}
+
+// ---------------------------------------------------------------- Open-Meteo
+async function fetchOpenMeteo() {
+  const pts = WEATHER_POINTS.map(c => byIata[c]);
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + pts.map(p => p.lat).join(',') +
+    '&longitude=' + pts.map(p => p.lon).join(',') +
+    '&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m' +
+    '&hourly=wind_speed_250hPa,wind_direction_250hPa&wind_speed_unit=mph&timezone=UTC&forecast_days=2';
+  const res = await get(url);
+  const arr = await res.json();
+  if (!Array.isArray(arr)) throw new Error('unexpected response');
+  return { data: { points: WEATHER_POINTS, raw: arr }, sourceTime: arr[0]?.current?.time ? arr[0].current.time + ':00Z' : null };
+}
+
+// ---------------------------------------------------------------- NOAA Kp
+async function fetchKp() {
+  const res = await get('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json');
+  const json = await res.json();
+  // NOAA has used two formats: an array of objects {time_tag, Kp}, and an
+  // array of arrays with a header row. Accept either.
+  const rows = (Array.isArray(json) ? json : [])
+    .map(r => Array.isArray(r) ? [r[0], Number(r[1])] : [r?.time_tag, Number(r?.Kp ?? r?.kp_index)])
+    .filter(([t, k]) => t && Number.isFinite(k));
+  const last = rows[rows.length - 1];
+  if (!last) throw new Error('no Kp value');
+  const time = new Date(String(last[0]).replace(' ', 'T').replace(/Z?$/, 'Z'));
+  return { data: { kp: last[1], recent: rows.slice(-8) }, sourceTime: Number.isFinite(+time) ? time.toISOString() : null };
+}
+
+// ---------------------------------------------------------------- Community ADS-B (adsb.lol)
+async function fetchHubTraffic() {
+  const results = await Promise.all(HUB_TRAFFIC.map(async code => {
+    const a = byIata[code];
+    try {
+      const j = await (await get(`https://api.adsb.lol/v2/lat/${a.lat}/lon/${a.lon}/dist/40`, { timeout: 6000 })).json();
+      const ac = Array.isArray(j.ac) ? j.ac : [];
+      return [code, { airborne: ac.filter(x => x.alt_baro !== 'ground').length, total: ac.length }];
+    } catch { return [code, null]; }
+  }));
+  const hubs = Object.fromEntries(results);
+  if (!results.some(([, v]) => v)) throw new Error('no hub responses');
+  return { data: { radiusNm: 40, hubs } };
+}
+async function fetchEmergencies() {
+  const lists = await Promise.all(['7700', '7600', '7500'].map(sq =>
+    get(`https://api.adsb.lol/v2/sqk/${sq}`, { timeout: 6000 }).then(r => r.json()).then(j => (j.ac || []).map(a => ({ ...a, sq })))));
+  const items = lists.flat().filter(a => a.lat != null && a.alt_baro !== 'ground').map(a => ({
+    code: a.sq, callsign: String(a.flight || a.r || a.hex).trim(), type: a.t || null,
+    lat: +(+a.lat).toFixed(2), lon: +(+a.lon).toFixed(2), alt: typeof a.alt_baro === 'number' ? a.alt_baro : null, region: regionName(+a.lon, +a.lat),
+  }));
+  return { data: { items } };
+}
+
+// ---------------------------------------------------------------- Snapshot
+// openskyTimeout: short when a visitor is waiting (page request), longer in the
+// scheduled job, which can run for up to 30 seconds.
+export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
+  const t0 = Date.now();
+  const [opensky, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies] = await Promise.all([
+    feed('opensky', () => fetchOpenSky(openskyTimeout)), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
+    feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies),
+  ]);
+  return {
+    version: 2, generatedAt: new Date().toISOString(), buildMs: Date.now() - t0,
+    airports: AIRPORTS,
+    feeds: { opensky, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies,
+      eurocontrol: { ok: false, fetchedAt: null, sourceTime: null, error: 'not connected', note: 'EUROCONTROL flow data needs an approved B2B account; no free public feed exists.', data: null } },
+  };
+}
+
+// Keep the last good copy of any feed that failed this time, with its original
+// timestamps, so the page can show its true age instead of a blank or a fake.
+export function mergeWithPrevious(next, prev) {
+  if (!prev?.feeds) return next;
+  for (const [k, f] of Object.entries(next.feeds)) {
+    const old = prev.feeds[k];
+    if (!f.ok && old?.data) next.feeds[k] = { ...old, ok: false, error: f.error, lastAttempt: f.fetchedAt, carriedOver: true };
+  }
+  return next;
+}
+
+// Compact row for the long-term history (raw inputs, so any future SFI formula
+// can be recomputed and tested against FAA disruptions).
+export function historyRow(s) {
+  const f = s.feeds, cats = {};
+  for (const r of f.metar.data?.reports || []) cats[r.fltCat || 'NA'] = (cats[r.fltCat || 'NA'] || 0) + 1;
+  const fresh = k => f[k].ok && !f[k].carriedOver;
+  return {
+    t: s.generatedAt,
+    aircraft: fresh('opensky') ? f.opensky.data.airborne : null,
+    cruise: fresh('opensky') ? f.opensky.data.cruise : null,
+    faa: fresh('faa') ? { gs: f.faa.data.groundStops.length, gdp: f.faa.data.groundDelays.length, afp: f.faa.data.airspaceFlows.length, ad: f.faa.data.arrDepDelays.length, load: f.faa.data.programLoad, airports: f.faa.data.affectedAirports } : null,
+    metarCats: fresh('metar') ? cats : null,
+    sigmets: fresh('sigmet') ? f.sigmet.data.counts : null,
+    kp: fresh('kp') ? f.kp.data.kp : null,
+    wx: fresh('openmeteo') ? f.openmeteo.data.raw.map(p => ({ g: p.current?.wind_gusts_10m ?? null, c: p.current?.weather_code ?? null, p: p.current?.precipitation ?? null })) : null,
+  };
+}

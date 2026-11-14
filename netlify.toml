@@ -1,11 +1,17 @@
 [build]
-  publish = "."
+  publish = "public"
   functions = "netlify/functions"
-
-[[redirects]]
-  from = "/*"
-  to = "/index-162.html"
-  status = 200
+  command = "echo 'static site, no build step'"
 
 [functions]
   node_bundler = "esbuild"
+
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
