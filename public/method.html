@@ -34,6 +34,8 @@ tr.main .bar{background:var(--navy)}
 .legend span{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 12px;vertical-align:middle}
 code{font-family:'JetBrains Mono',monospace;font-size:12.5px;background:var(--panel);padding:1px 4px;border-radius:3px}
 .table-wrap{overflow-x:auto}
+.formula-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin:10px 0;overflow-x:auto}
+.wbar{display:inline-block;height:8px;border-radius:4px;background:var(--navy);vertical-align:middle;margin-right:6px}
 a{color:#1d4ed8}
 </style>
 </head>
@@ -57,6 +59,12 @@ a{color:#1d4ed8}
 <tr><td>Time of day and weekday</td><td>FAA records</td><td>US disruptions follow the daily schedule: afternoons and evenings are worst.</td></tr>
 </table>
 <p>The three are combined with a logistic model whose weights were <b>fitted to the FAA records</b>, not chosen by hand. The hubs are JFK, LGA, EWR, BOS, PHL, ATL, CLT, MIA, ORD, DFW, IAH, DEN, SFO, SEA and LAX.</p>
+
+<h2 id="formula">The formula and the weights</h2>
+<p>In plain terms: each input is compared with its average, scaled by how much it varies, multiplied by its weight, and added up. The total is turned into a chance between 0% and 100% with the standard logistic curve.</p>
+<div class="formula-box"><code>chance = 1 / (1 + e<sup>−z</sup>)</code>, where <code>z = intercept + Σ weight<sub>i</sub> × (input<sub>i</sub> − average<sub>i</sub>) / spread<sub>i</sub></code></div>
+<div class="table-wrap" id="weights">Loading the live model…</div>
+<div class="table-wrap" id="coefs"></div>
 
 <h2>How it was tested</h2>
 <ul>
@@ -92,9 +100,17 @@ a{color:#1d4ed8}
 <p>The scripts are in the repository under <code>scripts/backtest/</code>: they download the FAA archive and historical weather, fit the model and write the results shown here (<a href="data/backtest-results.json">results</a> · <a href="data/sfi-model.json">model</a>).</p>
 <p class="legend" id="fitted"></p>
 </main>
+<script src="model-explain.js"></script>
 <script>
 (async () => {
   const [R, M] = await Promise.all([fetch('data/backtest-results.json').then(r => r.json()), fetch('data/sfi-model.json').then(r => r.json())]).catch(() => [null, null]);
+  if (M) {
+    document.getElementById('weights').innerHTML = window.renderModelTable(M);
+    const m = M.models.y3big, names = { usHubStressNext3: 'US hub weather (pts, worst of next 3 h)', persist: 'New FAA programs, last ~3 h', tod: 'Time-of-day rate' };
+    document.getElementById('coefs').innerHTML = '<table><tr><th>Input</th><th>Weight</th><th>Average</th><th>Spread</th></tr>' +
+      m.keys.map((k, i) => `<tr><td>${names[k]}</td><td class="num">${m.w[i].toFixed(3)}</td><td class="num">${m.mu[i].toFixed(3)}</td><td class="num">${m.sd[i].toFixed(3)}</td></tr>`).join('') +
+      `<tr><td>Intercept (after re-centring on the last ${m.recentring.days} days)</td><td class="num">${m.intercept.toFixed(3)}</td><td></td><td></td></tr></table>`;
+  }
   if (!R) return;
   const fmtD = s => new Date(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const set = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };

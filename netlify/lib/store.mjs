@@ -26,8 +26,15 @@ export async function refreshSnapshot({ appendHistory = false, openskyTimeout } 
     const rows = (await s.get(key, { type: 'json' }).catch(() => null)) || [];
     rows.push(historyRow(snap));
     await s.setJSON(key, rows);
+    // Heartbeat: written only by the scheduled collector, so the health check can
+    // tell a stopped collector apart from page visits refreshing the data.
+    await s.setJSON('heartbeat', { t: new Date().toISOString(), snapshot: snap.generatedAt });
   }
   return snap;
+}
+
+export async function readHeartbeat() {
+  try { return await store().get('heartbeat', { type: 'json' }); } catch { return null; }
 }
 
 // History rows for the last `days` UTC days (oldest first).

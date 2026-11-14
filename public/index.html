@@ -41,13 +41,21 @@
 
 <main class="wrap" id="main">
 
+  <section class="explain" aria-labelledby="explainTitle">
+    <h2 id="explainTitle" class="sr-only">What GAPS tells you</h2>
+    <div class="step"><span class="n">1</span><div><h3>The question</h3><p><b>Will US air travel have a rough next 3 hours?</b> We count it as rough when the FAA has to start <b>3 or more new ground stops or delay programs</b>: its tools for holding or slowing flights when an airport can't cope. That happens in about 1 hour in 5.</p></div></div>
+    <div class="step"><span class="n">2</span><div><h3>The clues</h3><p><b>Is it already happening?</b> New FAA programs in the last few hours. <b>Is bad weather coming</b> to major US airports? <b>Is it a busy time of day?</b> Evenings are worst.</p></div></div>
+    <div class="step"><span class="n">3</span><div><h3>The answer</h3><p>A <b>percentage chance</b>, from a formula fitted to 4 months of FAA records. On weeks it had never seen, it told rough hours from calm ones far better than guessing. <a href="method.html">How we know →</a></p></div></div>
+  </section>
+
   <section class="hero">
     <article class="card outlook" id="outlookCard" aria-labelledby="outlookTitle">
-      <h2 id="outlookTitle">Sky Friction Index · next 3 hours</h2>
+      <h2 id="outlookTitle">Sky Friction Index · chance of a rough next 3 hours at US airports</h2>
       <div>
         <div class="big" aria-live="polite"><span id="sfi">--</span><small>%</small></div>
         <div class="meter" aria-hidden="true"><span id="meter" style="width:0"></span></div>
         <span class="pill none" id="level">Loading</span>
+        <div class="scale" aria-label="Levels"><span><i class="low"></i>Low &lt;10%</span><span><i class="moderate"></i>Moderate 10–25%</span><span><i class="elevated"></i>Elevated 25–50%</span><span><i class="high"></i>High 50%+</span></div>
         <div class="typical">Typical for this hour: <b id="typical">--</b></div>
         <div class="trendtxt" id="trend"></div>
       </div>
@@ -55,11 +63,12 @@
         <p class="lede" id="lede">Loading live data…</p>
         <div class="drivers" id="drivers" aria-label="What is moving the outlook"></div>
         <div class="drivers-note">Bars show how far each input pushes the chance up (right) or down (left) from average.</div>
+        <details class="how"><summary>How it's calculated: inputs and weights</summary><div id="howBody">Loading…</div></details>
         <div class="spark-label">Last 24 hours</div>
         <div class="spark"></div>
       </div>
       <div class="foot">
-        <span><b>What it means:</b> estimated chance of 3+ new FAA ground stops or delay programs at US airports in the next 3 hours.</span>
+        <span><b>What it means:</b> estimated chance that the FAA starts 3 or more new ground stops or delay programs at US airports in the next 3 hours.</span>
         <span id="anyProgram"></span>
         <a href="method.html">How it was built and tested →</a>
       </div>
@@ -67,6 +76,7 @@
 
     <article class="card faa" aria-labelledby="faaTitle">
       <h2 id="faaTitle">FAA programs</h2>
+      <p class="def" style="margin-top:4px;border:0;padding:0"><b>Ground stop:</b> flights to an airport are held at their departure airports. <b>Ground delay program:</b> departures to an airport are deliberately delayed to space out arrivals.</p>
       <div class="sub" id="faaSummary">Loading…</div>
       <h3>In effect now</h3>
       <ul id="faaNow"></ul>
@@ -96,21 +106,21 @@
   </section>
 
   <section class="tiles" aria-label="Index inputs">
-    <article class="card tile" id="tHub"><h2>US hub weather</h2><div class="v">--</div><div class="d">Worst of the next 3 hours at 15 major hubs</div><div class="spark"></div></article>
-    <article class="card tile" id="tRecent"><h2>New FAA programs</h2><div class="v">--</div><div class="d">Started in the current and previous two hours</div><div class="spark"></div></article>
-    <article class="card tile" id="tTypical"><h2>Typical for this hour</h2><div class="v">--</div><div class="d">Chance at this hour with average conditions</div></article>
-    <article class="card tile" id="tTrack"><h2>Track record</h2><div class="v">--</div><div class="d">Held-out test score (0.5 = coin flip)</div><div class="tr"></div></article>
+    <article class="card tile" id="tHub"><div class="cardhead"><h2>US hub weather</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d">Worst of the next 3 hours at 15 major hubs</div><div class="typ"></div><div class="spark"></div><p class="def"><b>What it means:</b> bad-weather points added up across 15 major US hubs for the worst of the next 3 hours: thunderstorm 3, very low visibility 2, low visibility 1, strong gusts 0.7–1.5, rain 0.7, overcast low cloud 0.6. Forecast from Open-Meteo.</p></article>
+    <article class="card tile" id="tRecent"><div class="cardhead"><h2>New FAA programs</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d">Started in the current and previous two hours</div><div class="typ"></div><div class="spark"></div><p class="def"><b>What it means:</b> new ground stops (flights to an airport held at their origin) and ground delay programs (departures to an airport deliberately delayed) issued by the FAA Command Center in roughly the last 3 hours.</p></article>
+    <article class="card tile" id="tTypical"><h2>Typical for this hour</h2><div class="v">--</div><div class="d">Chance at this hour with average conditions</div><p class="def"><b>What it means:</b> the Sky Friction Index you would expect at this hour of the day (weekday or weekend) if weather and FAA activity were average. Compare it with the headline number to see whether now is unusual.</p></article>
+    <article class="card tile" id="tTrack"><h2>Track record</h2><div class="v">--</div><div class="d">Held-out test score (0.5 = coin flip)</div><div class="tr"></div><p class="def"><b>What it means:</b> on weeks the model never saw, how often an hour followed by a bad stretch was ranked above a calm hour. 1.00 would be perfect; 0.50 is guessing.</p></article>
   </section>
 
   <section class="context" aria-labelledby="ctxTitle">
     <h2 class="section" id="ctxTitle">Network context <span class="sub" style="text-transform:none;letter-spacing:0">· shown for awareness; not part of the index</span></h2>
     <div class="ctx">
-      <article class="card" id="cAir"><h2>Aircraft</h2><div class="v">--</div><div class="d"></div><div class="list"></div></article>
-      <article class="card" id="cWx"><h2>Airport weather</h2><div class="v">--</div><div class="d"></div><div class="list"></div></article>
-      <article class="card" id="cSig"><h2>Hazard advisories</h2><div class="v">--</div><div class="d"></div><div class="list"></div></article>
-      <article class="card" id="cSqk"><h2>Emergency codes</h2><div class="v">--</div><div class="d"></div><div class="list"></div></article>
-      <article class="card" id="cKp"><h2>Space weather</h2><div class="v">--</div><div class="d"></div></article>
-      <article class="card" id="cEu"><h2>Europe</h2><div class="v">Not connected</div><div class="d">EUROCONTROL flow data needs an approved B2B account; there is no free public feed, so no European delay data is shown.</div></article>
+      <article class="card" id="cAir"><div class="cardhead"><h2>Aircraft</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="list"></div><div class="typ"></div><p class="def"><b>What it means:</b> aircraft currently broadcasting their position (ADS-B) to volunteer receivers worldwide. Counts follow the time of day and receiver coverage, so this is context, not a measure of congestion.</p></article>
+      <article class="card" id="cWx"><div class="cardhead"><h2>Airport weather</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="list"></div><div class="typ"></div><p class="def"><b>What it means:</b> of 23 major airports worldwide, how many report thunderstorms or instrument conditions in their latest METAR. IFR: cloud base below 1,000 ft or visibility under 3 miles; LIFR: below 500 ft or under 1 mile. Both slow arrivals.</p></article>
+      <article class="card" id="cSig"><div class="cardhead"><h2>Hazard advisories</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="list"></div><div class="typ"></div><p class="def"><b>What it means:</b> SIGMETs are official warnings to aircraft of severe hazards: thunderstorms, severe turbulence, severe icing, volcanic ash. The worldwide count rises and falls with the tropics' daily storms.</p></article>
+      <article class="card" id="cSqk"><div class="cardhead"><h2>Emergency codes</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="list"></div><div class="typ"></div><p class="def"><b>What it means:</b> transponder codes 7700 (general emergency), 7600 (radio failure) and 7500 (unlawful interference). Most 7700s are precautionary, such as a medical diversion; a code alone is not a confirmed incident.</p></article>
+      <article class="card" id="cKp"><div class="cardhead"><h2>Space weather</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="typ"></div><p class="def"><b>What it means:</b> NOAA's Kp index (0–9) of geomagnetic disturbance. Below 4 quiet · 4 active · 5 or more is a geomagnetic storm (NOAA G1–G5), which can disrupt HF radio on polar and oceanic routes.</p></article>
+      <article class="card" id="cEu"><div class="cardhead"><h2>Europe</h2><span class="pill none st">Off</span></div><div class="v">Not connected</div><div class="d">EUROCONTROL flow data needs an approved B2B account; there is no free public feed, so no European delay data is shown.</div></article>
     </div>
   </section>
 
@@ -139,6 +149,7 @@
   </div>
 </footer>
 
+<script src="model-explain.js" defer></script>
 <script src="app.js" defer></script>
 </body>
 </html>

@@ -10,7 +10,29 @@ const pct = p => Number.isFinite(p) ? Math.round(p * 100) + '%' : '--';
 const utc = t => { const d = new Date(t); return isNaN(d) ? '--' : String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0') + ' UTC'; };
 const fmtMin = m => !Number.isFinite(m) ? '?' : m >= 60 ? Math.floor(m / 60) + 'h' + String(m % 60).padStart(2, '0') : m + 'm';
 
-let SNAP = null, SNAP_ERR = null, HIST = [], TRACK = null, LAND = null, HUBS = [];
+let SNAP = null, SNAP_ERR = null, HIST = [], TRACK = null, LAND = null, HUBS = [], MODEL = null;
+
+// ---------------------------------------------------------------- typical values and status labels
+// Index inputs are compared with 120 days of history (from the backtest);
+// everything else with GAPS's own saved readings once there are enough.
+function setStatus(el, cls, text) { const st = el.querySelector('.st'); if (st) { st.className = 'pill st ' + cls; st.textContent = text; } }
+function setTyp(el, html) { const t = el.querySelector('.typ'); if (t) t.innerHTML = html; }
+const band = (v, p75, p90) => v > p90 ? ['high', 'Elevated'] : v > p75 ? ['above', 'Above normal'] : ['normal', 'Normal'];
+function histStats(key) {
+  const rows = HIST.filter(r => Number.isFinite(r[key]));
+  if (rows.length < 12) return null; // about 2 hours of readings
+  const v = rows.map(r => r[key]).sort((a, b) => a - b), q = f => v[Math.min(v.length - 1, Math.floor(v.length * f))];
+  return { n: v.length, p50: q(0.5), p75: q(0.75), p90: q(0.9), hours: Math.max(1, Math.round((Date.now() - Date.parse(rows[0].t)) / 3600000)) };
+}
+const collecting = 'Typical value: building from saved readings (needs about 2 hours).';
+function compareToHistory(el, key, now, fmt = x => x) {
+  const h = histStats(key);
+  if (!h || !Number.isFinite(now)) { setStatus(el, 'none', '--'); setTyp(el, collecting); return; }
+  const [c, t] = band(now, h.p75, h.p90);
+  // a reading equal to the median is normal even when the spread is tiny
+  setStatus(el, now <= h.p50 ? 'normal' : c, now <= h.p50 ? 'Normal' : t);
+  setTyp(el, `Typical over the last ${h.hours} h: <b>${fmt(h.p50)}</b> · above normal over ${fmt(h.p75)} · elevated over ${fmt(h.p90)}`);
+}
 
 // ---------------------------------------------------------------- freshness
 const MAX_AGE = { faaAdvisories: 30, usHubWx: 90, faa: 25, opensky: 25, adsblol: 25, metar: 90, sigmet: 60, openmeteo: 90, kp: 240, emergencies: 30 };
@@ -81,11 +103,11 @@ function renderOutlook() {
   const diff = Math.round((p - O.typical) * 100);
   const vs = diff >= 15 ? `, well above the usual ${pct(O.typical)} for this hour` : diff >= 5 ? `, above the usual ${pct(O.typical)} for this hour`
     : diff <= -5 ? `, below the usual ${pct(O.typical)} for this hour` : `, close to the usual ${pct(O.typical)} for this hour`;
-  $('lede').textContent = `${pct(p)} chance of a bad stretch at US airports in the next 3 hours${vs}. ` +
+  $('lede').textContent = `${pct(p)} chance of a rough next 3 hours at US airports${vs}. ` +
     (F.persist ? `${F.persist} new FAA program${F.persist > 1 ? 's' : ''} in the last ~3 hours (${airports}).` : 'No new FAA programs in the last ~3 hours.') +
     (F.usStorms ? ` Thunderstorms forecast at ${F.stormHubs.join(', ')}.` : '');
   const C = O.contributions || {};
-  $('drivers').innerHTML = ['persist', 'usHubStressNext3', 'tod', 'usStorms'].map(k => {
+  $('drivers').innerHTML = ['persist', 'usHubStressNext3', 'tod'].filter(k => k in C).map(k => {
     const c = C[k] || 0, w = clamp(Math.abs(c) / 2.5 * 50, 0, 50);
     const style = c >= 0 ? `left:50%;width:${w}%;background:#b91c1c` : `left:${50 - w}%;width:${w}%;background:#15803d`;
     const shown = Math.abs(c) < 0.05 ? '0.0' : (c > 0 ? '+' : '−') + Math.abs(c).toFixed(1);
@@ -137,10 +159,18 @@ function setTile(id, value, desc, live) {
 }
 function renderTiles() {
   const O = outlookNow(), F = O && O.features;
-  spark(setTile('tHub', F ? F.usHubStressNext3.toFixed(1) + '<small> pts</small>' : '--',
-    F ? `Worst of the next 3 h at 15 hubs · Jul–Nov average 3.5${F.usStorms ? ' · storms at ' + F.stormHubs.join(', ') : ''} · ${asOf('usHubWx')}` : 'No live hub forecast', !!F), 'hubWx', '#b45309');
-  spark(setTile('tRecent', F ? F.persist + '<small> new</small>' : '--',
-    F ? `Started in the current and previous two hours · Jul–Nov average 2.9 · ${asOf('faaAdvisories')}` : 'No live FAA advisories', !!F), 'persist', '#b91c1c');
+  const S = MODEL && MODEL.stats;
+  const tHub = setTile('tHub', F ? F.usHubStressNext3.toFixed(1) + '<small> pts</small>' : '--',
+    F ? `Worst of the next 3 h at 15 hubs${F.usStorms ? ' · storms at ' + F.stormHubs.join(', ') : ''} · ${asOf('usHubWx')}` : 'No live hub forecast', !!F);
+  const tRec = setTile('tRecent', F ? F.persist + '<small> new</small>' : '--',
+    F ? `Started in the current and previous two hours · ${asOf('faaAdvisories')}` : 'No live FAA advisories', !!F);
+  [[tHub, 'usHubStressNext3', F && F.usHubStressNext3, x => x.toFixed(1)], [tRec, 'persist', F && F.persist, x => String(x)]].forEach(([el, k, v, fmt]) => {
+    const st = S && S[k];
+    if (!st || !F) { setStatus(el, 'none', '--'); setTyp(el, ''); return; }
+    const [c, t] = band(v, st.p75, st.p90); setStatus(el, c, t);
+    setTyp(el, `Typical (Jul–Nov): <b>${fmt(st.p50)}</b> · above normal over ${fmt(st.p75)} · elevated over ${fmt(st.p90)}`);
+  });
+  spark(tHub, 'hubWx', '#b45309'); spark(tRec, 'persist', '#b91c1c');
   const d = new Date();
   setTile('tTypical', O ? Math.round(O.typical * 100) + '<small>%</small>' : '--',
     O ? `Chance at ${String(d.getUTCHours()).padStart(2, '0')}:00 UTC on a ${d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday'} with average weather and activity` : 'Chance at this hour with average conditions', !!O);
@@ -162,23 +192,35 @@ function renderContext() {
     ctx('cAir', a.airborne.toLocaleString(), (tk === 'adsblol' ? 'Tracked worldwide by adsb.lol volunteer receivers' : 'Airborne, seen by OpenSky receivers') + ' · ' + asOf(tk),
       regions.length ? (tk === 'adsblol' ? '<span class="sub">Busiest regions (common airliner types):</span>' : '<span class="sub">Busiest regions:</span>') + regions.map(([k, n]) => `<div>${esc(k)} · ${n.toLocaleString()}</div>`).join('') : '');
   } else ctx('cAir', '--', 'No live aircraft data', '');
+  { const el = $('cAir'), h = histStats('aircraft'); setStatus(el, 'none', 'Context');
+    setTyp(el, h ? `Range over the last ${h.hours} h: <b>${HIST.map(r => r.aircraft).filter(Number.isFinite).reduce((a, b) => Math.min(a, b)).toLocaleString()}–${HIST.map(r => r.aircraft).filter(Number.isFinite).reduce((a, b) => Math.max(a, b)).toLocaleString()}</b> (follows the time of day)` : collecting); }
   const m = feed('metar');
   if (fresh('metar')) {
     const r = m.data.reports, low = r.filter(x => x.fltCat === 'IFR' || x.fltCat === 'LIFR'), ts = r.filter(x => /TS/.test(x.wx || ''));
     ctx('cWx', low.length + ts.length ? (low.length + ts.length) + '<span class="sub"> of ' + r.length + ' airports</span>' : 'All clear', 'Thunderstorms or instrument conditions in live METARs · ' + asOf('metar'),
       [...ts.map(x => `<div><b class="mono">${esc(x.iata)}</b> thunderstorm</div>`), ...low.map(x => `<div><b class="mono">${esc(x.iata)}</b> ${esc(x.fltCat)} (low cloud or visibility)</div>`)].join('') || '<div>No thunderstorms or instrument conditions at the 23 monitored airports.</div>');
   } else ctx('cWx', '--', 'No live airport weather', '');
+  { const r = fresh('metar') ? feed('metar').data.reports : null;
+    compareToHistory($('cWx'), 'ifr', r ? r.filter(x => x.fltCat === 'IFR' || x.fltCat === 'LIFR').length : NaN);
+    const t = $('cWx').querySelector('.typ'); if (t && histStats('ifr')) t.innerHTML = t.innerHTML.replace('Typical over', 'Airports in IFR or LIFR, typical over'); }
   if (fresh('sigmet')) {
     const c = feed('sigmet').data.counts || {}, names = { TS: 'Thunderstorm', TURB: 'Turbulence', ICE: 'Icing', VA: 'Volcanic ash', MTW: 'Mountain wave', TC: 'Tropical cyclone' };
     ctx('cSig', String(Object.values(c).reduce((a, b) => a + b, 0)), 'Active SIGMETs worldwide · ' + asOf('sigmet'), Object.entries(c).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<div>${esc(names[k] || k)} · ${n}</div>`).join(''));
   } else ctx('cSig', '--', 'No live SIGMET data', '');
+  compareToHistory($('cSig'), 'sig', fresh('sigmet') ? Object.values(feed('sigmet').data.counts || {}).reduce((a, b) => a + b, 0) : NaN);
   if (fresh('emergencies')) {
     const em = feed('emergencies').data.items;
     ctx('cSqk', String(em.length), 'Aircraft broadcasting 7700, 7600 or 7500 · transponder codes, not confirmed incidents · ' + asOf('emergencies'),
       em.slice(0, 5).map(a => `<div><b class="mono">${esc(a.callsign)}</b> ${esc(a.code)} · ${esc(a.region)}</div>`).join(''));
   } else ctx('cSqk', '--', 'No live squawk data', '');
+  { const el = $('cSqk'), n = fresh('emergencies') ? feed('emergencies').data.items.length : null;
+    if (n == null) setStatus(el, 'none', '--'); else setStatus(el, n ? 'above' : 'normal', n ? 'Active' : 'None');
+    setTyp(el, ''); }
   if (fresh('kp')) { const kp = feed('kp').data.kp; ctx('cKp', 'Kp ' + kp.toFixed(1), (kp >= 5 ? 'Geomagnetic storm: HF radio on polar and oceanic routes may degrade' : 'Quiet to unsettled') + ' · NOAA · ' + asOf('kp')); }
   else ctx('cKp', '--', 'No live NOAA data');
+  { const el = $('cKp'), kp = fresh('kp') ? feed('kp').data.kp : null;
+    if (kp == null) setStatus(el, 'none', '--'); else { const [c, t] = kp >= 5 ? ['high', 'Storm'] : kp >= 4 ? ['above', 'Active'] : ['normal', 'Quiet']; setStatus(el, c, t); }
+    setTyp(el, 'Typical: <b>Kp 1–3</b> · active at 4 · storm at 5 or more (NOAA scale)'); }
 }
 
 // ---------------------------------------------------------------- map
@@ -285,7 +327,7 @@ async function refreshLive() {
 }
 async function refreshHistory() {
   try { const h = await getJSON('/api/history?range=24h', 15000); HIST = Array.isArray(h.rows) ? h.rows : []; } catch (e) { /* trend lines show "collecting" */ }
-  renderOutlook(); renderTiles();
+  renderOutlook(); renderTiles(); renderContext();
 }
 function prepLand(rings) { // unwrap shapes that cross the 180° line and draw them on both sides
   const out = [];
@@ -299,6 +341,7 @@ renderAll();
 refreshLive(); setInterval(refreshLive, 120000);
 refreshHistory(); setInterval(refreshHistory, 600000);
 getJSON('data/backtest-results.json', 15000).then(j => { TRACK = j; renderTiles(); }).catch(() => {});
+getJSON('data/sfi-model.json', 15000).then(j => { MODEL = j; renderTiles(); $('howBody').innerHTML = window.renderModelTable(j, { link: true }); }).catch(() => { $('howBody').textContent = 'Model details unavailable.'; });
 getJSON('data/land-110m.json', 15000).then(d => { LAND = prepLand(d); drawMap(); }).catch(() => {});
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshLive(); });
 setInterval(renderHeader, 60000);
