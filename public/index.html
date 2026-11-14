@@ -27,7 +27,7 @@
   <div class="top-in">
     <div class="brand">
       <div class="mark" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><path d="M12 35 L52 18 L40 35 L52 46 L31 40 L23 54 L24 38 Z" fill="#fff"/><path d="M18 38 L32 33" stroke="#93c5fd" stroke-width="3" stroke-linecap="round"/></svg></div>
-      <div><h1>GAPS</h1><p>Global Airline Pressure System · live US airport disruption outlook</p></div>
+      <div><h1>GAPS</h1><p>US Airport Disruption Outlook · Global Airline Pressure System</p></div>
     </div>
     <div class="top-stats">
       <span class="livepill down" id="livePill"><span class="dot"></span><span id="liveText">CONNECTING</span></span>
@@ -105,6 +105,12 @@
     <div class="mapfoot" id="mapFoot">Hover over an airport for its latest weather report and FAA status.</div>
   </section>
 
+  <section class="card airports" aria-labelledby="apTitle">
+    <div class="cardhead"><h2 id="apTitle">Airports</h2><span class="sub">Select an airport for its status, weather, 12-hour forecast and today's FAA programs</span></div>
+    <h3 class="apgroup">United States</h3><div class="apgrid" id="apUS"></div>
+    <h3 class="apgroup">International</h3><div class="apgrid" id="apIntl"></div>
+  </section>
+
   <section class="tiles" aria-label="Index inputs">
     <article class="card tile" id="tHub"><div class="cardhead"><h2>US hub weather</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d">Worst of the next 3 hours at 15 major hubs</div><div class="typ"></div><div class="spark"></div><p class="def"><b>What it means:</b> bad-weather points added up across 15 major US hubs for the worst of the next 3 hours: thunderstorm 3, very low visibility 2, low visibility 1, strong gusts 0.7–1.5, rain 0.7, overcast low cloud 0.6. Forecast from Open-Meteo.</p></article>
     <article class="card tile" id="tRecent"><div class="cardhead"><h2>New FAA programs</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d">Started in the current and previous two hours</div><div class="typ"></div><div class="spark"></div><p class="def"><b>What it means:</b> new ground stops (flights to an airport held at their origin) and ground delay programs (departures to an airport deliberately delayed) issued by the FAA Command Center in roughly the last 3 hours.</p></article>
@@ -141,6 +147,14 @@
     </div>
   </section>
 </main>
+
+<div class="drawer" id="drawer" hidden>
+  <div class="drawer-bg" data-close></div>
+  <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drTitle">
+    <button class="drawer-x" data-close aria-label="Close airport details">×</button>
+    <div id="drBody"></div>
+  </aside>
+</div>
 
 <footer>
   <div class="foot-in">
