@@ -1,0 +1,202 @@
+{
+ "generatedAt": "2026-11-14T05:43:57.188Z",
+ "period": {
+  "start": "2026-07-16T00:00",
+  "end": "2026-11-12T23:00"
+ },
+ "testStart": "2026-10-04T06:00:00.000Z",
+ "target": "new ground stop or ground delay program at the airport in the next 3 hours",
+ "hubs": [
+  "JFK",
+  "LGA",
+  "EWR",
+  "BOS",
+  "PHL",
+  "ATL",
+  "CLT",
+  "MIA",
+  "ORD",
+  "DFW",
+  "IAH",
+  "DEN",
+  "SFO",
+  "SEA",
+  "LAX"
+ ],
+ "baseRate": 0.035,
+ "pooled": {
+  "model": {
+   "label": "Per-airport model (all inputs)",
+   "aucTest": 0.846,
+   "aucTrain": 0.889
+  },
+  "tod": {
+   "label": "Airport's usual rate at this hour",
+   "aucTest": 0.772,
+   "aucTrain": 0.842
+  },
+  "own3": {
+   "label": "Programs at this airport, last 3 h",
+   "aucTest": 0.608,
+   "aucTrain": 0.663
+  },
+  "own24": {
+   "label": "Programs at this airport, last 24 h",
+   "aucTest": 0.718,
+   "aucTrain": 0.743
+  },
+  "wxNext3": {
+   "label": "This airport's weather, next 3 h",
+   "aucTest": 0.699,
+   "aucTrain": 0.659
+  },
+  "others3": {
+   "label": "Programs at other airports, last 3 h",
+   "aucTest": 0.618,
+   "aucTrain": 0.646
+  }
+ },
+ "byAirport": {
+  "JFK": {
+   "baseRate": 0.038,
+   "aucModel": 0.879,
+   "aucTod": 0.725,
+   "eventsTest": 36
+  },
+  "LGA": {
+   "baseRate": 0.07,
+   "aucModel": 0.839,
+   "aucTod": 0.759,
+   "eventsTest": 67
+  },
+  "EWR": {
+   "baseRate": 0.049,
+   "aucModel": 0.884,
+   "aucTod": 0.777,
+   "eventsTest": 47
+  },
+  "BOS": {
+   "baseRate": 0.114,
+   "aucModel": 0.769,
+   "aucTod": 0.743,
+   "eventsTest": 108
+  },
+  "PHL": {
+   "baseRate": 0.019,
+   "aucModel": 0.912,
+   "aucTod": 0.732,
+   "eventsTest": 18
+  },
+  "ATL": {
+   "baseRate": 0.012,
+   "aucModel": 0.911,
+   "aucTod": 0.684,
+   "eventsTest": 11
+  },
+  "CLT": {
+   "baseRate": 0.006,
+   "aucModel": 0.831,
+   "aucTod": 0.769,
+   "eventsTest": 6
+  },
+  "MIA": {
+   "baseRate": 0.017,
+   "aucModel": 0.907,
+   "aucTod": 0.727,
+   "eventsTest": 16
+  },
+  "ORD": {
+   "baseRate": 0.019,
+   "aucModel": 0.805,
+   "aucTod": 0.673,
+   "eventsTest": 18
+  },
+  "DFW": {
+   "baseRate": 0.014,
+   "aucModel": 0.908,
+   "aucTod": 0.573,
+   "eventsTest": 13
+  },
+  "IAH": {
+   "baseRate": 0.007,
+   "aucModel": 0.846,
+   "aucTod": 0.822,
+   "eventsTest": 7
+  },
+  "DEN": {
+   "baseRate": 0.054,
+   "aucModel": 0.673,
+   "aucTod": 0.505,
+   "eventsTest": 51
+  },
+  "SFO": {
+   "baseRate": 0.072,
+   "aucModel": 0.779,
+   "aucTod": 0.701,
+   "eventsTest": 68
+  },
+  "SEA": {
+   "baseRate": 0.036,
+   "aucModel": 0.727,
+   "aucTod": 0.74,
+   "eventsTest": 34
+  },
+  "LAX": {
+   "baseRate": 0.006,
+   "aucModel": 0.222,
+   "aucTod": 0.455,
+   "eventsTest": 6
+  }
+ },
+ "calibration": [
+  {
+   "from": 0,
+   "to": 0.05,
+   "hours": 10157,
+   "predicted": 0.022,
+   "observed": 0.009
+  },
+  {
+   "from": 0.05,
+   "to": 0.1,
+   "hours": 2178,
+   "predicted": 0.07,
+   "observed": 0.051
+  },
+  {
+   "from": 0.1,
+   "to": 0.2,
+   "hours": 1035,
+   "predicted": 0.136,
+   "observed": 0.106
+  },
+  {
+   "from": 0.2,
+   "to": 0.35,
+   "hours": 506,
+   "predicted": 0.252,
+   "observed": 0.172
+  },
+  {
+   "from": 0.35,
+   "to": 0.5,
+   "hours": 177,
+   "predicted": 0.406,
+   "observed": 0.124
+  },
+  {
+   "from": 0.5,
+   "to": 1,
+   "hours": 212,
+   "predicted": 0.769,
+   "observed": 0.392
+  }
+ ],
+ "weightsTrain": {
+  "wxNext3": 0.347,
+  "own3": 0.393,
+  "own24": 0.238,
+  "others3": 0.192,
+  "tod": 0.936
+ }
+}

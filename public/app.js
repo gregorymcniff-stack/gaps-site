@@ -320,7 +320,7 @@ async function getJSON(url, ms) {
   const opts = { cache: 'no-store' }; if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(ms);
   const r = await fetch(url, opts); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
 }
-function renderAll() { renderHeader(); renderOutlook(); renderFaa(); renderTiles(); renderContext(); drawMap(); renderAirports(); }
+function renderAll() { renderHeader(); renderOutlook(); renderFaa(); renderTiles(); renderContext(); drawMap(); renderAirportOutlooks(); renderAirports(); }
 async function refreshLive() {
   const first = !SNAP;
   try { const s = await getJSON('/api/live', 20000); if (!s || !s.feeds) throw new Error('unexpected response'); SNAP = s; SNAP_ERR = null; }
@@ -369,7 +369,7 @@ function hubPointsAt(h, j) { // same scoring as the server's US hub weather
 function renderAirports() {
   const list = ((SNAP && SNAP.airports) || []).map(a => ({ ...a, ...hubStatus(a) }));
   const rank = { high: 3, watch: 2, normal: 1, unknown: 0 };
-  const chip = a => `<button type="button" class="ap s-${a.status}" data-ap="${esc(a.iata)}"><b>${esc(a.iata)}</b><span>${esc(a.status === 'high' || a.status === 'watch' ? a.label.slice(a.iata.length + 1) : a.status === 'unknown' ? 'no data' : (a.metar && a.metar.fltCat) ? a.metar.fltCat + ' · normal' : 'normal')}</span><span>${esc(a.name || '')}</span></button>`;
+  const chip = a => `<button type="button" class="ap s-${a.status}" data-ap="${esc(a.iata)}"><b>${esc(a.iata)}</b><span>${esc(a.status === 'high' || a.status === 'watch' ? a.label.slice(a.iata.length + 1) : a.status === 'unknown' ? 'no data' : (a.metar && a.metar.fltCat) ? a.metar.fltCat + ' · normal' : 'normal')}</span><span>${esc(a.name || '')}</span>${airportOutlook(a.iata) ? `<span>Next 3 h: <b class="mono">${pct(airportOutlook(a.iata).p)}</b></span>` : ''}</button>`;
   const sorted = list.slice().sort((x, y) => rank[y.status] - rank[x.status] || x.iata.localeCompare(y.iata));
   $('apUS').innerHTML = sorted.filter(a => a.region === 'US').map(chip).join('') || '<span class="sub">Loading…</span>';
   $('apIntl').innerHTML = sorted.filter(a => a.region !== 'US').map(chip).join('');
@@ -403,6 +403,7 @@ function openAirport(iata, focus = true) {
   const pill = s.status === 'high' ? ['high', 'Disrupted'] : s.status === 'watch' ? ['elevated', 'Delays or low cloud'] : s.status === 'normal' ? ['low', 'Normal'] : ['none', 'No data'];
   let html = `<div class="dr-h"><h2 id="drTitle">${esc(a.iata)}</h2><span class="ic">${esc(a.icao)}</span><span class="nm">${esc(a.name || '')}</span><span class="pill ${pill[0]}">${pill[1]}</span></div>`;
   html += `<div class="dr-sec"><h3>FAA status now</h3><p>${s.lines.length ? s.lines.map(esc).join('<br>') : a.region === 'US' ? (fresh('faa') ? 'No ground stops, delay programs or closures.' : 'No live FAA data.') : 'Outside the US: no FAA programs. Live delay data for this region is not available.'}</p></div>`;
+  html += airportOutlookSection(iata);
   html += `<div class="dr-sec"><h3>Weather now (METAR)</h3>${m ? `<dl class="kv"><dt>Conditions</dt><dd>${esc(CAT_TEXT[m.fltCat] || m.fltCat || '?')}</dd>${m.wx ? `<dt>Weather</dt><dd>${esc(m.wx)}</dd>` : ''}<dt>Wind</dt><dd>${m.windKt != null ? m.windKt + ' kt' + (m.gustKt ? ', gusts ' + m.gustKt + ' kt' : '') : '?'}</dd><dt>Visibility</dt><dd>${m.visSm != null ? m.visSm + '+ mi'.slice(m.visSm >= 10 ? 0 : 1) : '?'}</dd><dt>Observed</dt><dd>${utc(m.obsTime)}</dd></dl><div class="raw">${esc(m.raw)}</div>` : '<p>No live weather report.</p>'}</div>`;
   html += tafSection(iata);
   const hw = fresh('usHubWx') && feed('usHubWx').data;
@@ -442,3 +443,39 @@ $('map').addEventListener('click', ev => {
   if (best) openAirport(best.iata);
 });
 window.addEventListener('hashchange', () => { const c = location.hash.slice(1).toUpperCase(); if (/^[A-Z]{3}$/.test(c)) openAirport(c); else closeAirport(); });
+
+// ---------------------------------------------------------------- per-airport outlooks
+let APT = null; // airport backtest results (per-airport test scores)
+const APO_DRIVER = { wxNext3: 'weather here', own3: 'recent programs here', own24: 'programs here today', others3: 'programs elsewhere', tod: 'time of day' };
+function airportOutlook(iata) { const A = SNAP && SNAP.scores && SNAP.scores.airports; return A && fresh('usHubWx') && fresh('faaAdvisories') ? A[iata] || null : null; }
+function apoDriver(o) {
+  const c = Object.entries(o.contributions || {}).filter(([k]) => k !== 'tod').sort((a, b) => b[1] - a[1])[0];
+  return c && c[1] > 0.25 ? APO_DRIVER[c[0]] : null;
+}
+function apoColor(p) { return p >= 0.5 ? '#b91c1c' : p >= 0.25 ? '#c2410c' : p >= 0.10 ? '#b45309' : '#15803d'; }
+function renderAirportOutlooks() {
+  const el = $('apoList'); if (!el) return;
+  const A = SNAP && SNAP.scores && SNAP.scores.airports;
+  if (!A || !fresh('usHubWx') || !fresh('faaAdvisories')) { el.innerHTML = `<span class="sub">${SNAP ? 'Unavailable: needs live FAA advisories and the US hub forecast.' : 'Loading…'}</span>`; return; }
+  const names = Object.fromEntries(((SNAP && SNAP.airports) || []).map(a => [a.iata, a.name]));
+  el.innerHTML = Object.entries(A).sort((a, b) => b[1].p - a[1].p).map(([k, o]) => {
+    const d = apoDriver(o), ratio = o.typical > 0 ? o.p / o.typical : 1;
+    const note = (d ? 'mainly ' + d : 'nothing unusual') + ` · usual ${pct(o.typical)}`;
+    return `<button type="button" class="apo-row" data-ap="${esc(k)}" aria-label="${esc(k)}: ${pct(o.p)} chance of a new FAA program in the next 3 hours"><b>${esc(k)}</b><span><span class="bar"><span style="width:${clamp(o.p * 200, 1, 100)}%;background:${apoColor(o.p)}"></span><i style="left:${clamp(o.typical * 200, 0, 99)}%"></i></span><small>${esc(names[k] || '')} · ${esc(note)}</small></span><span class="pct">${pct(o.p)}</span></button>`;
+  }).join('') + '<div class="apo-legend" style="grid-column:1/-1">Bar: chance now (full bar = 50% or more) · <i></i> mark: usual chance at this hour</div>';
+}
+function airportOutlookSection(iata) {
+  const o = airportOutlook(iata); if (!o) return '';
+  const C = o.contributions || {}, bt = APT && APT.byAirport && APT.byAirport[iata];
+  const rows = ['own3', 'own24', 'others3', 'wxNext3', 'tod'].filter(k => k in C).map(k => {
+    const c = C[k], w = clamp(Math.abs(c) / 2.5 * 50, 0, 50);
+    return `<div class="drv"><span>${APO_DRIVER[k][0].toUpperCase() + APO_DRIVER[k].slice(1)}</span><span class="bar"><span style="${c >= 0 ? `left:50%;width:${w}%;background:#b91c1c` : `left:${50 - w}%;width:${w}%;background:#15803d`}"></span></span><span class="val">${Math.abs(c) < 0.05 ? '0.0' : (c > 0 ? '+' : '−') + Math.abs(c).toFixed(1)}</span></div>`;
+  }).join('');
+  const F = o.features;
+  const tested = bt ? (bt.eventsTest < 15 ? `Too few programs here in the test weeks (${bt.eventsTest}) to judge this airport on its own; the pooled score across all 15 hubs is ${APT.pooled.model.aucTest.toFixed(2)}.` : `Tested score at ${iata}: ${bt.aucModel.toFixed(2)} (usual-rate-only: ${bt.aucTod.toFixed(2)}; 0.5 = coin flip).`) : '';
+  return `<div class="dr-sec"><h3>Outlook · next 3 hours</h3>
+    <p style="font-size:15px;color:var(--ink)"><b class="mono" style="font-size:22px;color:${apoColor(o.p)}">${pct(o.p)}</b> chance the FAA starts a new ground stop or delay program here in the next 3 hours. Usual at this hour: <b>${pct(o.typical)}</b>.</p>
+    <div class="drivers" style="margin-top:8px">${rows}</div>
+    <p class="sub">Inputs now: ${F.own3} program(s) here in the last ~3 h, ${F.own24} in the last 24 h, ${F.others3} elsewhere in the US in the last ~3 h, weather ${F.wxNext3.toFixed(1)} pts over the next 3 h. ${tested} A program already in effect makes a new one less likely, not more.</p></div>`;
+}
+getJSON('data/airport-backtest.json', 15000).then(j => { APT = j; if (OPEN_AP) openAirport(OPEN_AP, false); }).catch(() => {});

@@ -14,3 +14,13 @@ node analyze.mjs faa-adv.json wx.json ../../public/data/backtest-results.json
 - Traffic is not tested: no free historical aircraft counts exist.
 - Weather uses Open-Meteo model data, not METAR reports (the METAR archive
   throttled requests); the live site blends both.
+
+## Per-airport outlooks
+
+```
+node analyze-airports.mjs faa-adv.json wx.json ../../public/data   # writes airport-model.json and airport-backtest.json
+```
+
+Target: a new ground stop or ground delay program at the airport in the next
+3 hours. One pooled model for 15 US hubs; same train/test split and 30-day
+re-centring as the national index.

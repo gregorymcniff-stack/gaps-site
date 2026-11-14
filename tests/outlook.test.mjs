@@ -53,3 +53,19 @@ test('more recent programs and storms raise the chance; probabilities stay consi
   for (const o of [calm, busy, stormy]) assert.ok(o.p3 >= o.p3big);
   assert.equal(stormy.features.usStorms, 3);
 });
+
+import { airportOutlooks } from '../netlify/lib/scores.mjs';
+test('per-airport outlooks: programs and weather at an airport raise its own chance', () => {
+  const f = feeds({ now: NOW });
+  const calm = airportOutlooks(f, NOW);
+  assert.equal(Object.keys(calm).length, 15);
+  const busy = feeds({ now: NOW });
+  busy.faaAdvisories.data.programs = [0, 1, 2].map(i => ({ airport: 'EWR', type: 'GS', sent: new Date(NOW - (20 + i) * 60000).toISOString() }));
+  const b = airportOutlooks(busy, NOW);
+  assert.ok(b.EWR.p > calm.EWR.p);
+  assert.equal(b.EWR.features.own3, 3);
+  assert.equal(b.JFK.features.others3, 3);
+  const stormy = feeds({ storms: true, now: NOW }); // storms at the first three hubs (JFK, LGA, EWR)
+  assert.ok(airportOutlooks(stormy, NOW).JFK.p > calm.JFK.p);
+  for (const v of Object.values(b)) assert.ok(v.p > 0 && v.p < 1);
+});
