@@ -617,6 +617,16 @@ body{
 .pb.active{background:#fef2f2}.pb.active .pb-pct{color:var(--red)}
 .pb.mid{background:#fefce8}.pb.mid .pb-pct{color:var(--yellow)}
 .pb.low{background:#f0fdf4}.pb.low .pb-pct{color:var(--green)}
+/* five-cell direction row; collapses on tablets/phones via the .direction rules */
+.direction.direction-5{grid-template-columns:1.2fr 1fr 1fr 1fr 1.5fr}
+@media(max-width:1250px){.direction.direction-5{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.direction.direction-5{grid-template-columns:1fr}.strip-divider{display:none}
+  .map-pane{height:auto}.map-wrap{display:block}.map-wrap canvas{position:relative;display:block;width:100%;height:40vw}}
+/* trend lines (replace the old 7D/24H/NOW bars, which had no history behind them) */
+.st .pos:not(.pos-keep){display:none}
+.trendline{margin-top:6px}
+.trendline svg{display:block;width:100%;height:34px;background:#f8fbff;border:1px solid var(--border);border-radius:4px}
+.trendline .spark-note{display:block;font-size:9.5px;color:var(--secondary);margin-top:2px}
 /* live-data states */
 .pill-nodata{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}
 .st.no-data .st-score{color:#94a3b8}
@@ -678,7 +688,7 @@ body{
   </div>
   <div class="hdr-right">
     <div class="hdr-metric" style="text-align:right;">
-      <div class="lbl">Aircraft Airborne <span class="metric-tag observed">OpenSky</span><span id="staleBadge" class="stale-badge" style="display:none">DATA STALE</span></div>
+      <div class="lbl"><span id="hdrAircraftLbl">Aircraft Tracked</span> <span class="metric-tag observed" id="trafficSrcTag">OpenSky</span><span id="staleBadge" class="stale-badge" style="display:none">DATA STALE</span></div>
       <div class="val" id="flightCount">--</div>
     </div>
     <div class="hdr-clock" id="utcClock">00:00:00 UTC</div>
@@ -788,7 +798,7 @@ body{
 
 </section>
 
-<section class="direction" style="grid-template-columns:1.2fr 1fr 1fr 1fr 1.5fr">
+<section class="direction direction-5">
   <div class="dir-cell" style="background:#fafbff;border-left:3px solid var(--navy)">
     <div class="dir-lbl" style="color:var(--navy);font-weight:900">Operator Read</div>
     <div class="dir-val" id="plainTermsVal" style="font-size:14px;font-weight:800">Acquiring live inputs…</div>
@@ -834,7 +844,7 @@ body{
     <div class="st-raw" id="corridorRaw">Live aircraft density proxy · corridor model</div>
     <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now red" style="left:73%" id="corridorNow"></span></div></div>
     <div class="st-foot"><span class="pill pill-nodata" id="corridorPill">Loading</span><span class="trend trend-flat" id="corridorTrend"></span></div>
-    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Aircraft airborne as seen by OpenSky receivers, adjusted for time of day. Scaling is provisional until stored history can calibrate it.</div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Aircraft tracked worldwide by OpenSky, or by adsb.lol when OpenSky is unavailable, adjusted for time of day. Scaling is provisional until stored history can calibrate it.</div>
   </div>
   <div class="st">
     <div class="st-lbl">Weather <span class="metric-tag derived">Analyzed</span> <span class="metric-tag predictive">36% of SFI</span></div>
@@ -875,7 +885,7 @@ body{
     <div class="st-lbl">Space Weather <span class="metric-tag observed">NOAA</span> <span class="metric-tag modeled">Diagnostic</span></div>
     <div class="st-score" id="kpScore">--<span class="st-denom">Kp</span></div>
     <div class="st-raw" id="kpRaw">NOAA planetary K-index · polar/HF route pressure</div>
-    <div class="pos"><div class="pos-labels"><span>0</span><span>4</span><span>9</span></div><div class="pos-track"><span class="pos-now green" style="left:0%" id="kpNow"></span></div></div>
+    <div class="pos pos-keep"><div class="pos-labels"><span>0</span><span>4</span><span>9</span></div><div class="pos-track"><span class="pos-now green" style="left:0%" id="kpNow"></span></div></div>
     <div class="st-foot"><span class="pill pill-nodata" id="kpPill">Loading</span><span class="trend trend-flat" id="kpTrend">→</span></div>
     <div class="data-source" style="margin-top:5px;line-height:1.5"><b>Why shown:</b> Kp ≥5 disrupts HF radio on polar/Atlantic routes. Not in SFI but can amplify operational pressure independently.</div>
   </div>
@@ -908,7 +918,7 @@ body{
     <div class="map-wrap">
       <canvas id="mapCanvas"></canvas>
       <div class="map-note map-read">
-        <strong>Reading the map:</strong><ul style="margin:5px 0 0 14px;font-size:11px;color:var(--secondary);line-height:1.6"><li>Blue shading = where OpenSky sees aircraft now</li><li>Small coloured dots = centres of active SIGMET hazard areas</li><li>Hubs: red = ground stop, long delay program or very low visibility · amber = delay program, storms or IFR · green = normal · grey = no data</li><li>Lines link major hubs; colour = worst conditions at either end</li></ul>
+        <strong>Reading the map:</strong><ul style="margin:5px 0 0 14px;font-size:11px;color:var(--secondary);line-height:1.6"><li>Blue shading = where aircraft are now (OpenSky; or, when OpenSky is unavailable, the 8 most common airliner types from adsb.lol)</li><li>Small coloured dots = centres of active SIGMET hazard areas</li><li>Hubs: red = ground stop, long delay program or very low visibility · amber = delay program, storms or IFR · green = normal · grey = no data</li><li>Lines link major hubs; colour = worst conditions at either end</li></ul>
         <div class="map-pill-row">
           <span class="map-pill"><span class="leg-dot" style="background:#b91c1c"></span>▲ Emergency squawk</span>
         </div>
@@ -938,7 +948,7 @@ body{
         <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">SFI</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaSfi">--</div></div>
       </div>
     </div>
-    <div class="sum-card hl"><div class="sum-lbl">Busiest Regions <span class="metric-tag observed">OpenSky</span></div><div class="sum-val" id="topCorridorVal">--</div><div class="sum-sub" id="topCorridorSub">Updating…</div></div>
+    <div class="sum-card hl"><div class="sum-lbl">Busiest Regions <span class="metric-tag observed" id="regionSrcTag">Live</span></div><div class="sum-val" id="topCorridorVal">--</div><div class="sum-sub" id="topCorridorSub">Updating…</div></div>
     <div class="sum-card"><div class="sum-lbl">Worst US Airport Now <span class="metric-tag observed">FAA</span></div><div class="sum-val" id="delayAirportVal">--</div><div class="sum-sub" id="delayAirportSub">Updating…</div></div>
     <!-- hidden IDs still needed by JS -->
     <span id="upperAirVal" style="display:none"></span><span id="upperAirSub" style="display:none"></span>
@@ -1025,7 +1035,7 @@ body{
 
   <div class="module-card">
     <div class="module-head"><div class="module-title">Trend Analysis</div><span class="metric-tag predictive">Builds after ~30 min</span></div>
-    <div class="module-sub">Tracks how SFI is moving — rate, acceleration, and which input is leading. All values are local session history only and reset on page reload.</div>
+    <div class="module-sub">Tracks how SFI is moving: rate, acceleration, and which input is leading. Uses the readings stored on the server over the last 24 hours (the same for every visitor).</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <div style="border:1px solid var(--border);border-radius:7px;background:#fff;padding:9px 10px">
         <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary)">Rate of Change</div>
@@ -1056,7 +1066,7 @@ body{
         <div class="causal-row"><span>Upper-Air</span><span class="causal-status flat" id="leadJet">Collecting</span></div>
       </div>
     </div>
-    <div style="font-size:9px;color:var(--secondary);margin-top:8px;line-height:1.45">Rate of Change = SFI points per minute. Acceleration = is the rate itself speeding up? RSI > 70 = momentum overbought, correction-prone. All based on this session only.</div>
+    <div style="font-size:9px;color:var(--secondary);margin-top:8px;line-height:1.45">Rate of Change = SFI points per minute. Acceleration = is the rate itself speeding up? RSI > 70 = momentum overbought, correction-prone. Based on stored server readings.</div>
   </div>
 
   <div class="bc" style="grid-column:1/-1">
@@ -1158,10 +1168,13 @@ function updateLiveSparklines(){ return; }
 // The browser reads one snapshot from the GAPS server (/api/live). The server
 // fetches every public feed on a schedule. There are no fixed or made-up
 // fallback values: a feed that is down shows "No live data" and its true age.
-const FEED_LABELS={opensky:'OpenSky',faa:'FAA NAS',metar:'METAR',sigmet:'SIGMET',openmeteo:'Open-Meteo',kp:'NOAA Kp',hubTraffic:'Hub ADS-B',emergencies:'Squawks',eurocontrol:'EUROCONTROL'};
-const FEED_MAX_AGE_MIN={opensky:25,faa:25,metar:90,sigmet:60,openmeteo:90,kp:240,hubTraffic:30,emergencies:30};
+const FEED_LABELS={adsblol:'adsb.lol',traffic:'Aircraft',opensky:'OpenSky',faa:'FAA NAS',metar:'METAR',sigmet:'SIGMET',openmeteo:'Open-Meteo',kp:'NOAA Kp',hubTraffic:'Hub ADS-B',emergencies:'Squawks',eurocontrol:'EUROCONTROL'};
+const FEED_MAX_AGE_MIN={adsblol:25,opensky:25,faa:25,metar:90,sigmet:60,openmeteo:90,kp:240,hubTraffic:30,emergencies:30};
 let SNAPSHOT=null, SNAPSHOT_ERROR=null, SNAPSHOT_LOADING=false;
 let fc=null;
+let TRAFFIC_SRC=null; // 'opensky' or 'adsblol', whichever is live
+const TRAFFIC_SCALE={opensky:{base:5000,span:6000},adsblol:{base:5000,span:6000}}; // provisional; same as server
+function trafficLabel(){return TRAFFIC_SRC==='opensky'?'aircraft airborne (OpenSky)':TRAFFIC_SRC==='adsblol'?'aircraft tracked worldwide (adsb.lol)':'aircraft';}
 let liveAircraftOk=false, faaOk=false, awcOk=false;
 const FAA_STATE={programs:[],groundStops:[],groundDelays:[],arrDepDelays:[],airspaceFlows:[],closures:[],programLoad:null,affectedHubs:[],last:null};
 const HUB_TRAFFIC_STATE={radiusNm:40,hubs:{}};
@@ -1169,12 +1182,14 @@ const SFI_HISTORY=[];
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function feedOf(k){return SNAPSHOT&&SNAPSHOT.feeds?SNAPSHOT.feeds[k]||null:null;}
 function feedTime(k){
+  if(k==='traffic') k=TRAFFIC_SRC||(feedOf('opensky')&&feedOf('opensky').data?'opensky':'adsblol');
   if(k==='openmeteo' && !feedLive_raw('openmeteo') && LIVE_MODEL.weatherVia==='browser') return LIVE_MODEL.weatherAt||null;
   const f=feedOf(k); return f&&f.data&&f.fetchedAt?Date.parse(f.fetchedAt):null;
 }
 function feedLive_raw(k){const f=feedOf(k); return !!(f&&f.data&&f.fetchedAt&&(Date.now()-Date.parse(f.fetchedAt))/60000<=(FEED_MAX_AGE_MIN[k]||30));}
 function feedLive(k){
   if(k==='openmeteo') return weatherLive();
+  if(k==='traffic') return feedLive_raw('opensky')||feedLive_raw('adsblol');
   return feedLive_raw(k);
 }
 function weatherLive(){return !!(LIVE_MODEL.weather && DATA_HEALTH.openmeteo && Date.now()-DATA_HEALTH.openmeteo<=FEED_MAX_AGE_MIN.openmeteo*60000);}
@@ -1188,12 +1203,15 @@ function setFlightCount(v){
   fc=Number.isFinite(v)?Math.round(v):null;
   const fmt=fc===null?'--':fc.toLocaleString();
   ['flightCount','ft-strip','ft-bc'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmt});
-  const up=document.getElementById('flightUpdated'); if(up) up.textContent=hhmm(feedTime('opensky'));
-  const sb=document.getElementById('staleBadge'); if(sb){sb.style.display=liveAircraftOk?'none':'inline-block'; sb.textContent=feedTime('opensky')?'OUT OF DATE':'NO LIVE DATA';}
+  const up=document.getElementById('flightUpdated'); if(up) up.textContent=hhmm(feedTime('traffic'));
+  const sb=document.getElementById('staleBadge'); if(sb){sb.style.display=liveAircraftOk?'none':'inline-block'; sb.textContent=feedTime('traffic')?'OUT OF DATE':'NO LIVE DATA';}
+  const st=document.getElementById('trafficSrcTag'); if(st) st.textContent=TRAFFIC_SRC==='adsblol'?'adsb.lol':'OpenSky';
+  const rt=document.getElementById('regionSrcTag'); if(rt) rt.textContent=TRAFFIC_SRC==='adsblol'?'adsb.lol':TRAFFIC_SRC?'OpenSky':'No data';
+  const hl=document.getElementById('hdrAircraftLbl'); if(hl) hl.textContent='Aircraft Tracked';
 }
 function setApiStatus(){
   const el=document.getElementById('apiStatus'); if(!el)return;
-  const keys=['opensky','faa','metar','sigmet','openmeteo','kp'];
+  const keys=['traffic','faa','metar','sigmet','openmeteo','kp'];
   let txt='Status: '+keys.map(k=>FEED_LABELS[k]+' '+(feedLive(k)?'live':'unavailable')).join(' · ');
   if(SNAPSHOT&&SNAPSHOT.generatedAt) txt+=' · server snapshot '+hhmm(Date.parse(SNAPSHOT.generatedAt));
   if(SNAPSHOT_ERROR) txt+=' · cannot reach the GAPS data server ('+SNAPSHOT_ERROR+')';
@@ -1206,11 +1224,12 @@ function metarForHub(iata){const f=feedOf('metar'); if(!f||!f.data)return null; 
 function applySnapshot(s){
   SNAPSHOT=s;
   // Aircraft (OpenSky)
-  liveAircraftOk=feedLive('opensky');
-  const os=feedOf('opensky');
-  if(liveAircraftOk){const d=os.data; Object.assign(ADSB_STATS,{observed:true,count:d.airborne,cruiseCount:d.cruise,avgAbsVerticalRate:d.avgAbsVerticalRate,regions:d.regions,lastUpdate:feedTime('opensky')});}
+  TRAFFIC_SRC=feedLive_raw('opensky')?'opensky':feedLive_raw('adsblol')?'adsblol':null;
+  liveAircraftOk=!!TRAFFIC_SRC;
+  const os=TRAFFIC_SRC?feedOf(TRAFFIC_SRC):null;
+  if(liveAircraftOk){const d=os.data; Object.assign(ADSB_STATS,{observed:true,count:d.airborne,cruiseCount:d.cruise,avgAbsVerticalRate:d.avgAbsVerticalRate,regions:d.regions,lastUpdate:feedTime('traffic')});}
   else {ADSB_STATS.observed=false; ADSB_STATS.regions=null;}
-  DATA_HEALTH.opensky=feedTime('opensky');
+  DATA_HEALTH.opensky=feedTime('traffic');
   setFlightCount(liveAircraftOk?os.data.airborne:null);
   // Emergency transponder codes: community ADS-B (adsb.lol) plus OpenSky
   const em=[], seen=new Set();
@@ -1276,7 +1295,7 @@ async function refreshLive(){
 }
 function updateLiveBadge(){
   const el=document.getElementById('hdrLive'); if(!el)return;
-  const core=['opensky','faa','metar','openmeteo'].filter(feedLive).length;
+  const core=['traffic','faa','metar','openmeteo'].filter(feedLive).length;
   el.classList.remove('partial','down');
   if(core===4){el.textContent='● LIVE DATA';}
   else if(core>0){el.textContent='● PARTIAL DATA · '+core+' of 4 core feeds'; el.classList.add('partial');}
@@ -1349,7 +1368,56 @@ function cellRegionName(lon,lat){
 }
 const SCORE_PREV=(()=>{try{return JSON.parse(localStorage.getItem('gap_last_scores')||'{}')}catch(e){return {}}})();
 function saveScorePrev(scores){try{localStorage.setItem('gap_last_scores',JSON.stringify(scores));}catch(e){}}
+// Stored readings from the server (/api/history), shared by every visitor.
+let SERVER_HISTORY={rows:[],first:null,loadedAt:0};
+async function refreshHistory(){
+  try{
+    const opts={cache:'no-store'}; if(window.AbortSignal&&AbortSignal.timeout) opts.signal=AbortSignal.timeout(15000);
+    const res=await fetch('/api/history?range=24h',opts); if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json(); SERVER_HISTORY={rows:Array.isArray(j.rows)?j.rows:[],first:j.first,loadedAt:Date.now()};
+  }catch(e){SERVER_HISTORY.error=String(e&&e.message||e);}
+  drawTrendLines();
+}
+const SPARKS=[['sfiRaw','sfi','#0b2a4a'],['corridorRaw','traffic','#2563eb'],['weatherRaw','weather','#b45309'],['edrRaw','jet','#6d28d9'],['delayRaw','faaLoad','#b91c1c'],['flightRaw','aircraft','#0b2a4a']];
+function drawTrendLines(){
+  const rows=SERVER_HISTORY.rows||[];
+  SPARKS.forEach(([anchor,key,color])=>{
+    const a=document.getElementById(anchor); if(!a)return;
+    let box=document.getElementById('spark-'+key);
+    if(!box){box=document.createElement('div'); box.id='spark-'+key; box.className='trendline'; a.insertAdjacentElement('afterend',box);}
+    const pts=rows.map(r=>[Date.parse(r.t),r[key]]).filter(([t,v])=>Number.isFinite(t)&&Number.isFinite(v));
+    if(pts.length<3){box.innerHTML='<span class="spark-note">24h trend: '+(pts.length?pts.length+' reading'+(pts.length>1?'s':'')+' saved so far':'collecting')+'</span>'; return;}
+    const W=200,H=34,t1=Date.now(),t0=t1-24*3600e3;
+    const vals=pts.map(p=>p[1]); let lo=Math.min(...vals), hi=Math.max(...vals); if(hi-lo<10){const m=(hi+lo)/2; lo=m-5; hi=m+5;}
+    const X=t=>((t-t0)/(t1-t0)*W).toFixed(1), Y=v=>(H-3-(v-lo)/(hi-lo)*(H-6)).toFixed(1);
+    // break the line where readings are missing for more than 25 minutes
+    let d='', prev=null; pts.forEach(([t,v])=>{d+=(prev&&t-prev<25*60e3?'L':'M')+X(t)+' '+Y(v)+' '; prev=t;});
+    const avg=Math.round(vals.reduce((x,y)=>x+y,0)/vals.length), last=pts[pts.length-1];
+    box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.6" vector-effect="non-scaling-stroke"/><circle cx="'+X(last[0])+'" cy="'+Y(last[1])+'" r="2.2" fill="'+color+'"/></svg><span class="spark-note">24h avg '+avg+' · range '+Math.min(...vals)+'–'+Math.max(...vals)+' · '+pts.length+' readings</span>';
+  });
+}
+function serverLog(){
+  const rows=(SERVER_HISTORY.rows||[]).filter(r=>Number.isFinite(r.sfi));
+  if(rows.length<4) return null;
+  return rows.map(r=>({t:Date.parse(r.t),sfi:r.sfi,corridorScore:r.traffic??NaN,weatherScore:r.weather??NaN,jetScore:r.jet??NaN,delayScore:r.faaLoad??NaN}));
+}
 function updateSfiHistory(sfi, metrics){
+  const fromServer=serverLog();
+  if(fromServer){
+    const now=Date.now();
+    const log=fromServer.concat([{t:now,sfi:Number(sfi),corridorScore:Number(metrics?.corridorScore??NaN),weatherScore:Number(metrics?.weatherScore??NaN),jetScore:Number(metrics?.jetScore??NaN),delayScore:Number(metrics?.delayScore??NaN)}]);
+    const vals=log.map(x=>x.sfi).filter(Number.isFinite);
+    const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+    const sd=vals.length>1?Math.sqrt(vals.reduce((a,b)=>a+Math.pow(b-avg,2),0)/(vals.length-1)):0;
+    const z=sd>0?(sfi-avg)/sd:0;
+    const old=log.slice().reverse().find(x=>now-x.t>=60*60000);
+    const vel=old?(sfi-old.sfi)/((now-old.t)/60000):0;
+    const momentum=['corridorScore','weatherScore','jetScore'].reduce((sum,k)=>sum+(positiveForLast(log,k,3)?1:0),0);
+    return {avg,sd,z,delta:sfi-avg,vel,convergence:clamp((Math.max(0,z)*28)+(Math.max(0,vel)*22)+(momentum*14),0,100),count:vals.length,log,server:true};
+  }
+  return updateSfiHistoryLocal(sfi, metrics);
+}
+function updateSfiHistoryLocal(sfi, metrics){
   const key='gap_sfi_history_v2';
   const now=Date.now();
   try{
@@ -1480,8 +1548,8 @@ function updateTrendOutlook(hist, accel, sfi){
 function sourceAgeLabel(t){if(!t)return 'stale'; const m=Math.round((Date.now()-t)/60000); return m<1?'now':m+'m ago';}
 function updateFeedFreshness(){
   const el=document.getElementById('feedFreshness'); if(!el)return;
-  const keys=['opensky','faa','metar','sigmet','openmeteo','kp'];
-  el.innerHTML='<b>Freshness:</b> '+keys.map(k=>'<span class="'+(feedLive(k)?'fresh-ok':'fresh-bad')+'">'+FEED_LABELS[k]+' '+ageLabel(k)+'</span>').join(' · ')+' · <span class="fresh-bad">EUROCONTROL not connected</span>';
+  const keys=['traffic','faa','metar','sigmet','openmeteo','kp'];
+  el.innerHTML='<b>Freshness:</b> '+keys.map(k=>'<span class="'+(feedLive(k)?'fresh-ok':'fresh-bad')+'">'+(k==='traffic'?(TRAFFIC_SRC==='adsblol'?'Aircraft (adsb.lol; OpenSky unavailable)':'Aircraft (OpenSky)'):FEED_LABELS[k])+' '+ageLabel(k)+'</span>').join(' · ')+' · <span class="fresh-bad">EUROCONTROL not connected</span>';
 }
 function setNowMarker(id,score){const el=document.getElementById(id); if(!el)return; if(!Number.isFinite(score)){el.style.visibility='hidden';return;} el.style.visibility='visible'; el.style.left=clamp(score,0,100)+'%'; el.classList.remove('red','yellow','green'); el.classList.add(score>=70?'red':score>=55?'yellow':'green');}
 function trendText(now,prev){if(!Number.isFinite(prev))return '→ New'; const d=now-prev; return d>=5?'↑ Rising':d>=2?'↗ Building':d<=-5?'↓ Improving':d<=-2?'↘ Easing':'→ Stable';}
@@ -1567,10 +1635,11 @@ function computeCorridorScore(){
   // Time-of-day normalisation: global traffic is lower overnight (UTC) and peaks during the Europe/US overlap.
   const timeOfDayMod = 1 + 0.18 * Math.sin(Math.PI * (hour - 4) / 14);
   const adjusted = fc / Math.max(0.82, timeOfDayMod);
+  const sc=TRAFFIC_SCALE[TRAFFIC_SRC]||TRAFFIC_SCALE.opensky;
   // Provisional scaling to the range OpenSky actually reports (it sees a few
   // thousand to ~10,000 aircraft, not every aircraft airborne). To be
   // recalibrated against stored history.
-  return Math.round(clamp(42 + ((adjusted-5000)/6000)*45, 20, 92));
+  return Math.round(clamp(42 + ((adjusted-sc.base)/sc.span)*45, 20, 92));
 }
 function computeDelayScore(){
   return (faaOk && Number.isFinite(FAA_STATE.programLoad)) ? FAA_STATE.programLoad : null;
@@ -1712,20 +1781,20 @@ function updateDerivedLiveModel(){
   updateScore('corridorScore',corridorScore); updateScore('weatherScore',weatherScore); updateScore('edrScore',jetScore); updateScore('delayScore',delayScore); updateScore('sfiScore',sfi);
   setText('compCorridor',corridorScore); setText('compWeather',weatherScore); setText('compJet',jetScore); setText('compEdr',windStressScore); setText('compDelay',delayScore);
   setTileState('corridorScore',corridorScore!=null); setTileState('weatherScore',weatherScore!=null); setTileState('edrScore',jetScore!=null); setTileState('delayScore',delayScore!=null); setTileState('sfiScore',sfi!=null); setTileState('ft-strip',liveAircraftOk);
-  setText('corridorRaw', corridorScore!=null ? fc.toLocaleString()+' aircraft airborne (OpenSky) · provisional scaling'+asOf('opensky') : 'No live aircraft data'+asOf('opensky'));
+  setText('corridorRaw', corridorScore!=null ? fc.toLocaleString()+' '+trafficLabel()+' · provisional scaling'+asOf('traffic') : 'No live aircraft data'+asOf('traffic'));
   const wxSrc=[weatherLive()?'Open-Meteo 8 points':null, awcOk?'METAR '+(LIVE_MODEL.metars||[]).length+' airports':null].filter(Boolean).join(' + ');
   setText('weatherRaw', weatherScore!=null ? wxSrc+asOf(awcOk?'metar':'openmeteo') : 'No live weather data'+asOf('metar'));
   setText('edrRaw', jetScore!=null ? '250 hPa wind · max '+LIVE_MODEL.jetMax.mph+' mph near '+LIVE_MODEL.jetMax.at+' · +6h outlook '+LIVE_MODEL.jetOutlookScore+'/100'+asOf('openmeteo') : 'No live upper-air data'+asOf('openmeteo'));
   const gsN=FAA_STATE.groundStops.length, gdN=FAA_STATE.groundDelays.length, otherN=FAA_STATE.arrDepDelays.length+FAA_STATE.airspaceFlows.length;
   setText('delayRaw', delayScore!=null ? gsN+' ground stop'+(gsN===1?'':'s')+' · '+gdN+' delay program'+(gdN===1?'':'s')+(otherN?' · '+otherN+' other':'')+asOf('faa') : 'No live FAA data'+asOf('faa'));
-  setText('flightRaw', liveAircraftOk ? (ADSB_STATS.cruiseCount||0).toLocaleString()+' at cruise altitude · OpenSky receivers'+asOf('opensky') : 'No live aircraft data'+asOf('opensky'));
+  setText('flightRaw', liveAircraftOk ? (TRAFFIC_SRC==='adsblol' ? 'adsb.lol volunteer receivers · map shows '+((feedOf('adsblol').data.sampleAirborne)||0).toLocaleString()+' common airliners' : (ADSB_STATS.cruiseCount||0).toLocaleString()+' at cruise altitude · OpenSky receivers')+asOf('traffic') : 'No live aircraft data'+asOf('traffic'));
   setText('sfiRaw', sfi===null ? 'Needs at least 2 of 3 live inputs' : (missing.length?'Partial: '+missing.join(', ')+' unavailable, weights rescaled':'All 3 inputs live')+' · '+hhmm(Date.now()));
   updatePill('sfiStatusPill',sfi); updatePill('weatherPill',weatherScore); updatePill('edrPill',jetScore); updatePill('delayPill',delayScore); updatePill('corridorPill',corridorScore);
   const fp=document.getElementById('flightStatusPill'); if(fp){fp.className='pill '+(liveAircraftOk?'pill-normal':'pill-nodata'); fp.textContent=liveAircraftOk?'Live':'No data';}
   setNowMarker('sfiNow',sfi); setNowMarker('flightNow',corridorScore); setNowMarker('weatherNow',weatherScore); setNowMarker('jetNow',jetScore); setNowMarker('delayNow',delayScore); setNowMarker('corridorNow',corridorScore); updateKpDisplay();
   setTrend('sfiTrend',sfi,SCORE_PREV.sfi); setTrend('flightTrend',corridorScore,SCORE_PREV.corridor); setTrend('weatherTrend',weatherScore,SCORE_PREV.weather); setTrend('edrTrend',jetScore,SCORE_PREV.jet); setTrend('delayTrend',delayScore,SCORE_PREV.delay); setTrend('corridorTrend',corridorScore,SCORE_PREV.corridor);
   document.querySelectorAll('.st').forEach(el=>el.classList.remove('alert-high')); const sfiTile=document.getElementById('sfiScore')?.closest('.st'); if(sfiTile && sfi>=70)sfiTile.classList.add('alert-high');
-  const liveCore=['opensky','faa','metar','openmeteo'].filter(feedLive);
+  const liveCore=['traffic','faa','metar','openmeteo'].filter(feedLive);
   setText('topDataStatus', liveCore.length===4?'All core feeds live':liveCore.length?'Partial · '+liveCore.length+' of 4 core feeds live':'No live data');
   setDirectionClass('topDataStatus', liveCore.length===4?0:liveCore.length?60:80);
   const src=Object.keys(FEED_MAX_AGE_MIN).filter(k=>k!=='hubTraffic').map(k=>FEED_LABELS[k]+(feedLive(k)?' live':' unavailable'));
@@ -1776,7 +1845,7 @@ function updateDerivedLiveModel(){
 
   updateTrendOutlook(hist,accel,sfi);
   const rv=document.getElementById('riskTrendVal'); if(rv){rv.className='sum-val '+(delta60>=2?'trend-up':delta60<=-2?'trend-down':'trend-flat'); rv.textContent=directionLabel(delta60)+(delta60>=2?' · Pressure building':delta60<=-2?' · Pressure easing':' · Holding steady');}
-  setText('riskTrendSub', hist.count>=4 ? 'Straight-line projection from this session: SFI '+sfi+' now → '+f1+' in 60 minutes. Main driver: '+driverDisplay+'.' : 'Collecting readings in this browser (needs ~4 updates). Main driver: '+driverDisplay+'.');
+  setText('riskTrendSub', hist.count>=4 ? 'Straight-line projection from the last hour: SFI '+sfi+' now → '+f1+' in 60 minutes. Main driver: '+driverDisplay+'.' : 'Collecting readings (needs ~4). Main driver: '+driverDisplay+'.');
   setText('ttiVal',directionalTti(sfi,delta60));
   setText('ttiSub',sfi>=70?'Pressure threshold already active.':'Directional readout only.');
   setText('forecastBig','Now '+sfi+' → '+f1+' / +1h');
@@ -1797,7 +1866,7 @@ function updateDerivedLiveModel(){
   setText('primaryDriverHero', driverDisplay+(allLive?'':' (partial inputs)'));
   setText('primaryDriverContext', driverKey==='corridor'?'Aircraft count relative to time of day is the largest input right now.':driverKey==='weather'?'Airport weather is the largest input right now.':'Cruise-altitude (250 hPa) winds are the largest input right now.');
   setText('fragilityHero', fragilityScore>=60?'High — inputs compounding':fragilityScore>=30?'Moderate — watch for convergence':'Low — inputs not compounding');
-  setText('confTraffic', liveAircraftOk?'Live · OpenSky'+asOf('opensky'):'No live data');
+  setText('confTraffic', liveAircraftOk?'Live · '+(TRAFFIC_SRC==='adsblol'?'adsb.lol':'OpenSky')+asOf('traffic'):'No live data');
   setText('confVertical', weatherLive()?'Live · Open-Meteo upper-air':'No live data');
 
   // Action layer
@@ -1849,8 +1918,8 @@ function updateRegionAndDelaySummary(){
   if(liveAircraftOk && r){
     const top=Object.entries(r).filter(([k])=>k!=='Other').sort((a,b)=>b[1]-a[1]).slice(0,3);
     setText('topCorridorVal', top.length?top[0][0]:'--');
-    setText('topCorridorSub', top.map(([k,n])=>k+' '+n.toLocaleString()).join(' · ')+' aircraft (OpenSky)'+asOf('opensky'));
-  } else {setText('topCorridorVal','No live data'); setText('topCorridorSub','OpenSky aircraft positions unavailable'+asOf('opensky'));}
+    setText('topCorridorSub', top.map(([k,n])=>k+' '+n.toLocaleString()).join(' · ')+' '+(TRAFFIC_SRC==='adsblol'?'common airliners (adsb.lol sample)':'aircraft (OpenSky)')+asOf('traffic'));
+  } else {setText('topCorridorVal','No live data'); setText('topCorridorSub','Aircraft positions unavailable'+asOf('traffic'));}
   if(faaOk){
     const gs=FAA_STATE.groundStops[0], gd=FAA_STATE.groundDelays.slice().sort((a,b)=>(b.avgMin||0)-(a.avgMin||0))[0];
     if(gs){setText('delayAirportVal',gs.airport+' · ground stop'); setText('delayAirportSub',(gs.reason||'')+asOf('faa'));}
@@ -1925,7 +1994,7 @@ function drawMap(){
   ctx.restore();
 
   // Live aircraft density (OpenSky positions, grouped into 3° cells)
-  const os=feedOf('opensky');
+  const os=TRAFFIC_SRC?feedOf(TRAFFIC_SRC):null;
   if(liveAircraftOk && os && os.data && Array.isArray(os.data.density)){
     const cell=os.data.densityCellDeg||3, cw=MW*cell/360, ch=MH*cell/SPAN;
     const maxN=os.data.density.reduce((m,d)=>Math.max(m,d[2]),1), lmax=Math.log(1+maxN);
@@ -1998,6 +2067,8 @@ let _resizeT=null; window.addEventListener('resize',()=>{clearTimeout(_resizeT);
 
 refreshLive();
 setInterval(refreshLive,120000);
+refreshHistory();
+setInterval(refreshHistory,10*60000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshLive();});
 setInterval(()=>{setApiStatus(); updateLiveBadge();},60000);
 
