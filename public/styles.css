@@ -50,6 +50,34 @@ a:focus-visible,button:focus-visible{outline:3px solid #93c5fd;outline-offset:2p
 .hero{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:var(--gap)}
 @media (max-width:960px){.hero{grid-template-columns:1fr}}
 
+/* global snapshot */
+.snap-key{display:flex;gap:4px 16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:4px 0 10px}
+.snap-key span{display:inline-flex;align-items:center;gap:6px}
+.snap-key i{display:inline-block}
+.k-band{width:18px;height:8px;background:#dbe4ef;border-radius:2px}
+.k-avg{width:2px;height:12px;background:#0b2a4a}
+.k-now{width:10px;height:10px;border-radius:50%;background:#64748b;border:2px solid #fff;box-shadow:0 0 0 1px #64748b}
+.srow{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(0,2fr) minmax(170px,1fr);gap:6px 16px;align-items:center;padding:9px 0;border-top:1px solid #f1f5f9}
+.srow:first-child{border-top:0}
+.srow .lbl b{display:block;color:var(--ink);font-size:13.5px}
+.srow .lbl span{font-size:11.5px;color:var(--muted);display:block}
+.srow .lbl .src{margin-top:2px;font-size:11px;color:var(--faint)}
+.ld{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:0}
+.ld.on{background:var(--green)}.ld.old{background:var(--amber)}.ld.off{background:#cbd5e1}
+.gauge{position:relative;height:22px}
+.gauge .trk{position:absolute;left:0;right:0;top:9px;height:4px;background:#eef2f7;border-radius:2px}
+.gauge .band{position:absolute;top:6px;height:10px;background:#dbe4ef;border-radius:2px}
+.gauge .avg{position:absolute;top:3px;width:2px;height:16px;background:#0b2a4a}
+.gauge .now{position:absolute;top:4px;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.gauge .ends{position:absolute;top:22px;left:0;right:0;display:flex;justify-content:space-between;font-size:10px;color:var(--faint);font-family:var(--mono)}
+.srow .num{text-align:right}
+.srow .num b{font-family:var(--mono);font-size:17px;color:var(--ink)}
+.srow .num b small{font-size:12px;color:var(--muted);font-weight:500}
+.srow .num span{display:block;font-size:11.5px;color:var(--muted)}
+.srow .num em{font-style:normal;font-weight:700;font-size:11.5px}
+@media (max-width:700px){.srow{grid-template-columns:minmax(0,1fr) auto}.srow .gauge{grid-column:1/-1;grid-row:2}.srow .num{grid-row:1;grid-column:2}}
+.howread summary{cursor:pointer;font-weight:600;color:var(--navy);font-size:13.5px}
+.howread .explain{margin-top:12px}
 /* what GAPS tells you */
 .explain{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap)}
 @media (max-width:900px){.explain{grid-template-columns:minmax(0,1fr)}}
