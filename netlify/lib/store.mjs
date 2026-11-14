@@ -1,7 +1,13 @@
 import { getStore } from '@netlify/blobs';
 import { buildSnapshot, mergeWithPrevious, historyRow } from './feeds.mjs';
 
-const store = () => getStore({ name: 'gaps', consistency: 'strong' });
+// Production uses the 'gaps' store. Deploy previews and branch deploys get their
+// own store, so testing a change can never overwrite the live site's data.
+let storeName = 'gaps';
+export function useContext(deployContext) {
+  storeName = !deployContext || deployContext === 'production' ? 'gaps' : 'gaps-preview';
+}
+const store = () => getStore({ name: storeName, consistency: 'strong' });
 
 export async function readLatest() {
   try { return await store().get('latest', { type: 'json' }); } catch { return null; }
