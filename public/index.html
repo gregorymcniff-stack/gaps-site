@@ -104,7 +104,11 @@
         <span><i style="background:#15803d"></i>Hub normal</span>
       </div>
     </div>
+    <div class="mapviews" role="group" aria-label="Map view">
+      <button type="button" data-view="world" aria-pressed="true">World</button><button type="button" data-view="us" aria-pressed="false">United States</button><button type="button" data-view="europe" aria-pressed="false">Europe</button><button type="button" data-view="asia" aria-pressed="false">Asia</button>
+    </div>
     <div class="mapbox">
+      <div id="mapgl" role="region" aria-label="Zoomable map of live aircraft, hazard areas and airport status" hidden></div>
       <canvas id="map" role="img" aria-label="World map of live aircraft, hazard areas and airport status"></canvas>
       <div class="tip" id="tip" role="tooltip"></div>
     </div>
@@ -166,7 +170,7 @@
 
 <footer>
   <div class="foot-in">
-    <div>Data: FAA · AviationWeather.gov · NOAA SWPC · <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> (CC BY 4.0) · <a href="https://adsb.lol">adsb.lol</a> (ODbL) · OpenSky Network · Natural Earth. <a href="sources.html">Sources &amp; terms</a> · <a href="data.html">Open data</a> · <a href="model-card.html">Model card</a></div>
+    <div>Data: FAA · AviationWeather.gov · NOAA SWPC · <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> (CC BY 4.0) · <a href="https://adsb.lol">adsb.lol</a> (ODbL) · OpenSky Network · Natural Earth · Map: OpenFreeMap, © OpenMapTiles, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors. <a href="sources.html">Sources &amp; terms</a> · <a href="data.html">Open data</a> · <a href="model-card.html">Model card</a></div>
     <a class="voronoi" href="img/voronoi.jpg"><img src="img/voronoi.jpg" alt="" loading="lazy" width="56" height="56"><span>Global airport Voronoi diagram: each region is the area closest to one airport.</span></a>
   </div>
 </footer>

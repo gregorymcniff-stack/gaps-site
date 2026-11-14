@@ -237,6 +237,17 @@ function centroid(coords) {
   if (!valid.length) return null;
   return { lat: +(valid.reduce((s, p) => s + +p.lat, 0) / valid.length).toFixed(2), lon: +(valid.reduce((s, p) => s + +p.lon, 0) / valid.length).toFixed(2) };
 }
+// Simplified outline (at most 30 points) for drawing the hazard area on the map.
+function outline(coords) {
+  let pts = coords;
+  if (typeof pts === 'string') { try { pts = JSON.parse(pts.replace(/'/g, '"')); } catch { pts = []; } }
+  if (!Array.isArray(pts)) return null;
+  const v = pts.filter(p => Number.isFinite(+p.lat) && Number.isFinite(+p.lon)).map(p => [+(+p.lon).toFixed(2), +(+p.lat).toFixed(2)]);
+  if (v.length < 3) return null;
+  const step = Math.max(1, Math.ceil(v.length / 30)), out = v.filter((_, i) => i % step === 0);
+  if (out[0][0] !== out[out.length - 1][0] || out[0][1] !== out[out.length - 1][1]) out.push(out[0]);
+  return out.length >= 4 ? out : null;
+}
 function normHazard(h) {
   h = String(h || '').toUpperCase();
   if (h === 'CONVECTIVE' || h === 'TS' || h === 'TC') return 'TS';
@@ -255,13 +266,13 @@ async function fetchSigmets() {
   for (const s of Array.isArray(intl) ? intl : []) {
     if (+s.validTimeTo && +s.validTimeTo < now) continue;
     const c = centroid(s.coords); if (!c) continue;
-    items.push({ hazard: normHazard(s.hazard), fir: s.firName || s.firId, top: +s.top || null, base: +s.base || null, ...c, validTo: new Date(+s.validTimeTo * 1000).toISOString() });
+    items.push({ hazard: normHazard(s.hazard), fir: s.firName || s.firId, top: +s.top || null, base: +s.base || null, ...c, poly: outline(s.coords), validTo: new Date(+s.validTimeTo * 1000).toISOString() });
   }
   for (const s of Array.isArray(us) ? us : []) {
     if (s.airSigmetType !== 'SIGMET') continue; // skip AIRMETs (lighter hazards)
     if (+s.validTimeTo && +s.validTimeTo < now) continue;
     const c = centroid(s.coords); if (!c) continue;
-    items.push({ hazard: normHazard(s.hazard), fir: 'United States', top: +s.altitudeHi2 || null, base: +s.altitudeLow1 || null, ...c, validTo: new Date(+s.validTimeTo * 1000).toISOString() });
+    items.push({ hazard: normHazard(s.hazard), fir: 'United States', top: +s.altitudeHi2 || null, base: +s.altitudeLow1 || null, ...c, poly: outline(s.coords), validTo: new Date(+s.validTimeTo * 1000).toISOString() });
   }
   const counts = items.reduce((o, s) => ((o[s.hazard] = (o[s.hazard] || 0) + 1), o), {});
   return { data: { items, counts, total: items.length } };
@@ -458,7 +469,7 @@ async function fetchEmergencies() {
 // scheduled job, which can run for up to 30 seconds.
 // Bump when the snapshot format changes, so stored snapshots from older code
 // are rebuilt instead of served.
-export const SNAPSHOT_VERSION = 9;
+export const SNAPSHOT_VERSION = 10;
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
   const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories, taf] = await Promise.all([

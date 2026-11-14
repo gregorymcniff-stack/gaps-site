@@ -130,6 +130,14 @@ a:focus-visible,button:focus-visible{outline:3px solid #93c5fd;outline-offset:2p
 .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
 .mapbox{position:relative;background:var(--soft)}
 #map{display:block;width:100%;aspect-ratio:360/138;max-height:560px}
+#mapgl{width:100%;height:clamp(320px,52vw,600px)}
+#map[hidden],#mapgl[hidden]{display:none}
+.mapviews{display:flex;gap:6px;flex-wrap:wrap;padding:10px 20px 0}
+.mapviews button{font:inherit;font-size:12px;border:1px solid var(--border);background:#fff;color:var(--navy);border-radius:999px;padding:4px 12px;cursor:pointer}
+.mapviews button[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+.mapviews[hidden]{display:none}
+.maplibregl-popup-content{font-family:var(--sans);font-size:12px;max-width:280px;padding:9px 11px}
+.maplibregl-popup-content .raw{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;word-break:break-word}
 .tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(11,42,74,.15);padding:9px 11px;font-size:12px;max-width:280px;display:none;z-index:2}
 .tip b{color:var(--navy)}
 .tip .raw{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;word-break:break-word}
