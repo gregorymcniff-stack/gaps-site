@@ -3,7 +3,7 @@
 // the ones in public/index.html; keep the two in step.
 
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-const FRESH_MIN = { opensky: 25, airliners: 25, metar: 90, openmeteo: 90, faa: 25 };
+const FRESH_MIN = { opensky: 25, adsblol: 25, metar: 90, openmeteo: 90, faa: 25 };
 
 export function isFresh(feed, key, now = Date.now()) {
   return !!(feed && feed.data && feed.fetchedAt && (now - Date.parse(feed.fetchedAt)) / 60000 <= (FRESH_MIN[key] || 30));
@@ -62,7 +62,8 @@ export function jetScore(openmeteoRaw, now = Date.now()) {
 }
 
 // Provisional scaling per source, until stored history allows calibration.
-export const TRAFFIC_SCALE = { opensky: { base: 5000, span: 6000 }, airliners: { base: 2500, span: 2500 } };
+// Both sources report a worldwide total of a few thousand to ~10,000 aircraft.
+export const TRAFFIC_SCALE = { opensky: { base: 5000, span: 6000 }, adsblol: { base: 5000, span: 6000 } };
 export function trafficScore(count, source, now = new Date()) {
   if (!Number.isFinite(count) || !TRAFFIC_SCALE[source]) return null;
   const hour = now.getUTCHours();
@@ -82,7 +83,7 @@ export function sfi(traffic, weather, jet) {
 
 export function trafficSource(feeds, now = Date.now()) {
   if (isFresh(feeds.opensky, 'opensky', now)) return 'opensky';
-  if (isFresh(feeds.airliners, 'airliners', now)) return 'airliners';
+  if (isFresh(feeds.adsblol, 'adsblol', now)) return 'adsblol';
   return null;
 }
 

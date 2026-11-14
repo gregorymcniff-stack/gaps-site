@@ -305,31 +305,34 @@ async function fetchHubTraffic() {
   if (!results.some(([, v]) => v)) throw new Error('no hub responses');
   return { data: { radiusNm: 40, hubs } };
 }
-// Worldwide airliner count from adsb.lol, by aircraft type. Used when OpenSky is
-// unavailable (OpenSky does not accept connections from Netlify's servers).
-// Covers the ~28 most common airliner types; coverage depends on volunteer
-// receivers, so it is a relative traffic signal, not a total of all flights.
-export const AIRLINER_TYPES = ['A320', 'A20N', 'A321', 'A21N', 'A319', 'B738', 'B38M', 'B739', 'B737', 'B39M', 'E75L', 'E190', 'E195', 'CRJ9',
-  'B77W', 'B789', 'B788', 'B78X', 'A333', 'A359', 'B763', 'B772', 'A388', 'B744', 'B748', 'A339', 'B752', 'AT76'];
-async function fetchAirliners() {
-  const lists = [];
-  for (let i = 0; i < AIRLINER_TYPES.length; i += 7) { // 7 at a time, to be polite to a free service
-    lists.push(...await Promise.all(AIRLINER_TYPES.slice(i, i + 7).map(t =>
-      get(`https://api.adsb.lol/v2/type/${t}`, { timeout: 5000 }).then(r => r.json()).then(j => j.ac || []).catch(() => null))));
-  }
-  const answered = lists.filter(Boolean).length;
-  if (answered < AIRLINER_TYPES.length * 0.85) throw new Error(`only ${answered} of ${AIRLINER_TYPES.length} type queries answered`);
+// adsb.lol: used when OpenSky is unavailable (OpenSky refuses connections from
+// Netlify's servers). The count is adsb.lol's own worldwide total of aircraft
+// tracked by its volunteer receivers (one request). Map shading and region
+// counts come from the positions of the 8 most common airliner types; if those
+// requests are throttled, the count still works and the map simply has no shading.
+const SAMPLE_TYPES = ['A320', 'A20N', 'A321', 'A21N', 'B738', 'B38M', 'B77W', 'B789'];
+async function fetchAdsbLol() {
+  const me = await (await get('https://api.adsb.lol/0/me', { timeout: 5000 })).json();
+  const total = Number(me?.global?.aircraft);
+  if (!Number.isFinite(total) || total <= 0) throw new Error('no worldwide count in response');
+  const lists = await Promise.all(SAMPLE_TYPES.map(t =>
+    get(`https://api.adsb.lol/v2/type/${t}`, { timeout: 4000 }).then(r => r.json()).then(j => j.ac || []).catch(() => null)));
   const seen = new Set(), states = [];
   for (const a of lists.flat().filter(Boolean)) {
     if (seen.has(a.hex) || a.lat == null || a.lon == null) continue;
     seen.add(a.hex);
-    const ground = a.alt_baro === 'ground';
     const altM = typeof a.alt_baro === 'number' ? a.alt_baro * 0.3048 : null;
     // Same layout as OpenSky state vectors, so one summary function serves both.
-    states.push([a.hex, a.flight || '', null, 0, 0, a.lon, a.lat, altM, ground, a.gs != null ? a.gs * 0.5144 : null, a.track ?? null,
-      a.baro_rate != null ? a.baro_rate * 0.00508 : null, null, altM, a.squawk || '']);
+    states.push([a.hex, a.flight || '', null, 0, 0, a.lon, a.lat, altM, a.alt_baro === 'ground', a.gs != null ? a.gs * 0.5144 : null,
+      a.track ?? null, a.baro_rate != null ? a.baro_rate * 0.00508 : null, null, altM, a.squawk || '']);
   }
-  return { data: { ...summarizeStates(states), source: 'adsb.lol', typesQueried: AIRLINER_TYPES.length, typesAnswered: answered } };
+  const sample = summarizeStates(states);
+  const answered = lists.filter(Boolean).length;
+  return { data: {
+    source: 'adsb.lol', airborne: total, total,
+    sampleTypes: SAMPLE_TYPES.length, sampleAnswered: answered, sampleAirborne: sample.airborne, cruise: sample.cruise,
+    regions: answered ? sample.regions : null, density: answered ? sample.density : [], densityCellDeg: sample.densityCellDeg, squawks: [],
+  } };
 }
 
 async function fetchEmergencies() {
@@ -347,17 +350,17 @@ async function fetchEmergencies() {
 // scheduled job, which can run for up to 30 seconds.
 // Bump when the snapshot format changes, so stored snapshots from older code
 // are rebuilt instead of served.
-export const SNAPSHOT_VERSION = 3;
+export const SNAPSHOT_VERSION = 4;
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
-  const [opensky, airliners, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies] = await Promise.all([
-    feed('opensky', () => fetchOpenSky(openskyTimeout)), feed('airliners', fetchAirliners), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
+  const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies] = await Promise.all([
+    feed('opensky', () => fetchOpenSky(openskyTimeout)), feed('adsblol', fetchAdsbLol), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
     feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies),
   ]);
   return {
     version: SNAPSHOT_VERSION, generatedAt: new Date().toISOString(), buildMs: Date.now() - t0,
     airports: AIRPORTS,
-    feeds: { opensky, airliners, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies,
+    feeds: { opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies,
       eurocontrol: { ok: false, fetchedAt: null, sourceTime: null, error: 'not connected', note: 'EUROCONTROL flow data needs an approved B2B account; no free public feed exists.', data: null } },
   };
 }
@@ -382,7 +385,7 @@ export function historyRow(s) {
   return {
     t: s.generatedAt,
     scores: s.scores || null,
-    airliners: f.airliners && fresh('airliners') ? f.airliners.data.airborne : null,
+    adsblol: f.adsblol && fresh('adsblol') ? f.adsblol.data.airborne : null,
     aircraft: fresh('opensky') ? f.opensky.data.airborne : null,
     cruise: fresh('opensky') ? f.opensky.data.cruise : null,
     faa: fresh('faa') ? { gs: f.faa.data.groundStops.length, gdp: f.faa.data.groundDelays.length, afp: f.faa.data.airspaceFlows.length, ad: f.faa.data.arrDepDelays.length, load: f.faa.data.programLoad, airports: f.faa.data.affectedAirports } : null,
