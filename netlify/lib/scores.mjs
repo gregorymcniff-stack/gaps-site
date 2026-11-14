@@ -134,7 +134,8 @@ export function outlook(feeds, now = Date.now()) {
     if (y === 'y3big') {
       out.contributions = Object.fromEntries(Object.entries(contrib).map(([k, v]) => [k, +v.toFixed(3)]));
       // "typical": same hour and weekday type, with hub weather and recent programs at their averages
-      out.typical = +(1 / (1 + Math.exp(-(m.intercept + m.w[3] * (tod - m.mu[3]) / m.sd[3])))).toFixed(3);
+      const ti = m.keys.indexOf('tod');
+      out.typical = +(1 / (1 + Math.exp(-(m.intercept + m.w[ti] * (tod - m.mu[ti]) / m.sd[ti])))).toFixed(3);
       out.todRate = tod;
     }
   }

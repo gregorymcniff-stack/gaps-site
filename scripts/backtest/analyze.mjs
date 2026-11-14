@@ -161,11 +161,14 @@ const LABELS = {
 for (const y of ['y3', 'y6', 'y3big']) {
   const tod = fitTod(y);
   for (const r of rows) r['tod_' + y] = tod(r);
-  const model = fitLogit(['usHubStressNext3', 'usStorms', 'persist', 'tod_' + y], y);
+  // usStorms is not a model input: storms at a hub were in the forecast for only a
+  // handful of training hours, so its weight could not be estimated reliably (one
+  // storm would push the chance to ~100%). Storms still count inside usHubStress.
+  const model = fitLogit(['usHubStressNext3', 'persist', 'tod_' + y], y);
   for (const r of rows) r['model_' + y] = model.predict(r);
   for (const key of [...Object.keys(LABELS).filter(k => k !== 'tod'), 'tod_' + y, 'model_' + y]) {
     const name = key.startsWith('tod_') ? 'tod' : key.startsWith('model_') ? 'model' : key;
-    results.predictors[name] ||= { label: name === 'model' ? 'Combined model (US hub weather forecast + storms + persistence + time of day)' : LABELS[name] };
+    results.predictors[name] ||= { label: name === 'model' ? 'Combined model (US hub weather forecast + persistence + time of day)' : LABELS[name] };
     results.predictors[name][y] = { aucTest: auc(test, key, y), aucTrain: auc(train, key, y), ...hitFalse(key, y) };
   }
   results.predictors.model[y].weights = model.weights;
@@ -193,7 +196,7 @@ const production = {};
 for (const y of ['y3big', 'y3']) {
   const todAll = fitTod(y, rows);
   for (const r of rows) r['todall_' + y] = todAll(r);
-  const m = fitLogit(['usHubStressNext3', 'usStorms', 'persist', 'todall_' + y], y, rows);
+  const m = fitLogit(['usHubStressNext3', 'persist', 'todall_' + y], y, rows);
   // Re-centre on the most recent 30 days so the percentages match the current
   // season (the summer storm season inflates them otherwise). Shift the
   // intercept until the average prediction equals the observed rate.
@@ -204,11 +207,15 @@ for (const y of ['y3big', 'y3']) {
   for (let it = 0; it < 60; it++) { const mid = (lo + hi) / 2; const mean = recent.reduce((a, r) => a + 1 / (1 + Math.exp(-(z(r) + mid))), 0) / recent.length; if (mean > observed) hi = mid; else lo = mid; }
   const shift = (lo + hi) / 2;
   production[y] = { ...p, intercept: p.intercept + shift, recentring: { days: 30, observedRate: +observed.toFixed(3), interceptShift: +shift.toFixed(3) },
-    keys: ['usHubStressNext3', 'usStorms', 'persist', 'tod'], todTable: todAll.table };
+    keys: ['usHubStressNext3', 'persist', 'tod'], todTable: todAll.table };
 }
 const usHubs = US12;
+// Typical values of the inputs over the whole period, so the dashboard can say
+// whether a reading is normal (median), above normal (top 25%) or elevated (top 10%).
+const q = (arr, f) => { const v = arr.filter(Number.isFinite).sort((x, y) => x - y); return +v[Math.min(v.length - 1, Math.floor(v.length * f))].toFixed(2); };
+const stats = Object.fromEntries(['usHubStressNext3', 'persist'].map(k => { const v = rows.map(r => r[k]); return [k, { mean: +(v.reduce((a2, b2) => a2 + b2, 0) / v.length).toFixed(2), p50: q(v, 0.5), p75: q(v, 0.75), p90: q(v, 0.9) }]; }));
 fs.writeFileSync(outPath.replace(/backtest-results\.json$/, 'sfi-model.json'), JSON.stringify({
-  version: 1, fittedAt: results.generatedAt, period: results.period, usHubs,
+  version: 1, fittedAt: results.generatedAt, period: results.period, usHubs, stats,
   target: { y3big: '3 or more new US ground stops / ground delay programs in the next 3 hours', y3: 'at least one new US ground stop or ground delay program in the next 3 hours' },
   models: production,
   heldOut: { y3big: { auc: results.predictors.model.y3big.aucTest, baseRate: results.baseRate.y3big }, y3: { auc: results.predictors.model.y3.aucTest, baseRate: results.baseRate.y3 } },
