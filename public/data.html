@@ -73,6 +73,7 @@ pre{background:var(--panel);border:1px solid var(--border);border-radius:6px;pad
 <tr><td><code>metar_vfr</code>, <code>metar_mvfr</code>, <code>metar_ifr</code>, <code>metar_lifr</code></td><td>Number of monitored airports in each flight category in their latest METAR (23 airports at first; 26 from the per-airport update on 14 Nov 2026).</td></tr>
 <tr><td><code>sigmet_thunderstorm</code>, <code>sigmet_turbulence</code>, <code>sigmet_icing</code>, <code>sigmet_volcanic_ash</code>, <code>sigmet_other</code></td><td>Active SIGMETs worldwide by hazard (international SIGMETs plus US convective and non-convective SIGMETs).</td></tr>
 <tr><td><code>kp_index</code></td><td>NOAA planetary K-index (0–9).</td></tr>
+<tr><td><code>score_1to10_JFK</code> … <code>score_1to10_LAX</code></td><td>Per-airport 1–10 score shown on the dashboard, where 5 is average for that airport (15 columns). Blank in readings from before this update.</td></tr>
 <tr><td><code>p_program_3h_JFK</code> … <code>p_program_3h_LAX</code></td><td>Per-airport outlook: chance that the FAA starts a new ground stop or ground delay program at that airport in the next 3 hours (15 columns). Blank before 14 Nov 2026.</td></tr>
 </table></div>
 

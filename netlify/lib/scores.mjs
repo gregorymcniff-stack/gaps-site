@@ -169,11 +169,13 @@ export function airportOutlooks(feeds, now = Date.now()) {
     const contrib = Object.fromEntries(M.keys.map((k, i) => [k, M.w[i] * (x[k] - M.mu[i]) / M.sd[i]]));
     out[a] = {
       p: +sig(M.intercept + Object.values(contrib).reduce((s2, c) => s2 + c, 0)).toFixed(3),
+      score10: null, // filled below: 1-10, 5 = average for this airport
       typical: +sig(M.intercept + contrib.tod).toFixed(3), // usual for this hour, other inputs at their averages
       features: { ...x, wxNext3: +wxNext3.toFixed(2), tod: +x.tod.toFixed(4) },
       contributions: Object.fromEntries(Object.entries(contrib).map(([k, c]) => [k, +c.toFixed(3)])),
     };
   }
+  for (const [a, o] of Object.entries(out)) if (airportModel.scale && airportModel.scale[a]) o.score10 = to10(airportModel.scale[a], o.p);
   return out;
 }
 

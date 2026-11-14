@@ -30,6 +30,7 @@ export function flatten(r) {
     kp_index: num(r.kp),
   };
   for (const a of AIRPORT_COLS) row['p_program_3h_' + a] = num(A[a]);
+  for (const a of AIRPORT_COLS) row['score_1to10_' + a] = num((s.airports10 || {})[a]);
   return row;
 }
 export const COLUMNS = Object.keys(flatten({ t: '' }));

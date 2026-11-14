@@ -114,6 +114,23 @@ results.calibration = buckets.map(([lo, hi]) => { const d = test.filter(r => { c
   return { from: lo, to: Math.min(hi, 1), hours: d.length, predicted: d.length ? +(d.reduce((s, r) => s + model.predict(r), 0) / d.length).toFixed(3) : null, observed: d.length ? +(d.reduce((s, r) => s + r.y, 0) / d.length).toFixed(3) : null }; });
 results.weightsTrain = Object.fromEntries(KEYS.map((k, i) => [k, +model.params.w[i].toFixed(3)]));
 
+// ---- 1-10 score per airport, 5 = average for THAT airport: the chance ranked
+// against the airport's own past hours (x 10). Tested on the held-out weeks.
+const quant = vals => { const v = vals.filter(Number.isFinite).sort((a, b) => a - b); return Array.from({ length: 201 }, (_, i) => +v[Math.min(v.length - 1, Math.round(i / 200 * (v.length - 1)))].toFixed(5)); };
+const pctOf = (q, x) => { let lo = 0, eq = 0; for (const v of q) { if (v < x) lo++; else if (v === x) eq++; } return (lo + eq / 2) / q.length; };
+const to10 = (q, x) => Math.min(10, Math.max(1, Math.round(pctOf(q, x) * 10)));
+const qTrainAp = Object.fromEntries(HUBS.map(a => [a, quant(train.filter(r => r.a === a).map(model.predict))]));
+const s10 = r => to10(qTrainAp[r.a], model.predict(r));
+const meaning10 = {};
+for (const r of test) { const k = s10(r); meaning10[k] = meaning10[k] || { hours: 0, events: 0 }; meaning10[k].hours++; meaning10[k].events += r.y; }
+results.score1to10 = {
+  aucTestPooled: auc(test, s10),
+  aucTestWithinAirport: (() => { const v = HUBS.filter(a => test.filter(r => r.a === a && r.y).length >= 15).map(a => auc(test.filter(r => r.a === a), s10)).filter(x => x != null); return +(v.reduce((x, y) => x + y, 0) / v.length).toFixed(3); })(),
+  meaning: Object.entries(meaning10).map(([k, m]) => ({ score: +k, hours: m.hours, eventRate: +(m.events / m.hours).toFixed(3) })).sort((a, b) => a.score - b.score),
+};
+console.log('1-10 per-airport score: pooled AUC', results.score1to10.aucTestPooled, '| avg within-airport AUC (airports with 15+ events)', results.score1to10.aucTestWithinAirport);
+console.log('meaning:', JSON.stringify(results.score1to10.meaning));
+
 // ---- production model: refit on the whole period, re-centre on the last 30 days
 const todAll = fitTod(rows);
 for (const r of rows) r.tod = todAll.f(r);
@@ -124,7 +141,9 @@ const P = prod.params, z = r => P.intercept + P.keys.reduce((s, k, i) => s + P.w
 let lo = -5, hi = 5;
 for (let it = 0; it < 60; it++) { const mid = (lo + hi) / 2; const mean = recent.reduce((a, r) => a + 1 / (1 + Math.exp(-(z(r) + mid))), 0) / recent.length; if (mean > observed) hi = mid; else lo = mid; }
 const shift = (lo + hi) / 2;
-fs.writeFileSync(`${outDir}/airport-model.json`, JSON.stringify({ version: 1, fittedAt: results.generatedAt, period: results.period, hubs: HUBS, target: results.target,
+const prodPredict = r => 1 / (1 + Math.exp(-(P.intercept + shift + P.keys.reduce((s2, k, i) => s2 + P.w[i] * (r[k] - P.mu[i]) / P.sd[i], 0))));
+const scale = Object.fromEntries(HUBS.map(a => [a, quant(rows.filter(r => r.a === a).map(prodPredict))]));
+fs.writeFileSync(`${outDir}/airport-model.json`, JSON.stringify({ version: 1, fittedAt: results.generatedAt, period: results.period, hubs: HUBS, target: results.target, scale,
   model: { ...P, intercept: P.intercept + shift, todTable: todAll.table, recentring: { days: 30, observedRate: +observed.toFixed(3), interceptShift: +shift.toFixed(3) } },
   heldOut: { auc: results.pooled.model.aucTest, baseRate: results.baseRate } }, null, 1));
 fs.writeFileSync(`${outDir}/airport-backtest.json`, JSON.stringify(results, null, 1));

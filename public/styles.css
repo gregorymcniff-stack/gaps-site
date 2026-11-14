@@ -173,7 +173,7 @@ a:focus-visible,button:focus-visible{outline:3px solid #93c5fd;outline-offset:2p
 .apo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 24px}
 @media (max-width:1000px){.apo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:600px){.apo-grid{grid-template-columns:1fr}}
-.apo-row{display:grid;grid-template-columns:42px minmax(0,1fr) 44px;align-items:center;gap:10px;padding:7px 4px;border:0;border-bottom:1px solid #f1f5f9;background:none;font:inherit;text-align:left;cursor:pointer;color:var(--text);width:100%}
+.apo-row{display:grid;grid-template-columns:42px minmax(0,1fr) 48px;align-items:center;gap:10px;padding:7px 4px;border:0;border-bottom:1px solid #f1f5f9;background:none;font:inherit;text-align:left;cursor:pointer;color:var(--text);width:100%}
 .apo-row:hover{background:var(--soft)}
 .apo-row b{font-family:var(--mono);color:var(--navy)}
 .apo-row .bar{display:block;height:8px;background:#eef2f7;border-radius:4px;position:relative;overflow:hidden}
