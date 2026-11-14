@@ -1,9 +1,10 @@
+import model from '../../public/data/sfi-model.json' with { type: 'json' };
 // Sky Friction Index inputs, computed on the server from a snapshot so every
 // history row records the scores alongside the raw data. The formulas match
 // the ones in public/index.html; keep the two in step.
 
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-const FRESH_MIN = { opensky: 25, adsblol: 25, metar: 90, openmeteo: 90, faa: 25 };
+const FRESH_MIN = { usHubWx: 90, faaAdvisories: 30, opensky: 25, adsblol: 25, metar: 90, openmeteo: 90, faa: 25 };
 
 export function isFresh(feed, key, now = Date.now()) {
   return !!(feed && feed.data && feed.fetchedAt && (now - Date.parse(feed.fetchedAt)) / 60000 <= (FRESH_MIN[key] || 30));
@@ -87,7 +88,65 @@ export function trafficSource(feeds, now = Date.now()) {
   return null;
 }
 
+// ---------------------------------------------------------------- Disruption outlook
+// US hub capacity weather for one hour index j: identical to the backtest.
+function hubStressAt(hw, j) {
+  let total = 0;
+  for (const c of hw.hubs) {
+    const h = hw.hourly[c], at = k => (h[k] && h[k][j] != null ? Number(h[k][j]) : null);
+    const wc = at('weather_code') || 0, vis = at('visibility'), low = at('cloud_cover_low'), gust = at('wind_gusts_10m') || 0;
+    let x = 0;
+    if (wc >= 95) x += 3; else if (wc >= 61 && wc <= 82) x += 0.7; else if (wc >= 71 && wc <= 77) x += 1.5;
+    if (vis != null && vis < 1600) x += 2; else if (vis != null && vis < 4800) x += 1;
+    if (low != null && low >= 95) x += 0.6;
+    if (gust >= 40) x += 1.5; else if (gust >= 30) x += 0.7;
+    total += x;
+  }
+  return total;
+}
+export function outlookFeatures(feeds, now = Date.now()) {
+  if (!isFresh(feeds.usHubWx, 'usHubWx', now) || !isFresh(feeds.faaAdvisories, 'faaAdvisories', now)) return null;
+  const hw = feeds.usHubWx.data;
+  const hourStart = Math.floor(now / 3600000) * 3600000;
+  const idx = hw.times.findIndex(t => Date.parse(t + ':00Z') === hourStart);
+  if (idx < 0) return null;
+  let next3 = -Infinity;
+  for (let j = idx; j <= idx + 3 && j < hw.times.length; j++) next3 = Math.max(next3, hubStressAt(hw, j));
+  const storms = hw.hubs.filter(c => (Number(hw.hourly[c].weather_code?.[idx]) || 0) >= 95);
+  // programs started in the current hour and the two before it (as in the backtest)
+  const since = hourStart - 2 * 3600000;
+  const recent = feeds.faaAdvisories.data.programs.filter(p => Date.parse(p.sent) >= since);
+  const d = new Date(now), weekend = d.getUTCDay() === 0 || d.getUTCDay() === 6;
+  return { usHubStressNext3: +next3.toFixed(2), usStorms: storms.length, stormHubs: storms, persist: recent.length,
+    recentPrograms: recent, todKey: d.getUTCHours() + '-' + (weekend ? 'we' : 'wd') };
+}
+export function outlook(feeds, now = Date.now()) {
+  const f = outlookFeatures(feeds, now);
+  if (!f) return null;
+  const out = { features: f, model: { fittedAt: model.fittedAt, heldOutAuc: model.heldOut } };
+  for (const y of ['y3big', 'y3']) {
+    const m = model.models[y], tod = m.todTable[f.todKey] ?? 0;
+    const x = { usHubStressNext3: f.usHubStressNext3, usStorms: f.usStorms, persist: f.persist, tod };
+    const contrib = Object.fromEntries(m.keys.map((k, i) => [k, m.w[i] * (x[k] - m.mu[i]) / m.sd[i]]));
+    const z = m.intercept + Object.values(contrib).reduce((a, b) => a + b, 0);
+    const key = y === 'y3big' ? 'p3big' : 'p3';
+    out[key] = +(1 / (1 + Math.exp(-z))).toFixed(3);
+    if (y === 'y3big') {
+      out.contributions = Object.fromEntries(Object.entries(contrib).map(([k, v]) => [k, +v.toFixed(3)]));
+      // "typical": same hour and weekday type, with hub weather and recent programs at their averages
+      out.typical = +(1 / (1 + Math.exp(-(m.intercept + m.w[3] * (tod - m.mu[3]) / m.sd[3])))).toFixed(3);
+      out.todRate = tod;
+    }
+  }
+  // 'at least one' can never be less likely than 'three or more' (the two models are fitted separately)
+  if (out.p3 < out.p3big) out.p3 = out.p3big;
+  return out;
+}
+
 export function scoreSnapshot(snap, now = Date.now()) {
+  return withSfi(scoreSnapshotRaw(snap, now));
+}
+function scoreSnapshotRaw(snap, now) {
   const f = snap.feeds;
   const src = trafficSource(f, now);
   const count = src ? f[src].data.airborne : null;
@@ -98,7 +157,13 @@ export function scoreSnapshot(snap, now = Date.now()) {
   const j = jetScore(om, now);
   return {
     trafficSource: src, aircraft: count,
-    traffic: t, weather: w, jet: j, sfi: sfi(t, w, j),
+    traffic: t, weather: w, jet: j, legacySfi: sfi(t, w, j),
+    outlook: outlook(f, now),
     faaLoad: isFresh(f.faa, 'faa', now) ? f.faa.data.programLoad : null,
   };
+}
+// The Sky Friction Index (v2): estimated chance, 0-100, of 3+ new US ground
+// stops / ground delay programs in the next 3 hours.
+export function withSfi(scores) {
+  return { ...scores, sfi: scores.outlook ? Math.round(scores.outlook.p3big * 100) : null };
 }

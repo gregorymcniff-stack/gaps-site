@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAPS Method</title>
+<meta name="description" content="How the GAPS Sky Friction Index is built and how it was tested against FAA records.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0b2a4a;--text:#3a4a5a;--muted:#5b6b7c;--border:#e2e8f0;--panel:#f8fbff;--green:#15803d;--red:#b91c1c;--amber:#b45309}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.65}
+header{background:var(--navy);color:#fff;padding:22px 16px}
+header .in,main{max-width:860px;margin:0 auto}
+header a{color:#93c5fd;text-decoration:none;font-size:13px}
+header h1{margin:6px 0 4px;font-size:26px}
+header p{margin:0;color:#cbd5e1;font-size:14px}
+main{padding:8px 16px 60px}
+h2{color:var(--navy);font-size:19px;margin:34px 0 8px}
+p,li{font-size:14.5px}
+.callout{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--navy);border-radius:6px;padding:12px 14px;margin:14px 0}
+.callout.warn{border-left-color:var(--amber)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+td.num{font-family:'JetBrains Mono',monospace;text-align:right;white-space:nowrap}
+tr.main td{font-weight:700;color:var(--navy)}
+tr.old td{color:var(--red)}
+.bar{display:inline-block;height:8px;border-radius:4px;background:#94a3b8;vertical-align:middle}
+tr.main .bar{background:var(--navy)}
+.chart{width:100%;height:auto;border:1px solid var(--border);border-radius:6px;background:var(--panel)}
+.legend{font-size:12px;color:var(--muted)}
+.legend span{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 12px;vertical-align:middle}
+code{font-family:'JetBrains Mono',monospace;font-size:12.5px;background:var(--panel);padding:1px 4px;border-radius:3px}
+.table-wrap{overflow-x:auto}
+a{color:#1d4ed8}
+</style>
+</head>
+<body>
+<header><div class="in">
+  <a href="./">← Back to the dashboard</a>
+  <h1>How the Sky Friction Index works</h1>
+  <p>What goes into it, how it was tested against real FAA records, and where it falls short.</p>
+</div></header>
+<main>
+
+<h2>What the number means</h2>
+<p>The Sky Friction Index is the <b>estimated chance that 3 or more new FAA ground stops or ground delay programs start at US airports in the next 3 hours</b>. We call that a "bad stretch". It happened in about <span id="baseRate">20%</span> of hours in the test period.</p>
+<p>Levels: below 10% low · 10–25% moderate · 25–50% elevated · 50% or more high. The dashboard also shows what is typical for the same hour, so you can see whether today is unusual.</p>
+
+<h2>What goes into it</h2>
+<table>
+<tr><th>Input</th><th>Source</th><th>Why</th></tr>
+<tr><td>New FAA programs in the last ~3 hours</td><td>FAA ATCSCC Advisory Database</td><td>Disruptions cluster. A run of ground stops is usually followed by more.</td></tr>
+<tr><td>Weather at 15 major US hubs, worst hour of the next 3</td><td>Open-Meteo forecast</td><td>Thunderstorms, low visibility, low cloud and strong gusts reduce how many flights an airport can take.</td></tr>
+<tr><td>Time of day and weekday</td><td>FAA records</td><td>US disruptions follow the daily schedule: afternoons and evenings are worst.</td></tr>
+</table>
+<p>The three are combined with a logistic model whose weights were <b>fitted to the FAA records</b>, not chosen by hand. The hubs are JFK, LGA, EWR, BOS, PHL, ATL, CLT, MIA, ORD, DFW, IAH, DEN, SFO, SEA and LAX.</p>
+
+<h2>How it was tested</h2>
+<ul>
+  <li><b>Yardstick:</b> every US ground stop and ground delay program in the FAA's public advisory archive from <span id="period">mid-July to mid-November 2026</span>: <b id="eventCount">2,788</b> programs.</li>
+  <li><b>Honest split:</b> the model was fitted on the first two-thirds of the period and scored only on the last third (<span id="testRange">six weeks</span>), which it never saw.</li>
+  <li><b>Score:</b> how often an hour that was followed by a bad stretch is ranked above one that wasn't. 0.5 is a coin flip; 1.0 is perfect. (Statisticians call this AUC.)</li>
+  <li><b>Rivals:</b> the index has to beat simpler alternatives, including time of day alone.</li>
+</ul>
+
+<h2>Results</h2>
+<div class="table-wrap"><table id="results"><tr><th>Predictor</th><th></th><th>Score</th></tr></table></div>
+<div class="callout"><b>What this shows.</b> The combined model beats every single input, including time of day alone. Recent FAA programs and US hub weather add real information. The old index, built from world traffic, weather at 8 world airports and jet-stream winds, scored no better than chance on this test, which is why it was replaced.</div>
+
+<h2>Does "30%" mean 30%?</h2>
+<p>On the held-out weeks we grouped hours by the model's estimate and checked how often a bad stretch really followed:</p>
+<div class="table-wrap"><table id="calib"><tr><th>Model said</th><th>Hours</th><th>Average estimate</th><th>Actually happened</th></tr></table></div>
+<div class="callout warn"><b>Known weakness: the season.</b> The model learned mostly from the summer thunderstorm season, so on the calmer autumn test weeks its percentages ran too high, even though its ranking of risky versus calm hours held up. To correct for this, the live model is re-centred on the most recent 30 days so its average matches what is actually happening now. It will be refitted monthly as GAPS's own stored history grows.</div>
+
+<h2>Bad stretches by day</h2>
+<svg id="daily" class="chart" viewBox="0 0 860 220" role="img" aria-label="FAA programs per day over the test period"></svg>
+<div class="legend"><span style="background:#b91c1c"></span>New US ground stops and delay programs per day (FAA) <span style="background:#b45309"></span>US hub weather (daily average, model data)</div>
+
+<h2>Limits</h2>
+<ul>
+  <li><b>US only.</b> The FAA publishes free disruption records; Europe's EUROCONTROL data needs an organisation agreement.</li>
+  <li><b>Not individual flights.</b> It estimates network-level disruption, not whether your flight will be late.</li>
+  <li><b>Traffic is not in the index.</b> No free archive of past aircraft counts exists, so traffic could not be tested. The dashboard shows it as context.</li>
+  <li><b>Test weather is model data.</b> The archive of airport weather reports (METARs) throttled our requests, so the test used Open-Meteo's archived forecasts. The live index uses the same Open-Meteo forecasts, so the two match.</li>
+  <li><b>Four months of data.</b> That includes one summer storm season and part of autumn. Winter (snow, de-icing) is not represented yet.</li>
+</ul>
+
+<h2>Reproduce it</h2>
+<p>The scripts are in the repository under <code>scripts/backtest/</code>: they download the FAA archive and historical weather, fit the model and write the results shown here (<a href="data/backtest-results.json">results</a> · <a href="data/sfi-model.json">model</a>).</p>
+<p class="legend" id="fitted"></p>
+</main>
+<script>
+(async () => {
+  const [R, M] = await Promise.all([fetch('data/backtest-results.json').then(r => r.json()), fetch('data/sfi-model.json').then(r => r.json())]).catch(() => [null, null]);
+  if (!R) return;
+  const fmtD = s => new Date(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const set = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
+  set('baseRate', Math.round(R.baseRate.y3big * 100) + '%');
+  set('period', fmtD(R.period.start + 'Z') + ' to ' + fmtD(R.period.end + 'Z'));
+  set('eventCount', R.events.total.toLocaleString());
+  set('testRange', fmtD(R.testStart) + ' to ' + fmtD(R.period.end + 'Z'));
+  set('fitted', 'Results generated ' + fmtD(R.generatedAt) + '. Live model re-centred on the last ' + M.models.y3big.recentring.days + ' days (observed rate ' + Math.round(M.models.y3big.recentring.observedRate * 100) + '%).');
+  const rows = [['model', 'Sky Friction Index (combined model)', 'main'], ['tod', 'Time of day and weekday only'], ['persist', 'Recent FAA programs only'], ['usHubStress', 'US hub weather only'], ['usHubStressNext3', 'US hub weather, next 3 h'], ['usWeatherNow', 'Old weather formula at US hubs'], ['jet', 'Old upper-air input (jet stream)', 'old'], ['weather', 'Old weather input (8 world airports)', 'old'], ['sfi2', 'Old index (weather + upper-air)', 'old']];
+  const t = document.getElementById('results');
+  rows.forEach(([k, label, cls]) => { const p = R.predictors[k]; if (!p) return; const a = p.y3big.aucTest;
+    t.insertAdjacentHTML('beforeend', `<tr class="${cls || ''}"><td>${label}</td><td style="width:40%"><span class="bar" style="width:${Math.max(2, (a - 0.4) / 0.6 * 100)}%"></span></td><td class="num">${a.toFixed(2)}</td></tr>`); });
+  const c = document.getElementById('calib');
+  R.predictors.model.y3big.calibration.filter(b => b.hours).forEach(b => c.insertAdjacentHTML('beforeend', `<tr><td>${Math.round(b.from * 100)}–${Math.round(b.to * 100)}%</td><td class="num">${b.hours}</td><td class="num">${Math.round(b.predicted * 100)}%</td><td class="num">${Math.round(b.observed * 100)}%</td></tr>`));
+  // daily chart
+  const d = R.daily, W = 860, H = 220, pad = 30, n = d.length;
+  const maxE = Math.max(...d.map(x => x.events)), maxS = Math.max(...d.map(x => x.usHubStress || 0));
+  const X = i => pad + i * (W - 2 * pad) / (n - 1);
+  let svg = '';
+  const testIdx = d.findIndex(x => x.d >= R.testStart.slice(0, 10));
+  if (testIdx > 0) svg += `<rect x="${X(testIdx)}" y="10" width="${W - pad - X(testIdx)}" height="${H - 40}" fill="#e2e8f0" opacity=".5"/><text x="${X(testIdx) + 6}" y="24" font-size="11" fill="#5b6b7c">held-out test weeks</text>`;
+  const bw = (W - 2 * pad) / n * 0.8;
+  d.forEach((x, i) => { const h = x.events / maxE * (H - 50); svg += `<rect x="${X(i) - bw / 2}" y="${H - 30 - h}" width="${bw}" height="${h}" fill="#b91c1c" opacity=".75"><title>${x.d}: ${x.events} programs</title></rect>`; });
+  svg += `<polyline fill="none" stroke="#b45309" stroke-width="2" points="${d.map((x, i) => X(i) + ',' + (H - 30 - (x.usHubStress || 0) / maxS * (H - 50))).join(' ')}"/>`;
+  [0, Math.floor(n / 2), n - 1].forEach(i => { svg += `<text x="${X(i)}" y="${H - 12}" font-size="11" text-anchor="middle" fill="#5b6b7c">${d[i].d.slice(5)}</text>`; });
+  svg += `<text x="${pad}" y="${H - 30 - (H - 50) - 4}" font-size="11" fill="#5b6b7c">${maxE}/day</text>`;
+  document.getElementById('daily').innerHTML = svg;
+})();
+</script>
+</body>
+</html>

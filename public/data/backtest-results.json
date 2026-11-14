@@ -1,0 +1,1131 @@
+{
+ "generatedAt": "2026-11-14T04:08:41.811Z",
+ "period": {
+  "start": "2026-07-16T00:00",
+  "end": "2026-11-12T23:00"
+ },
+ "trainEnd": "2026-10-03T20:00:00.000Z",
+ "testStart": "2026-10-03T21:00:00.000Z",
+ "events": {
+  "total": 2788,
+  "groundStops": 1995,
+  "gdps": 793,
+  "topAirports": [
+   [
+    "LGA",
+    242
+   ],
+   [
+    "EWR",
+    234
+   ],
+   [
+    "BOS",
+    183
+   ],
+   [
+    "JFK",
+    162
+   ],
+   [
+    "SFO",
+    157
+   ],
+   [
+    "ORD",
+    146
+   ],
+   [
+    "TEB",
+    142
+   ],
+   [
+    "SAN",
+    128
+   ],
+   [
+    "DCA",
+    126
+   ],
+   [
+    "DEN",
+    126
+   ]
+  ]
+ },
+ "baseRate": {
+  "y3": 0.506,
+  "y6": 0.69,
+  "y3big": 0.205
+ },
+ "predictors": {
+  "weather": {
+   "label": "GAPS Weather input (8 world points)",
+   "y3": {
+    "aucTest": 0.469,
+    "aucTrain": 0.474,
+    "threshold": 49,
+    "hitRate": 0.26,
+    "falseAlarmRate": 0.328
+   },
+   "y6": {
+    "aucTest": 0.5,
+    "aucTrain": 0.519,
+    "threshold": 49,
+    "hitRate": 0.286,
+    "falseAlarmRate": 0.31
+   },
+   "y3big": {
+    "aucTest": 0.463,
+    "aucTrain": 0.496,
+    "threshold": 49,
+    "hitRate": 0.219,
+    "falseAlarmRate": 0.313
+   }
+  },
+  "jet": {
+   "label": "GAPS Upper-Air input (250 hPa wind)",
+   "y3": {
+    "aucTest": 0.483,
+    "aucTrain": 0.51,
+    "threshold": 91,
+    "hitRate": 0.448,
+    "falseAlarmRate": 0.463
+   },
+   "y6": {
+    "aucTest": 0.465,
+    "aucTrain": 0.511,
+    "threshold": 91,
+    "hitRate": 0.441,
+    "falseAlarmRate": 0.488
+   },
+   "y3big": {
+    "aucTest": 0.522,
+    "aucTrain": 0.545,
+    "threshold": 91,
+    "hitRate": 0.49,
+    "falseAlarmRate": 0.447
+   }
+  },
+  "sfi2": {
+   "label": "GAPS index (weather + upper-air)",
+   "y3": {
+    "aucTest": 0.457,
+    "aucTrain": 0.502,
+    "threshold": 63,
+    "hitRate": 0.347,
+    "falseAlarmRate": 0.455
+   },
+   "y6": {
+    "aucTest": 0.468,
+    "aucTrain": 0.527,
+    "threshold": 63,
+    "hitRate": 0.38,
+    "falseAlarmRate": 0.444
+   },
+   "y3big": {
+    "aucTest": 0.478,
+    "aucTrain": 0.533,
+    "threshold": 63,
+    "hitRate": 0.332,
+    "falseAlarmRate": 0.418
+   }
+  },
+  "usWeatherNow": {
+   "label": "Same weather formula at 15 US hubs",
+   "y3": {
+    "aucTest": 0.544,
+    "aucTrain": 0.477,
+    "threshold": 48,
+    "hitRate": 0.386,
+    "falseAlarmRate": 0.288
+   },
+   "y6": {
+    "aucTest": 0.548,
+    "aucTrain": 0.45,
+    "threshold": 48,
+    "hitRate": 0.376,
+    "falseAlarmRate": 0.253
+   },
+   "y3big": {
+    "aucTest": 0.571,
+    "aucTrain": 0.504,
+    "threshold": 48,
+    "hitRate": 0.413,
+    "falseAlarmRate": 0.318
+   }
+  },
+  "usHubStress": {
+   "label": "US hub capacity weather now (storms, visibility, low cloud, gusts)",
+   "y3": {
+    "aucTest": 0.627,
+    "aucTrain": 0.593,
+    "threshold": 3.2,
+    "hitRate": 0.38,
+    "falseAlarmRate": 0.233
+   },
+   "y6": {
+    "aucTest": 0.656,
+    "aucTrain": 0.62,
+    "threshold": 3.2,
+    "hitRate": 0.362,
+    "falseAlarmRate": 0.185
+   },
+   "y3big": {
+    "aucTest": 0.663,
+    "aucTrain": 0.602,
+    "threshold": 3.2,
+    "hitRate": 0.49,
+    "falseAlarmRate": 0.26
+   }
+  },
+  "usHubStressNext3": {
+   "label": "US hub capacity weather, worst of next 3 h (forecast)",
+   "y3": {
+    "aucTest": 0.638,
+    "aucTrain": 0.573,
+    "threshold": 4.4,
+    "hitRate": 0.345,
+    "falseAlarmRate": 0.199
+   },
+   "y6": {
+    "aucTest": 0.666,
+    "aucTrain": 0.601,
+    "threshold": 4.4,
+    "hitRate": 0.318,
+    "falseAlarmRate": 0.172
+   },
+   "y3big": {
+    "aucTest": 0.652,
+    "aucTrain": 0.592,
+    "threshold": 4.4,
+    "hitRate": 0.444,
+    "falseAlarmRate": 0.229
+   }
+  },
+  "usStorms": {
+   "label": "US hubs with thunderstorms now",
+   "y3": {
+    "aucTest": 0.5,
+    "aucTrain": 0.502,
+    "threshold": 0,
+    "hitRate": 0,
+    "falseAlarmRate": 0
+   },
+   "y6": {
+    "aucTest": 0.5,
+    "aucTrain": 0.501,
+    "threshold": 0,
+    "hitRate": 0,
+    "falseAlarmRate": 0
+   },
+   "y3big": {
+    "aucTest": 0.5,
+    "aucTrain": 0.503,
+    "threshold": 0,
+    "hitRate": 0,
+    "falseAlarmRate": 0
+   }
+  },
+  "persist": {
+   "label": "Programs started in the last 3 h (persistence)",
+   "y3": {
+    "aucTest": 0.67,
+    "aucTrain": 0.709,
+    "threshold": 4,
+    "hitRate": 0.221,
+    "falseAlarmRate": 0.051
+   },
+   "y6": {
+    "aucTest": 0.615,
+    "aucTrain": 0.591,
+    "threshold": 4,
+    "hitRate": 0.173,
+    "falseAlarmRate": 0.057
+   },
+   "y3big": {
+    "aucTest": 0.71,
+    "aucTrain": 0.747,
+    "threshold": 4,
+    "hitRate": 0.352,
+    "falseAlarmRate": 0.081
+   }
+  },
+  "tod": {
+   "label": "Time of day and weekday only",
+   "y3": {
+    "aucTest": 0.83,
+    "aucTrain": 0.905,
+    "threshold": 0.93,
+    "hitRate": 0.407,
+    "falseAlarmRate": 0.11
+   },
+   "y6": {
+    "aucTest": 0.854,
+    "aucTrain": 0.92,
+    "threshold": 0.982,
+    "hitRate": 0.63,
+    "falseAlarmRate": 0.111
+   },
+   "y3big": {
+    "aucTest": 0.786,
+    "aucTrain": 0.834,
+    "threshold": 0.652,
+    "hitRate": 0.515,
+    "falseAlarmRate": 0.179
+   }
+  },
+  "model": {
+   "label": "Combined model (US hub weather forecast + storms + persistence + time of day)",
+   "y3": {
+    "aucTest": 0.851,
+    "aucTrain": 0.916,
+    "threshold": 0.918,
+    "hitRate": 0.267,
+    "falseAlarmRate": 0.03,
+    "weights": {
+     "usHubStressNext3": 0.123,
+     "usStorms": 0.144,
+     "persist": 0.608,
+     "tod_y3": 1.822
+    },
+    "calibration": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "hours": 122,
+      "predicted": 0.068,
+      "observed": 0.041
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "hours": 90,
+      "predicted": 0.139,
+      "observed": 0.089
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "hours": 31,
+      "predicted": 0.261,
+      "observed": 0.097
+     },
+     {
+      "from": 0.3,
+      "to": 0.5,
+      "hours": 85,
+      "predicted": 0.356,
+      "observed": 0.282
+     },
+     {
+      "from": 0.5,
+      "to": 0.7,
+      "hours": 24,
+      "predicted": 0.632,
+      "observed": 0.333
+     },
+     {
+      "from": 0.7,
+      "to": 1,
+      "hours": 605,
+      "predicted": 0.885,
+      "observed": 0.721
+     }
+    ]
+   },
+   "y6": {
+    "aucTest": 0.872,
+    "aucTrain": 0.928,
+    "threshold": 0.964,
+    "hitRate": 0.179,
+    "falseAlarmRate": 0.02,
+    "weights": {
+     "usHubStressNext3": 0.135,
+     "usStorms": 0.13,
+     "persist": 0.424,
+     "tod_y6": 1.605
+    }
+   },
+   "y3big": {
+    "aucTest": 0.835,
+    "aucTrain": 0.871,
+    "threshold": 0.657,
+    "hitRate": 0.439,
+    "falseAlarmRate": 0.104,
+    "weights": {
+     "usHubStressNext3": 0.344,
+     "usStorms": 0.215,
+     "persist": 0.875,
+     "tod_y3big": 1.469
+    },
+    "calibration": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "hours": 333,
+      "predicted": 0.047,
+      "observed": 0.012
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "hours": 69,
+      "predicted": 0.143,
+      "observed": 0.072
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "hours": 81,
+      "predicted": 0.248,
+      "observed": 0.111
+     },
+     {
+      "from": 0.3,
+      "to": 0.5,
+      "hours": 171,
+      "predicted": 0.397,
+      "observed": 0.205
+     },
+     {
+      "from": 0.5,
+      "to": 0.7,
+      "hours": 187,
+      "predicted": 0.61,
+      "observed": 0.412
+     },
+     {
+      "from": 0.7,
+      "to": 1,
+      "hours": 116,
+      "predicted": 0.789,
+      "observed": 0.569
+     }
+    ]
+   }
+  }
+ },
+ "daily": [
+  {
+   "d": "2026-07-16",
+   "events": 33,
+   "sfi2": 61.6,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2026-07-17",
+   "events": 33,
+   "sfi2": 69.9,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-07-18",
+   "events": 121,
+   "sfi2": 62.9,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2026-07-19",
+   "events": 58,
+   "sfi2": 54.9,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-07-20",
+   "events": 14,
+   "sfi2": 58,
+   "usHubStress": 0.5
+  },
+  {
+   "d": "2026-07-21",
+   "events": 95,
+   "sfi2": 64,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2026-07-22",
+   "events": 35,
+   "sfi2": 60,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-07-23",
+   "events": 9,
+   "sfi2": 58.4,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2026-07-24",
+   "events": 9,
+   "sfi2": 60.7,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2026-07-25",
+   "events": 6,
+   "sfi2": 59.7,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2026-07-26",
+   "events": 9,
+   "sfi2": 59.6,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2026-07-27",
+   "events": 61,
+   "sfi2": 60.1,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-07-28",
+   "events": 75,
+   "sfi2": 59.6,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-07-29",
+   "events": 40,
+   "sfi2": 55.5,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2026-07-30",
+   "events": 36,
+   "sfi2": 57.9,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-07-31",
+   "events": 10,
+   "sfi2": 62.4,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2026-08-01",
+   "events": 14,
+   "sfi2": 62.4,
+   "usHubStress": 2
+  },
+  {
+   "d": "2026-08-02",
+   "events": 37,
+   "sfi2": 59.8,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2026-08-03",
+   "events": 64,
+   "sfi2": 61.6,
+   "usHubStress": 5.4
+  },
+  {
+   "d": "2026-08-04",
+   "events": 13,
+   "sfi2": 53.9,
+   "usHubStress": 1
+  },
+  {
+   "d": "2026-08-05",
+   "events": 25,
+   "sfi2": 57.5,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-08-06",
+   "events": 74,
+   "sfi2": 64.3,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2026-08-07",
+   "events": 60,
+   "sfi2": 61.6,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-08-08",
+   "events": 33,
+   "sfi2": 61.8,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2026-08-09",
+   "events": 28,
+   "sfi2": 60.5,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2026-08-10",
+   "events": 57,
+   "sfi2": 62.1,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-08-11",
+   "events": 21,
+   "sfi2": 74.5,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2026-08-12",
+   "events": 21,
+   "sfi2": 56.2,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2026-08-13",
+   "events": 31,
+   "sfi2": 68,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-08-14",
+   "events": 29,
+   "sfi2": 58.5,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-08-15",
+   "events": 17,
+   "sfi2": 62.9,
+   "usHubStress": 2
+  },
+  {
+   "d": "2026-08-16",
+   "events": 29,
+   "sfi2": 58.3,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2026-08-17",
+   "events": 24,
+   "sfi2": 59.2,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2026-08-18",
+   "events": 14,
+   "sfi2": 57,
+   "usHubStress": 4
+  },
+  {
+   "d": "2026-08-19",
+   "events": 7,
+   "sfi2": 58.6,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-08-20",
+   "events": 41,
+   "sfi2": 53.1,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2026-08-21",
+   "events": 30,
+   "sfi2": 54,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2026-08-22",
+   "events": 20,
+   "sfi2": 54.7,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2026-08-23",
+   "events": 23,
+   "sfi2": 58.7,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-08-24",
+   "events": 15,
+   "sfi2": 56.4,
+   "usHubStress": 0.7
+  },
+  {
+   "d": "2026-08-25",
+   "events": 7,
+   "sfi2": 53.7,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-08-26",
+   "events": 11,
+   "sfi2": 61.1,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2026-08-27",
+   "events": 64,
+   "sfi2": 64.9,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-08-28",
+   "events": 35,
+   "sfi2": 62.3,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2026-08-29",
+   "events": 15,
+   "sfi2": 64.7,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-08-30",
+   "events": 26,
+   "sfi2": 57.8,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2026-08-31",
+   "events": 26,
+   "sfi2": 61.4,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2026-09-01",
+   "events": 22,
+   "sfi2": 60.9,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2026-09-02",
+   "events": 59,
+   "sfi2": 62.8,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2026-09-03",
+   "events": 44,
+   "sfi2": 62.1,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-09-04",
+   "events": 45,
+   "sfi2": 68.1,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2026-09-05",
+   "events": 11,
+   "sfi2": 57,
+   "usHubStress": 1
+  },
+  {
+   "d": "2026-09-06",
+   "events": 15,
+   "sfi2": 68.8,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-09-07",
+   "events": 20,
+   "sfi2": 58.8,
+   "usHubStress": 0.8
+  },
+  {
+   "d": "2026-09-08",
+   "events": 10,
+   "sfi2": 60.5,
+   "usHubStress": 0.1
+  },
+  {
+   "d": "2026-09-09",
+   "events": 4,
+   "sfi2": 58.9,
+   "usHubStress": 0.6
+  },
+  {
+   "d": "2026-09-10",
+   "events": 12,
+   "sfi2": 60.9,
+   "usHubStress": 1
+  },
+  {
+   "d": "2026-09-11",
+   "events": 34,
+   "sfi2": 62.4,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2026-09-12",
+   "events": 7,
+   "sfi2": 49.1,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2026-09-13",
+   "events": 40,
+   "sfi2": 54.6,
+   "usHubStress": 4
+  },
+  {
+   "d": "2026-09-14",
+   "events": 13,
+   "sfi2": 56.2,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2026-09-15",
+   "events": 7,
+   "sfi2": 57.8,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-09-16",
+   "events": 11,
+   "sfi2": 56.7,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-09-17",
+   "events": 24,
+   "sfi2": 56.8,
+   "usHubStress": 2
+  },
+  {
+   "d": "2026-09-18",
+   "events": 22,
+   "sfi2": 56,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-09-19",
+   "events": 21,
+   "sfi2": 59.5,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2026-09-20",
+   "events": 25,
+   "sfi2": 77.8,
+   "usHubStress": 4.7
+  },
+  {
+   "d": "2026-09-21",
+   "events": 70,
+   "sfi2": 70.8,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2026-09-22",
+   "events": 13,
+   "sfi2": 62.5,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2026-09-23",
+   "events": 14,
+   "sfi2": 62.5,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2026-09-24",
+   "events": 14,
+   "sfi2": 61.9,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2026-09-25",
+   "events": 13,
+   "sfi2": 69.3,
+   "usHubStress": 5.1
+  },
+  {
+   "d": "2026-09-26",
+   "events": 16,
+   "sfi2": 74.4,
+   "usHubStress": 9.1
+  },
+  {
+   "d": "2026-09-27",
+   "events": 32,
+   "sfi2": 75.3,
+   "usHubStress": 10.6
+  },
+  {
+   "d": "2026-09-28",
+   "events": 21,
+   "sfi2": 67.8,
+   "usHubStress": 5.2
+  },
+  {
+   "d": "2026-09-29",
+   "events": 7,
+   "sfi2": 63,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-09-30",
+   "events": 12,
+   "sfi2": 59.9,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-10-01",
+   "events": 43,
+   "sfi2": 56.7,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-10-02",
+   "events": 14,
+   "sfi2": 59.4,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2026-10-03",
+   "events": 7,
+   "sfi2": 55.8,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-10-04",
+   "events": 10,
+   "sfi2": 56.1,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2026-10-05",
+   "events": 11,
+   "sfi2": 59.3,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2026-10-06",
+   "events": 7,
+   "sfi2": 59.3,
+   "usHubStress": 0.8
+  },
+  {
+   "d": "2026-10-07",
+   "events": 6,
+   "sfi2": 66,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-10-08",
+   "events": 10,
+   "sfi2": 63.2,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2026-10-09",
+   "events": 10,
+   "sfi2": 63.1,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2026-10-10",
+   "events": 9,
+   "sfi2": 61.9,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2026-10-11",
+   "events": 26,
+   "sfi2": 63,
+   "usHubStress": 4.1
+  },
+  {
+   "d": "2026-10-12",
+   "events": 29,
+   "sfi2": 57.9,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2026-10-13",
+   "events": 11,
+   "sfi2": 58.3,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2026-10-14",
+   "events": 13,
+   "sfi2": 59.6,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-10-15",
+   "events": 10,
+   "sfi2": 63.9,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-10-16",
+   "events": 42,
+   "sfi2": 63,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2026-10-17",
+   "events": 17,
+   "sfi2": 60.9,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-10-18",
+   "events": 5,
+   "sfi2": 50.4,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-10-19",
+   "events": 6,
+   "sfi2": 52.3,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2026-10-20",
+   "events": 3,
+   "sfi2": 62.6,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2026-10-21",
+   "events": 6,
+   "sfi2": 66.4,
+   "usHubStress": 1
+  },
+  {
+   "d": "2026-10-22",
+   "events": 13,
+   "sfi2": 64.5,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2026-10-23",
+   "events": 10,
+   "sfi2": 71.3,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2026-10-24",
+   "events": 4,
+   "sfi2": 69.2,
+   "usHubStress": 0.4
+  },
+  {
+   "d": "2026-10-25",
+   "events": 4,
+   "sfi2": 69.1,
+   "usHubStress": 0.8
+  },
+  {
+   "d": "2026-10-26",
+   "events": 6,
+   "sfi2": 69.1,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2026-10-27",
+   "events": 8,
+   "sfi2": 64.7,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-10-28",
+   "events": 11,
+   "sfi2": 62.1,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2026-10-29",
+   "events": 8,
+   "sfi2": 61,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2026-10-30",
+   "events": 13,
+   "sfi2": 60.1,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-10-31",
+   "events": 3,
+   "sfi2": 59.7,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-11-01",
+   "events": 19,
+   "sfi2": 58.1,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-11-02",
+   "events": 30,
+   "sfi2": 63.9,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2026-11-03",
+   "events": 7,
+   "sfi2": 69.5,
+   "usHubStress": 3.8
+  },
+  {
+   "d": "2026-11-04",
+   "events": 5,
+   "sfi2": 66.3,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-11-05",
+   "events": 7,
+   "sfi2": 64.3,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2026-11-06",
+   "events": 34,
+   "sfi2": 64.2,
+   "usHubStress": 4.6
+  },
+  {
+   "d": "2026-11-07",
+   "events": 8,
+   "sfi2": 60.5,
+   "usHubStress": 2
+  },
+  {
+   "d": "2026-11-08",
+   "events": 7,
+   "sfi2": 66.6,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-11-09",
+   "events": 12,
+   "sfi2": 69.6,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-11-10",
+   "events": 5,
+   "sfi2": 64.7,
+   "usHubStress": 1
+  },
+  {
+   "d": "2026-11-11",
+   "events": 8,
+   "sfi2": 60.4,
+   "usHubStress": 2
+  },
+  {
+   "d": "2026-11-12",
+   "events": 58,
+   "sfi2": 58.1,
+   "usHubStress": 1.3
+  }
+ ]
+}
