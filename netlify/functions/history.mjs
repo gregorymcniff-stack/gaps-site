@@ -11,7 +11,8 @@ export default async (req, context) => {
     .filter(r => Date.parse(r.t) >= since)
     .map(r => ({
       t: r.t,
-      sfi: r.scores?.sfi ?? null, traffic: r.scores?.traffic ?? null, weather: r.scores?.weather ?? null, jet: r.scores?.jet ?? null,
+      // only rows from the tested outlook model (v2); earlier rows used the old formula
+      sfi: r.scores?.outlook ? (r.scores.sfi ?? null) : null, p3: r.scores?.outlook?.p3 ?? null, persist: r.scores?.outlook?.features?.persist ?? null, hubWx: r.scores?.outlook?.features?.usHubStressNext3 ?? null, traffic: r.scores?.traffic ?? null, weather: r.scores?.weather ?? null, jet: r.scores?.jet ?? null,
       faaLoad: r.faa?.load ?? null, gs: r.faa?.gs ?? null, gdp: r.faa?.gdp ?? null,
       aircraft: r.scores?.aircraft ?? r.aircraft ?? null, src: r.scores?.trafficSource ?? (r.aircraft != null ? 'opensky' : null),
     }));

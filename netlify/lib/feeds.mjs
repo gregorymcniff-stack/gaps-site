@@ -1,3 +1,4 @@
+import model from '../../public/data/sfi-model.json' with { type: 'json' };
 // GAPS live-data collector.
 // Fetches every public feed on the server (not in the visitor's browser), so
 // browser cross-site blocks and per-visitor rate limits no longer apply.
@@ -335,6 +336,53 @@ async function fetchAdsbLol() {
   } };
 }
 
+// ---------------------------------------------------------------- Disruption outlook inputs
+// The same 15 US hubs and the same weather variables as the backtest
+// (scripts/backtest), so the live outlook uses exactly what was tested.
+const US_HUB_COORDS = {
+  JFK: [40.64, -73.78], LGA: [40.78, -73.87], EWR: [40.69, -74.17], BOS: [42.36, -71.01], ORD: [41.98, -87.90], ATL: [33.64, -84.43],
+  DFW: [32.90, -97.04], DEN: [39.86, -104.67], SFO: [37.62, -122.38], SEA: [47.45, -122.31], MIA: [25.79, -80.29], IAH: [29.98, -95.34],
+  PHL: [39.87, -75.24], CLT: [35.21, -80.94], LAX: [33.94, -118.41],
+};
+async function fetchUsHubWeather() {
+  const codes = model.usHubs;
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + codes.map(c => US_HUB_COORDS[c][0]).join(',') +
+    '&longitude=' + codes.map(c => US_HUB_COORDS[c][1]).join(',') +
+    '&hourly=weather_code,wind_speed_10m,wind_gusts_10m,precipitation,visibility,cloud_cover_low&wind_speed_unit=mph&timezone=UTC&past_hours=1&forecast_hours=5';
+  const arr = await (await get(url)).json();
+  if (!Array.isArray(arr) || arr.length !== codes.length) throw new Error('unexpected response');
+  return { data: { hubs: codes, times: arr[0].hourly.time, hourly: Object.fromEntries(codes.map((c, i) => [c, arr[i].hourly])) } };
+}
+// New US ground stops / ground delay programs from the FAA advisory database.
+export const NEW_PROGRAM = /GROUND STOP|GROUND DELAY PROGRAM/;
+export const NOT_NEW = /CNX|CANCEL|PROPOSED|REVIS|EXTEN|COMPRESS|UPDATE|AMEND|MODIF/;
+export const isUSFacility = fac => { const ap = String(fac).split('/')[0].trim(); return /^[A-Z0-9]{3}$/.test(ap) || /^K[A-Z]{3}$/.test(ap); };
+export function parseAdvisoryList(html) {
+  const strip = x => x.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
+  const rows = [];
+  for (const tr of html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || []) {
+    const cells = (tr.match(/<td[^>]*>[\s\S]*?<\/td>/gi) || []).map(strip);
+    if (cells.length >= 5 && /^\d{3}$/.test(cells[0])) rows.push({ n: cells[0], facility: cells[1], title: cells[3], sent: cells[4] });
+  }
+  return rows;
+}
+async function fetchFaaAdvisories() {
+  const days = [0, 1].map(k => new Date(Date.now() - k * 86400000).toISOString().slice(0, 10));
+  const lists = await Promise.all(days.map(day => get(`https://www.fly.faa.gov/adv/adv_list?whichAdvisories=ATCSCC&advisoryCategory=NotAll&date=${day}&gStop=true&_gStop=on&gDelay=true&_gDelay=on&_airflow=on&_ctop=on&_route=on&_other=on`, { timeout: 8000 }).then(r => r.text())));
+  const programs = [];
+  for (const html of lists) {
+    if (!/adv_list|ATCSCC/i.test(html)) throw new Error('unrecognised advisory page');
+    for (const r of parseAdvisoryList(html)) {
+      const title = r.title.toUpperCase();
+      if (!NEW_PROGRAM.test(title) || NOT_NEW.test(title) || !isUSFacility(r.facility)) continue;
+      const m = /(\d\d)\/(\d\d)\/(\d\d)\s+(\d\d):(\d\d)/.exec(r.sent); if (!m) continue;
+      programs.push({ airport: r.facility.split('/')[0].trim(), type: /GROUND STOP/.test(title) ? 'GS' : 'GDP', sent: new Date(Date.UTC(2000 + +m[3], +m[1] - 1, +m[2], +m[4], +m[5])).toISOString() });
+    }
+  }
+  programs.sort((a, b) => b.sent.localeCompare(a.sent));
+  return { data: { programs: programs.slice(0, 60) } };
+}
+
 async function fetchEmergencies() {
   const lists = await Promise.all(['7700', '7600', '7500'].map(sq =>
     get(`https://api.adsb.lol/v2/sqk/${sq}`, { timeout: 6000 }).then(r => r.json()).then(j => (j.ac || []).map(a => ({ ...a, sq })))));
@@ -350,17 +398,17 @@ async function fetchEmergencies() {
 // scheduled job, which can run for up to 30 seconds.
 // Bump when the snapshot format changes, so stored snapshots from older code
 // are rebuilt instead of served.
-export const SNAPSHOT_VERSION = 4;
+export const SNAPSHOT_VERSION = 5;
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
-  const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies] = await Promise.all([
+  const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories] = await Promise.all([
     feed('opensky', () => fetchOpenSky(openskyTimeout)), feed('adsblol', fetchAdsbLol), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
-    feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies),
+    feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies), feed('usHubWx', fetchUsHubWeather), feed('faaAdvisories', fetchFaaAdvisories),
   ]);
   return {
     version: SNAPSHOT_VERSION, generatedAt: new Date().toISOString(), buildMs: Date.now() - t0,
     airports: AIRPORTS,
-    feeds: { opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies,
+    feeds: { opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories,
       eurocontrol: { ok: false, fetchedAt: null, sourceTime: null, error: 'not connected', note: 'EUROCONTROL flow data needs an approved B2B account; no free public feed exists.', data: null } },
   };
 }
@@ -384,7 +432,7 @@ export function historyRow(s) {
   const fresh = k => f[k].ok && !f[k].carriedOver;
   return {
     t: s.generatedAt,
-    scores: s.scores || null,
+    scores: s.scores ? { ...s.scores, outlook: s.scores.outlook ? { p3big: s.scores.outlook.p3big, p3: s.scores.outlook.p3, typical: s.scores.outlook.typical, features: { usHubStressNext3: s.scores.outlook.features.usHubStressNext3, usStorms: s.scores.outlook.features.usStorms, persist: s.scores.outlook.features.persist } } : null } : null,
     adsblol: f.adsblol && fresh('adsblol') ? f.adsblol.data.airborne : null,
     aircraft: fresh('opensky') ? f.opensky.data.airborne : null,
     cruise: fresh('opensky') ? f.opensky.data.cruise : null,

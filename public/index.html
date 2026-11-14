@@ -622,6 +622,14 @@ body{
 @media(max-width:1250px){.direction.direction-5{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.direction.direction-5{grid-template-columns:1fr}.strip-divider{display:none}
   .map-pane{height:auto}.map-wrap{display:block}.map-wrap canvas{position:relative;display:block;width:100%;height:40vw}}
+/* track record */
+.tr-head{font-size:10px;color:var(--secondary);margin:6px 0 8px;line-height:1.4}
+.tr-row{display:grid;grid-template-columns:1fr 90px 34px;gap:8px;align-items:center;font-size:11px;color:var(--navy);padding:3px 0}
+.tr-row.tr-main{font-weight:700}
+.tr-bar{height:8px;background:#e8eef5;border-radius:4px;overflow:hidden}
+.tr-bar span{display:block;height:100%;background:#94a3b8}
+.tr-main .tr-bar span{background:#0b2a4a}
+.tr-val{font-family:'JetBrains Mono',monospace;text-align:right}
 /* trend lines (replace the old 7D/24H/NOW bars, which had no history behind them) */
 .st .pos:not(.pos-keep){display:none}
 .trendline{margin-top:6px}
@@ -696,11 +704,10 @@ body{
 </header>
 
 <div class="trust-bar" id="trustBar">
-  <div><strong>SFI = Traffic ×0.42 + Weather ×0.36 + Upper-Air ×0.22</strong> · Contributions shown live in the Action Layer above <span class="metric-tag predictive">Heuristic weights · not fitted</span></div>
+  <div><strong>Sky Friction Index = estimated chance of 3+ new US ground stops or delay programs in the next 3 hours</strong> · <a href="method.html">tested on 120 days of FAA records</a> <span class="metric-tag observed">Tested · score 0.83</span></div>
   <div class="trust-meter">
-    <span class="trust-chip"><b>Observed:</b> aircraft + weather where live</span>
-    <span class="trust-chip"><b>SFI inputs:</b> Traffic · Weather · Upper-Air</span>
-    <span class="trust-chip"><b>Diagnostics:</b> delay/stress shown separately</span>
+    <span class="trust-chip"><b>Index inputs:</b> US hub weather · recent FAA programs · time of day</span>
+    <span class="trust-chip"><b>Context:</b> aircraft, world weather, jet stream, space weather</span>
     <span class="trust-chip" id="feedFreshness"><b>Freshness:</b> checking feeds…</span>
   </div>
 </div>
@@ -709,7 +716,7 @@ body{
   <div class="status-left"><span class="live-dot warn" id="sourceDot"></span><strong>Data Layer</strong><span id="sourceSummary">Live feeds loading…</span></div>
   <div class="status-right">
     <span class="status-chip"><b>Feeds:</b> OpenSky · FAA NAS · AviationWeather METAR/SIGMET · Open-Meteo · NOAA Kp · adsb.lol</span>
-    <span class="status-chip"><b>Model outputs:</b> SFI · Traffic · Weather · Upper-Air · directional outlook</span>
+    <span class="status-chip"><b>Model:</b> logistic model fitted to FAA records, re-centred on the last 30 days</span>
   </div>
 </div>
 
@@ -732,17 +739,17 @@ body{
   <div class="al-contrib">
     <div class="al-bar-group">
       <div class="al-bar-row">
-        <div class="al-bar-lbl">Traffic</div>
+        <div class="al-bar-lbl">Hub wx</div>
         <div class="al-bar-track"><div class="al-bar-fill traffic" id="alBarTraffic" style="width:0%"></div></div>
         <div class="al-bar-val" id="alValTraffic">--</div>
       </div>
       <div class="al-bar-row">
-        <div class="al-bar-lbl">Weather</div>
+        <div class="al-bar-lbl">Recent</div>
         <div class="al-bar-track"><div class="al-bar-fill weather" id="alBarWeather" style="width:0%"></div></div>
         <div class="al-bar-val" id="alValWeather">--</div>
       </div>
       <div class="al-bar-row">
-        <div class="al-bar-lbl">Upper-Air</div>
+        <div class="al-bar-lbl">Time</div>
         <div class="al-bar-track"><div class="al-bar-fill jet" id="alBarJet" style="width:0%"></div></div>
         <div class="al-bar-val" id="alValJet">--</div>
       </div>
@@ -754,8 +761,8 @@ body{
 
   <!-- LEFT: SFI score -->
   <div class="qr-block">
-    <div class="qr-eyebrow">Sky Friction Index (SFI)</div>
-    <div class="qr-big" id="qrSfiScore">--<span class="qr-big-denom">/100</span></div>
+    <div class="qr-eyebrow">Sky Friction Index · next 3 hours</div>
+    <div class="qr-big" id="qrSfiScore">--<span class="qr-big-denom">%</span></div>
     <div class="qr-bar-track"><div class="qr-bar-fill watch" id="qrSfiBar" style="width:0%"></div></div>
     <div class="qr-status-row">
       <span class="pill pill-nodata" id="qrSfiPill">Loading</span>
@@ -773,15 +780,15 @@ body{
       <div style="font-size:10px;color:var(--secondary);margin-top:3px" id="primaryDriverContext">Checking live inputs…</div>
     </div>
     <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary);margin-bottom:4px">Systemic Fragility</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--secondary);margin-bottom:4px">Any New Program</div>
       <div style="font-size:13px;font-weight:700;color:var(--navy)" id="fragilityHero">--</div>
-      <div style="font-size:10px;color:var(--secondary);margin-top:2px">Rises when 2+ inputs compound above 65 simultaneously</div>
+      <div style="font-size:10px;color:var(--secondary);margin-top:2px">At least one new US ground stop or delay program</div>
     </div>
   </div>
 
   <!-- RIGHT: Predictive outlook -->
   <div class="qr-block" style="background:#f8fbff;border-left:1px solid var(--border)">
-    <div class="qr-eyebrow">Directional Outlook · +1h / +3h / +6h</div>
+    <div class="qr-eyebrow">Track Record</div>
     <div id="forecastBig" class="qr-delay-num" style="font-size:28px;color:var(--navy)">--</div>
     <div class="qr-delay-note" style="margin-bottom:8px" id="qrForecastNote">Straight-line projection from recent readings · not a forecast</div>
     <div id="probBands" class="prob-bands" style="display:none" aria-hidden="true">
@@ -790,7 +797,7 @@ body{
       <div class="pb low" id="pb-i"><div class="pb-pct" id="pbImproving">--</div><div class="pb-lbl">Improving</div></div>
     </div>
     <div class="qr-delay-note" style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px">
-      US delay programs (FAA) <span class="pill pill-nodata" id="qrDelayPill" style="margin-bottom:0">Loading</span>
+      FAA programs in effect <span class="pill pill-nodata" id="qrDelayPill" style="margin-bottom:0">Loading</span>
       <span id="qrDelayVal" style="font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--navy);font-size:13px;margin-left:4px">--</span>
       · <b>not part of the SFI</b>
     </div>
@@ -809,17 +816,17 @@ body{
     <div class="status-track"><div class="status-marker" id="systemStatusMarker"></div></div>
   </div>
   <div class="dir-cell">
-    <div class="dir-lbl">Pressure Threshold</div>
+    <div class="dir-lbl">Typical Now</div>
     <div class="dir-val" id="riskWindowVal">--</div>
-    <div class="dir-sub">Horizon to SFI ≥70</div>
+    <div class="dir-sub">Same hour, average conditions</div>
   </div>
   <div class="dir-cell">
     <div class="dir-lbl">Data Status</div>
     <div class="dir-val" id="topDataStatus">Connecting…</div>
   </div>
   <div class="dir-cell" style="background:#fffbf0">
-    <div class="dir-lbl" style="color:#b45309">⚠ Heuristic Model</div>
-    <div class="dir-sub" style="color:var(--navy);font-size:11px;line-height:1.5;margin-top:2px">SFI weights are <b>not statistically fitted</b> — they are expert estimates. This is a pressure monitor, not a forecast. It does not predict accidents or specific delays.</div>
+    <div class="dir-lbl" style="color:#15803d">✓ Tested Model</div>
+    <div class="dir-sub" style="color:var(--navy);font-size:11px;line-height:1.5;margin-top:2px">Fitted to 120 days of FAA records and scored on weeks it never saw. US airports only. It does not predict individual flights or accidents. <a href="method.html">Method →</a></div>
   </div>
 </section>
 <!-- hidden IDs still needed by JS -->
@@ -831,47 +838,47 @@ body{
 <section class="strip" aria-label="SFI inputs and diagnostics">
   <!-- SFI INPUTS (4) -->
   <div class="st">
-    <div class="st-lbl">Sky Friction Index <span class="metric-tag modeled">Modeled</span> <span class="metric-tag predictive">3-input SFI</span></div>
+    <div class="st-lbl">Sky Friction Index <span class="metric-tag observed">Tested</span> <span class="metric-tag predictive">Next 3 h · US</span></div>
     <div class="st-score" id="sfiScore" aria-label="Sky Friction Index score">--<span class="st-denom">/100</span></div>
     <div class="st-raw" id="sfiRaw">Waiting for live data</div>
     <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now yellow" style="left:67%" id="sfiNow"></span></div></div>
     <div class="st-foot"><span class="pill pill-nodata" id="sfiStatusPill">Loading</span><span class="trend trend-flat" id="sfiTrend"></span></div>
-    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> A single 0–100 score combining the three inputs below. Above 70 = capacity degrading. 55–70 = watch. Below 55 = normal.</div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Estimated chance of 3 or more new US ground stops or delay programs in the next 3 hours. Below 10% low · 10–25% moderate · 25–50% elevated · 50%+ high.</div>
   </div>
   <div class="st">
-    <div class="st-lbl">Traffic <span class="metric-tag derived">Derived</span> <span class="metric-tag predictive">42% of SFI</span></div>
+    <div class="st-lbl">US Hub Weather <span class="metric-tag observed">Forecast</span> <span class="metric-tag predictive">Index input</span></div>
     <div class="st-score" id="corridorScore">--<span class="st-denom">/100</span></div>
     <div class="st-raw" id="corridorRaw">Live aircraft density proxy · corridor model</div>
     <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now red" style="left:73%" id="corridorNow"></span></div></div>
     <div class="st-foot"><span class="pill pill-nodata" id="corridorPill">Loading</span><span class="trend trend-flat" id="corridorTrend"></span></div>
-    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Aircraft tracked worldwide by OpenSky, or by adsb.lol when OpenSky is unavailable, adjusted for time of day. Scaling is provisional until stored history can calibrate it.</div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Storms, low visibility, overcast low cloud and strong gusts at 15 major US hubs, worst hour of the next 3 (Open-Meteo forecast). Points add up across hubs.</div>
   </div>
   <div class="st">
-    <div class="st-lbl">Weather <span class="metric-tag derived">Analyzed</span> <span class="metric-tag predictive">36% of SFI</span></div>
+    <div class="st-lbl">New FAA Programs <span class="metric-tag observed">FAA</span> <span class="metric-tag predictive">Index input</span></div>
     <div class="st-score" id="weatherScore">--<span class="st-denom">/100</span></div>
     <div class="st-raw" id="weatherRaw">Live weather sampling · key hubs</div>
     <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now yellow" style="left:58%" id="weatherNow"></span></div></div>
     <div class="st-foot"><span class="pill pill-nodata" id="weatherPill">Loading</span><span class="trend trend-flat" id="weatherTrend"></span></div>
-    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Thunderstorms, wind, visibility and precipitation at 23 major airports worldwide (live METAR reports), blended with an 8-point Open-Meteo sample.</div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Ground stops and ground delay programs started in the current and previous two hours (FAA advisory database). Programs cluster, so recent ones are the strongest single signal.</div>
   </div>
   <div class="st">
-    <div class="st-lbl">Upper-Air <span class="metric-tag derived">Derived</span> <span class="metric-tag predictive">22% of SFI</span></div>
+    <div class="st-lbl">Typical for This Hour <span class="metric-tag derived">Baseline</span> <span class="metric-tag predictive">Index input</span></div>
     <div class="st-score" id="edrScore">--<span class="st-denom">/100</span></div>
     <div class="st-raw" id="edrRaw">250 hPa pressure-level wind · cruise-altitude signal</div>
     <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now yellow" style="left:62%" id="jetNow"></span></div></div>
     <div class="st-foot"><span class="pill pill-nodata" id="edrPill">Loading</span><span class="trend trend-flat" id="edrTrend"></span></div>
-    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> Wind speed at 250 hPa (~35,000 ft cruise altitude). Strong jet stream = longer routes, more fuel burn, cascading delays.</div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> How often a bad stretch followed this hour of the day (weekday or weekend) in the FAA records, with weather and activity at their averages. US disruptions follow the daily schedule.</div>
   </div>
   <!-- DIVIDER -->
   <div class="strip-divider" aria-hidden="true"></div>
   <!-- DIAGNOSTICS (excluded from SFI) -->
   <div class="st diagnostic">
-    <div class="st-lbl">US Delay Programs <span class="metric-tag observed">FAA</span> <span class="metric-tag" style="color:#94a3b8;border-color:#e2e8f0;background:#f8f8fb;">Not in SFI</span></div>
+    <div class="st-lbl">Programs In Effect <span class="metric-tag observed">FAA</span> <span class="metric-tag" style="color:#94a3b8;border-color:#e2e8f0;background:#f8f8fb;">Context</span></div>
     <div class="st-score" id="delayScore">--<span class="st-denom">/100</span></div>
     <div class="st-raw" id="delayRaw">Waiting for FAA data</div>
     <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now red" style="left:71%" id="delayNow"></span></div></div>
     <div class="st-foot"><span class="pill pill-nodata" id="delayPill">Loading</span><span class="trend trend-flat" id="delayTrend"></span></div>
-    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> A count-based load score of active FAA ground stops, ground delay programs and other initiatives (US only). Actual disruption, so it is the yardstick the SFI will be tested against.</div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>What it is:</b> A count-based load score of the FAA ground stops, delay programs and other initiatives in effect right now (FAA NAS Status).</div>
   </div>
   <div class="st diagnostic">
     <div class="st-lbl">Aircraft Airborne <span class="metric-tag observed">Observed</span> <span class="metric-tag derived">Context</span></div>
@@ -879,7 +886,7 @@ body{
     <div class="st-raw" id="flightRaw">Waiting for OpenSky data</div>
     <div class="pos"><div class="pos-labels"><span>7d</span><span>24h</span><span>Now</span></div><div class="pos-track"><span class="pos-now green" style="left:55%" id="flightNow"></span></div></div>
     <div class="st-foot"><span class="pill pill-nodata" id="flightStatusPill">Loading</span><span class="trend trend-flat" id="flightTrend">→</span></div>
-    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>Why shown:</b> Raw input to the Traffic score. OpenSky receivers see a large share of aircraft, but coverage is thin over oceans, Africa and parts of Asia.</div>
+    <div class="data-source" style="margin-top:5px;line-height:1.5"><b>Why shown:</b> Context. Volunteer receivers see a large share of aircraft, but coverage is thin over oceans, Africa and parts of Asia. Not in the index: no free history exists to test it.</div>
   </div>
   <div class="st diagnostic">
     <div class="st-lbl">Space Weather <span class="metric-tag observed">NOAA</span> <span class="metric-tag modeled">Diagnostic</span></div>
@@ -992,50 +999,26 @@ body{
   <span id="researchModifier" style="display:none"></span>
 
   <div class="module-card">
-    <div class="module-head"><div class="module-title">How SFI Works</div><span class="score-badge" style="background:#fff3cd;color:#856404;border-color:#ffc107">Heuristic — not fitted</span></div>
-    <div class="module-sub">One number. Three inputs. Data refreshed every 10 minutes on the server; this page checks every 2.</div>
-    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#f8fbff;border:1px solid var(--border);border-radius:6px;padding:9px 10px;margin:8px 0;color:var(--navy)">SFI = Traffic×0.42 + Weather×0.36 + Upper-Air×0.22</div>
-    <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px">
-      <div style="font-size:11px;color:var(--secondary);line-height:1.55;border-left:3px solid #2563eb;padding-left:8px"><b style="color:var(--navy)">Traffic (42%)</b> — Aircraft count from OpenSky ADS-B, normalised for time of day. High count in peak hours = higher pressure than the same count overnight.</div>
-      <div style="font-size:11px;color:var(--secondary);line-height:1.55;border-left:3px solid #b45309;padding-left:8px"><b style="color:var(--navy)">Weather (36%)</b> — Thunderstorm, wind and visibility at 23 major airports worldwide (live METARs), blended with an 8-point Open-Meteo sample.</div>
-      <div style="font-size:11px;color:var(--secondary);line-height:1.55;border-left:3px solid #6d28d9;padding-left:8px"><b style="color:var(--navy)">Upper-Air (22%)</b> — 250 hPa wind speed at cruise altitude. Strong jet stream compresses routes and propagates delays.</div>
+    <div class="module-head"><div class="module-title">How the Index Works</div><span class="score-badge" style="background:#f0fdf4;color:#15803d;border-color:#86efac">Tested</span></div>
+    <div class="module-sub">An estimated chance, updated every 10 minutes, that 3 or more new US ground stops or delay programs start in the next 3 hours.</div>
+    <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px">
+      <div style="font-size:11px;color:var(--secondary);line-height:1.55;border-left:3px solid #b91c1c;padding-left:8px"><b style="color:var(--navy)">Recent FAA programs</b>: ground stops and delay programs that started in the last ~3 hours. The strongest single signal.</div>
+      <div style="font-size:11px;color:var(--secondary);line-height:1.55;border-left:3px solid #b45309;padding-left:8px"><b style="color:var(--navy)">US hub weather</b>: forecast storms, low visibility, low cloud and gusts at 15 major hubs over the next 3 hours.</div>
+      <div style="font-size:11px;color:var(--secondary);line-height:1.55;border-left:3px solid #2563eb;padding-left:8px"><b style="color:var(--navy)">Time of day</b>: how often bad stretches follow this hour on a weekday or weekend.</div>
     </div>
-    <div style="margin-top:10px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:8px 10px;font-size:10.5px;color:#856404;line-height:1.5">
-      <b>Heuristic weights:</b> The 42/36/22 split is expert-estimated, not statistically fitted to historical data. SFI measures operational pressure — it is not an accident predictor or delay guarantee. If fewer than 2 of the 3 inputs are live, no SFI is shown.
-    </div>
-    <span id="compEdr" style="display:none"></span><span id="researchModifier" style="display:none"></span>
-  </div>
-
-  <div class="module-card forecast-module">
-    <div class="forecast-chart">
-      <div class="module-head"><div class="module-title">Straight-Line Projection (SFI)</div><span class="pill pill-nodata">Not a forecast</span></div>
-      <svg viewBox="0 0 210 72" width="100%" height="72">
-        <line x1="0" y1="48" x2="210" y2="48" stroke="#c7d2df" stroke-width="2"/>
-        <line x1="0" y1="33" x2="210" y2="33" stroke="#9fb2c7" stroke-width="2" stroke-dasharray="5 5"/>
-        <path id="fcArea" d="" fill="rgba(11,42,74,.08)"/>
-        <polyline id="fcLine" points="" fill="none" stroke="#0b2a4a" stroke-width="2.5"/>
-        <circle id="fcDot0" cx="0" cy="0" r="0" fill="#0b2a4a"/>
-        <circle id="fcDot1" cx="0" cy="0" r="0" fill="#0b2a4a"/>
-        <circle id="fcDot2" cx="0" cy="0" r="0" fill="#0b2a4a"/>
-        <circle id="fcDot3" cx="0" cy="0" r="0" fill="#0b2a4a"/>
-      </svg>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:10px;text-align:center;color:var(--secondary);font-weight:700">
-        <div><span class="mono" style="color:var(--navy)" id="fcNow">--</span><br>Now</div>
-        <div><span class="mono" style="color:var(--red)" id="fcP1">--</span><br>+1H</div>
-        <div><span class="mono" style="color:var(--yellow)" id="fcP3">--</span><br>+3H</div>
-        <div><span class="mono" style="color:var(--green)" id="fcP6">--</span><br>+6H</div>
-      </div>
-    </div>
-    <div class="forecast-read">
-      <div class="forecast-big" id="forecastBigBottom">--</div><div class="metric-note">Extends the recent trend in a straight line. Not a trained forecast.</div>
-      <div class="forecast-copy" id="forecastCopy">Waiting for live data.</div>
-      <div class="forecast-source">Directional extrapolation from live inputs. Not a trained forecast — direction only.</div>
+    <div style="margin-top:10px;background:#f8fbff;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:10.5px;color:var(--navy);line-height:1.5">
+      Weights were fitted to FAA records, not chosen by hand, and are re-centred on the last 30 days so percentages match the season. Covers US airports only. <a href="method.html">Full method and test results →</a>
     </div>
   </div>
 
   <div class="module-card">
+    <div class="module-head"><div class="module-title">Track Record</div><span class="pill pill-normal">Held-out test</span></div>
+    <div id="trackRecord"></div>
+  </div>
+
+  <div class="module-card">
     <div class="module-head"><div class="module-title">Trend Analysis</div><span class="metric-tag predictive">Builds after ~30 min</span></div>
-    <div class="module-sub">Tracks how SFI is moving: rate, acceleration, and which input is leading. Uses the readings stored on the server over the last 24 hours (the same for every visitor).</div>
+    <div class="module-sub">How the outlook has moved over the last 24 hours of stored readings (the same for every visitor).</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
       <div style="border:1px solid var(--border);border-radius:7px;background:#fff;padding:9px 10px">
         <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary)">Rate of Change</div>
@@ -1058,7 +1041,7 @@ body{
         <div style="font-size:10px;color:var(--secondary);margin-top:3px" id="trafficRsiNote">Needs 14+ data points</div>
       </div>
     </div>
-    <div style="margin-top:10px">
+    <div style="margin-top:10px;display:none">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary);margin-bottom:5px">Which input is leading the move</div>
       <div id="leadLagPanel" style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
         <div class="causal-row"><span>Traffic</span><span class="causal-status flat" id="leadTraffic">Collecting</span></div>
@@ -1066,13 +1049,13 @@ body{
         <div class="causal-row"><span>Upper-Air</span><span class="causal-status flat" id="leadJet">Collecting</span></div>
       </div>
     </div>
-    <div style="font-size:9px;color:var(--secondary);margin-top:8px;line-height:1.45">Rate of Change = SFI points per minute. Acceleration = is the rate itself speeding up? RSI > 70 = momentum overbought, correction-prone. Based on stored server readings.</div>
+    <div style="font-size:9px;color:var(--secondary);margin-top:8px;line-height:1.45">Rate of change = percentage points per minute over the last hour. Based on stored server readings.</div>
   </div>
 
   <div class="bc" style="grid-column:1/-1">
-    <div class="bc-lbl">Historical Pressure Events <span class="metric-tag modeled">Validation log</span></div>
+    <div class="bc-lbl">High-Risk Periods <span class="metric-tag modeled">This browser</span></div>
     <div id="pressureEventLog"></div>
-    <div class="data-source" style="margin-top:8px">Records each time SFI exceeded 70 then recovered. Compare against known disruptions to validate model signal. Stored locally — resets if browser data is cleared.</div>
+    <div class="data-source" style="margin-top:8px">Logged in this browser when the outlook reaches 50% and later falls below 30%. The published test results are on the <a href="method.html">Method page</a>.</div>
   </div>
 </section>
 
@@ -1168,8 +1151,8 @@ function updateLiveSparklines(){ return; }
 // The browser reads one snapshot from the GAPS server (/api/live). The server
 // fetches every public feed on a schedule. There are no fixed or made-up
 // fallback values: a feed that is down shows "No live data" and its true age.
-const FEED_LABELS={adsblol:'adsb.lol',traffic:'Aircraft',opensky:'OpenSky',faa:'FAA NAS',metar:'METAR',sigmet:'SIGMET',openmeteo:'Open-Meteo',kp:'NOAA Kp',hubTraffic:'Hub ADS-B',emergencies:'Squawks',eurocontrol:'EUROCONTROL'};
-const FEED_MAX_AGE_MIN={adsblol:25,opensky:25,faa:25,metar:90,sigmet:60,openmeteo:90,kp:240,hubTraffic:30,emergencies:30};
+const FEED_LABELS={usHubWx:'US hub forecast',faaAdvisories:'FAA advisories',adsblol:'adsb.lol',traffic:'Aircraft',opensky:'OpenSky',faa:'FAA NAS',metar:'METAR',sigmet:'SIGMET',openmeteo:'Open-Meteo',kp:'NOAA Kp',hubTraffic:'Hub ADS-B',emergencies:'Squawks',eurocontrol:'EUROCONTROL'};
+const FEED_MAX_AGE_MIN={usHubWx:90,faaAdvisories:30,adsblol:25,opensky:25,faa:25,metar:90,sigmet:60,openmeteo:90,kp:240,hubTraffic:30,emergencies:30};
 let SNAPSHOT=null, SNAPSHOT_ERROR=null, SNAPSHOT_LOADING=false;
 let fc=null;
 let TRAFFIC_SRC=null; // 'opensky' or 'adsblol', whichever is live
@@ -1211,7 +1194,7 @@ function setFlightCount(v){
 }
 function setApiStatus(){
   const el=document.getElementById('apiStatus'); if(!el)return;
-  const keys=['traffic','faa','metar','sigmet','openmeteo','kp'];
+  const keys=['faaAdvisories','usHubWx','faa','traffic','metar','sigmet','openmeteo','kp'];
   let txt='Status: '+keys.map(k=>FEED_LABELS[k]+' '+(feedLive(k)?'live':'unavailable')).join(' · ');
   if(SNAPSHOT&&SNAPSHOT.generatedAt) txt+=' · server snapshot '+hhmm(Date.parse(SNAPSHOT.generatedAt));
   if(SNAPSHOT_ERROR) txt+=' · cannot reach the GAPS data server ('+SNAPSHOT_ERROR+')';
@@ -1295,10 +1278,10 @@ async function refreshLive(){
 }
 function updateLiveBadge(){
   const el=document.getElementById('hdrLive'); if(!el)return;
-  const core=['traffic','faa','metar','openmeteo'].filter(feedLive).length;
+  const idx=feedLive('usHubWx')&&feedLive('faaAdvisories'), core=['traffic','faa','metar','openmeteo'].filter(feedLive).length;
   el.classList.remove('partial','down');
-  if(core===4){el.textContent='● LIVE DATA';}
-  else if(core>0){el.textContent='● PARTIAL DATA · '+core+' of 4 core feeds'; el.classList.add('partial');}
+  if(idx&&core===4){el.textContent='● LIVE DATA';}
+  else if(idx||core>0){el.textContent='● PARTIAL DATA'+(idx?'':' · outlook unavailable'); el.classList.add('partial');}
   else {el.textContent='● NO LIVE DATA'; el.classList.add('down');}
 }
 
@@ -1378,7 +1361,7 @@ async function refreshHistory(){
   }catch(e){SERVER_HISTORY.error=String(e&&e.message||e);}
   drawTrendLines();
 }
-const SPARKS=[['sfiRaw','sfi','#0b2a4a'],['corridorRaw','traffic','#2563eb'],['weatherRaw','weather','#b45309'],['edrRaw','jet','#6d28d9'],['delayRaw','faaLoad','#b91c1c'],['flightRaw','aircraft','#0b2a4a']];
+const SPARKS=[['sfiRaw','sfi','#0b2a4a'],['corridorRaw','hubWx','#b45309'],['weatherRaw','persist','#b91c1c'],['delayRaw','faaLoad','#b91c1c'],['flightRaw','aircraft','#0b2a4a']];
 function drawTrendLines(){
   const rows=SERVER_HISTORY.rows||[];
   SPARKS.forEach(([anchor,key,color])=>{
@@ -1388,16 +1371,17 @@ function drawTrendLines(){
     const pts=rows.map(r=>[Date.parse(r.t),r[key]]).filter(([t,v])=>Number.isFinite(t)&&Number.isFinite(v));
     if(pts.length<3){box.innerHTML='<span class="spark-note">24h trend: '+(pts.length?pts.length+' reading'+(pts.length>1?'s':'')+' saved so far':'collecting')+'</span>'; return;}
     const W=200,H=34,t1=Date.now(),t0=t1-24*3600e3;
-    const vals=pts.map(p=>p[1]); let lo=Math.min(...vals), hi=Math.max(...vals); if(hi-lo<10){const m=(hi+lo)/2; lo=m-5; hi=m+5;}
+    const vals=pts.map(p=>p[1]); let lo=Math.min(...vals), hi=Math.max(...vals); const minSpan=key==='hubWx'||key==='persist'?4:10; if(hi-lo<minSpan){const m=(hi+lo)/2; lo=m-minSpan/2; hi=m+minSpan/2;}
     const X=t=>((t-t0)/(t1-t0)*W).toFixed(1), Y=v=>(H-3-(v-lo)/(hi-lo)*(H-6)).toFixed(1);
     // break the line where readings are missing for more than 25 minutes
     let d='', prev=null; pts.forEach(([t,v])=>{d+=(prev&&t-prev<25*60e3?'L':'M')+X(t)+' '+Y(v)+' '; prev=t;});
-    const avg=Math.round(vals.reduce((x,y)=>x+y,0)/vals.length), last=pts[pts.length-1];
+    const avgRaw=vals.reduce((x,y)=>x+y,0)/vals.length, avg=key==='hubWx'?avgRaw.toFixed(1):Math.round(avgRaw), last=pts[pts.length-1];
     box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.6" vector-effect="non-scaling-stroke"/><circle cx="'+X(last[0])+'" cy="'+Y(last[1])+'" r="2.2" fill="'+color+'"/></svg><span class="spark-note">24h avg '+avg+' · range '+Math.min(...vals)+'–'+Math.max(...vals)+' · '+pts.length+' readings</span>';
   });
 }
 function serverLog(){
   const rows=(SERVER_HISTORY.rows||[]).filter(r=>Number.isFinite(r.sfi));
+  // (only rows from the tested outlook model carry an sfi value)
   if(rows.length<4) return null;
   return rows.map(r=>({t:Date.parse(r.t),sfi:r.sfi,corridorScore:r.traffic??NaN,weatherScore:r.weather??NaN,jetScore:r.jet??NaN,delayScore:r.faaLoad??NaN}));
 }
@@ -1490,8 +1474,8 @@ function positiveForLast(log, metric, n){
 function updatePressureEventLog(){
   const el=document.getElementById('pressureEventLog'); if(!el)return;
   try{
-    const evts=JSON.parse(localStorage.getItem('gap_pressure_events')||'[]').reverse();
-    if(!evts.length){el.innerHTML='<div class="ev-empty">No pressure events recorded yet. Events appear when SFI exceeds 70 then recovers below 60. Compare against known network disruptions to validate signal quality.</div>'; return;}
+    const evts=JSON.parse(localStorage.getItem('gap_outlook_events')||'[]').reverse();
+    if(!evts.length){el.innerHTML='<div class="ev-empty">No high-risk periods recorded in this browser yet. A period is logged when the outlook reaches 50% and later falls below 30%.</div>'; return;}
     el.innerHTML=evts.map(function(e){return '<div class="ev-row"><span class="ev-ts">'+new Date(e.ts).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+'</span><span class="ev-sfi">Peak '+e.peakSfi+'</span><span class="ev-driver">'+e.driver+'</span><span class="ev-dur">'+e.durationMin+'m</span></div>';}).join('');
   }catch(e){el.innerHTML='<div class="ev-empty">Log unavailable.</div>';}
 }
@@ -1548,7 +1532,7 @@ function updateTrendOutlook(hist, accel, sfi){
 function sourceAgeLabel(t){if(!t)return 'stale'; const m=Math.round((Date.now()-t)/60000); return m<1?'now':m+'m ago';}
 function updateFeedFreshness(){
   const el=document.getElementById('feedFreshness'); if(!el)return;
-  const keys=['traffic','faa','metar','sigmet','openmeteo','kp'];
+  const keys=['faaAdvisories','usHubWx','faa','traffic','metar','sigmet','openmeteo','kp'];
   el.innerHTML='<b>Freshness:</b> '+keys.map(k=>'<span class="'+(feedLive(k)?'fresh-ok':'fresh-bad')+'">'+(k==='traffic'?(TRAFFIC_SRC==='adsblol'?'Aircraft (adsb.lol; OpenSky unavailable)':'Aircraft (OpenSky)'):FEED_LABELS[k])+' '+ageLabel(k)+'</span>').join(' · ')+' · <span class="fresh-bad">EUROCONTROL not connected</span>';
 }
 function setNowMarker(id,score){const el=document.getElementById(id); if(!el)return; if(!Number.isFinite(score)){el.style.visibility='hidden';return;} el.style.visibility='visible'; el.style.left=clamp(score,0,100)+'%'; el.classList.remove('red','yellow','green'); el.classList.add(score>=70?'red':score>=55?'yellow':'green');}
@@ -1747,7 +1731,7 @@ function updateLiveInsightPanel(corridorScore,weatherScore,jetScore){
   }
   if(Number.isFinite(KP_STATE.kp) && KP_STATE.kp>=5) items.push({score:74+KP_STATE.kp,badge:'Kp '+KP_STATE.kp.toFixed(1),text:'[SPACE WEATHER] Geomagnetic storm (Kp '+KP_STATE.kp.toFixed(1)+'). HF radio on polar and North Atlantic routes may degrade.'});
   if(SIGMET_STATE.counts && SIGMET_STATE.counts.VA) items.push({score:70,badge:'Volcanic ash',text:'[SIGMET] '+SIGMET_STATE.counts.VA+' active volcanic ash SIGMET'+(SIGMET_STATE.counts.VA>1?'s':'')+'.'});
-  if(Number.isFinite(jetScore) && LIVE_MODEL.jetMax) items.push({score:jetScore,badge:jetScore>=60?'Upper-air watch':'Normal',text:'[UPPER-AIR] Strongest 250 hPa wind in the 8-point sample: '+LIVE_MODEL.jetMax.mph+' mph near '+LIVE_MODEL.jetMax.at+'.'});
+  if(Number.isFinite(jetScore) && LIVE_MODEL.jetMax) items.push({score:20,badge:'Context',text:'[UPPER-AIR] Strongest 250 hPa wind in the 8-point sample: '+LIVE_MODEL.jetMax.mph+' mph near '+LIVE_MODEL.jetMax.at+'. Context only: jet-stream strength did not predict US delays in testing.'});
   items=items.sort((a,b)=>b.score-a.score).slice(0,3);
   const slots=[['insightOneText','insightOneBadge','insightOneCard'],['insightTwoText','insightTwoBadge','insightTwoCard'],['insightThreeText','insightThreeBadge','insightThreeCard']];
   slots.forEach(([textId,badgeId,cardId],i)=>{
@@ -1765,153 +1749,144 @@ function updateLiveInsightPanel(corridorScore,weatherScore,jetScore){
 }
 
 
+function outlookLevel(p){return p>=0.5?['High','pill-high','high']:p>=0.25?['Elevated','pill-elevated','warn']:p>=0.10?['Moderate','pill-watch','warn']:['Low','pill-normal',''];}
+function pct(p){return Number.isFinite(p)?Math.round(p*100)+'%':'--';}
 function updateDerivedLiveModel(){
+  // Context inputs (not part of the index): kept for the panels that use them.
   const weatherScore=computeWeatherScore();
-  const windStressScore=computeEdrProxy(weatherScore);
   const corridorScore=computeCorridorScore();
   const jetScore=computeJetStreamScore();
   const delayScore=computeDelayScore();
-  const W={corridor:.42,weather:.36,jet:.22};
-  const avail=[['corridor',corridorScore],['weather',weatherScore],['jet',jetScore]].filter(([,v])=>Number.isFinite(v));
-  const wsum=avail.reduce((s,[k])=>s+W[k],0);
-  const sfi=avail.length>=2?Math.round(clamp(avail.reduce((s,[k,v])=>s+v*W[k],0)/wsum,0,100)):null;
-  const missing=['Traffic','Weather','Upper-Air'].filter((n,i)=>!Number.isFinite([corridorScore,weatherScore,jetScore][i]));
+  const S=SNAPSHOT&&SNAPSHOT.scores, O=S&&S.outlook;
+  const live=!!(O && feedLive('usHubWx') && feedLive('faaAdvisories'));
+  const p=live?O.p3big:null, sfi=live?Math.round(p*100):null;
+  const F=live?O.features:null;
 
-  // Input tiles — each shows its own data age; no stand-in values.
-  updateScore('corridorScore',corridorScore); updateScore('weatherScore',weatherScore); updateScore('edrScore',jetScore); updateScore('delayScore',delayScore); updateScore('sfiScore',sfi);
-  setText('compCorridor',corridorScore); setText('compWeather',weatherScore); setText('compJet',jetScore); setText('compEdr',windStressScore); setText('compDelay',delayScore);
-  setTileState('corridorScore',corridorScore!=null); setTileState('weatherScore',weatherScore!=null); setTileState('edrScore',jetScore!=null); setTileState('delayScore',delayScore!=null); setTileState('sfiScore',sfi!=null); setTileState('ft-strip',liveAircraftOk);
-  setText('corridorRaw', corridorScore!=null ? fc.toLocaleString()+' '+trafficLabel()+' · provisional scaling'+asOf('traffic') : 'No live aircraft data'+asOf('traffic'));
-  const wxSrc=[weatherLive()?'Open-Meteo 8 points':null, awcOk?'METAR '+(LIVE_MODEL.metars||[]).length+' airports':null].filter(Boolean).join(' + ');
-  setText('weatherRaw', weatherScore!=null ? wxSrc+asOf(awcOk?'metar':'openmeteo') : 'No live weather data'+asOf('metar'));
-  setText('edrRaw', jetScore!=null ? '250 hPa wind · max '+LIVE_MODEL.jetMax.mph+' mph near '+LIVE_MODEL.jetMax.at+' · +6h outlook '+LIVE_MODEL.jetOutlookScore+'/100'+asOf('openmeteo') : 'No live upper-air data'+asOf('openmeteo'));
+  // ---- tiles
+  setHTML('sfiScore',(live?sfi:'--')+'<span class="st-denom">%</span>');
+  setTileState('sfiScore',live);
+  setText('sfiRaw', live ? 'chance of 3+ new US ground stops / delay programs in the next 3 h · typical now '+pct(O.typical) : 'Not available: needs live US hub weather and FAA advisories'+asOf('faaAdvisories'));
+  const lv=live?outlookLevel(p):null;
+  const sp=document.getElementById('sfiStatusPill'); if(sp){ if(live){sp.className='pill '+lv[1]; sp.textContent=lv[0];} else {sp.className='pill pill-nodata'; sp.textContent='No data';} }
+  const hist=(SERVER_HISTORY.rows||[]).filter(r=>Number.isFinite(r.sfi));
+  const hourAgo=hist.slice().reverse().find(r=>Date.now()-Date.parse(r.t)>=50*60000);
+  setTrend('sfiTrend',sfi,hourAgo?hourAgo.sfi:null);
+
+  // Hub weather (worst of the next 3 hours)
+  setHTML('corridorScore',(live?F.usHubStressNext3.toFixed(1):'--')+'<span class="st-denom"> pts</span>'); setTileState('corridorScore',live);
+  setText('corridorRaw', live ? 'worst of next 3 h at 15 US hubs · Jul–Nov average 3.5'+(F.usStorms?' · thunderstorms at '+F.stormHubs.join(', '):'')+asOf('usHubWx') : 'No live hub forecast'+asOf('usHubWx'));
+  updatePill('corridorPill', live ? clamp(30+(F.usHubStressNext3-3.5)*8,0,100) : null);
+  // Recent FAA programs
+  setHTML('weatherScore',(live?F.persist:'--')+'<span class="st-denom"> new</span>'); setTileState('weatherScore',live);
+  const rp=live?F.recentPrograms:[];
+  setText('weatherRaw', live ? (rp.length ? 'last ~3 h: '+[...new Set(rp.map(x=>x.airport))].slice(0,6).join(', ')+' · Jul–Nov average 2.9' : 'none in the last ~3 h · Jul–Nov average 2.9')+asOf('faaAdvisories') : 'No live FAA advisories'+asOf('faaAdvisories'));
+  updatePill('weatherPill', live ? clamp(30+(F.persist-2.9)*5,0,100) : null);
+  // Typical for this hour
+  setHTML('edrScore',(live?Math.round(O.typical*100):'--')+'<span class="st-denom">%</span>'); setTileState('edrScore',live);
+  const now=new Date(); const wd=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getUTCDay()];
+  setText('edrRaw', live ? 'chance at '+String(now.getUTCHours()).padStart(2,'0')+':00 UTC on a '+(now.getUTCDay()%6===0?'weekend':'weekday')+' with average weather and activity' : '--');
+  const ep=document.getElementById('edrPill'); if(ep){ep.className='pill pill-nodata'; ep.textContent='Baseline';}
+  // FAA load (current programs) and aircraft: context
+  updateScore('delayScore',delayScore); setTileState('delayScore',delayScore!=null); updatePill('delayPill',delayScore);
   const gsN=FAA_STATE.groundStops.length, gdN=FAA_STATE.groundDelays.length, otherN=FAA_STATE.arrDepDelays.length+FAA_STATE.airspaceFlows.length;
-  setText('delayRaw', delayScore!=null ? gsN+' ground stop'+(gsN===1?'':'s')+' · '+gdN+' delay program'+(gdN===1?'':'s')+(otherN?' · '+otherN+' other':'')+asOf('faa') : 'No live FAA data'+asOf('faa'));
+  setText('delayRaw', delayScore!=null ? gsN+' ground stop'+(gsN===1?'':'s')+' · '+gdN+' delay program'+(gdN===1?'':'s')+(otherN?' · '+otherN+' other':'')+' in effect'+asOf('faa') : 'No live FAA data'+asOf('faa'));
+  setTileState('ft-strip',liveAircraftOk);
   setText('flightRaw', liveAircraftOk ? (TRAFFIC_SRC==='adsblol' ? 'adsb.lol volunteer receivers · map shows '+((feedOf('adsblol').data.sampleAirborne)||0).toLocaleString()+' common airliners' : (ADSB_STATS.cruiseCount||0).toLocaleString()+' at cruise altitude · OpenSky receivers')+asOf('traffic') : 'No live aircraft data'+asOf('traffic'));
-  setText('sfiRaw', sfi===null ? 'Needs at least 2 of 3 live inputs' : (missing.length?'Partial: '+missing.join(', ')+' unavailable, weights rescaled':'All 3 inputs live')+' · '+hhmm(Date.now()));
-  updatePill('sfiStatusPill',sfi); updatePill('weatherPill',weatherScore); updatePill('edrPill',jetScore); updatePill('delayPill',delayScore); updatePill('corridorPill',corridorScore);
   const fp=document.getElementById('flightStatusPill'); if(fp){fp.className='pill '+(liveAircraftOk?'pill-normal':'pill-nodata'); fp.textContent=liveAircraftOk?'Live':'No data';}
-  setNowMarker('sfiNow',sfi); setNowMarker('flightNow',corridorScore); setNowMarker('weatherNow',weatherScore); setNowMarker('jetNow',jetScore); setNowMarker('delayNow',delayScore); setNowMarker('corridorNow',corridorScore); updateKpDisplay();
-  setTrend('sfiTrend',sfi,SCORE_PREV.sfi); setTrend('flightTrend',corridorScore,SCORE_PREV.corridor); setTrend('weatherTrend',weatherScore,SCORE_PREV.weather); setTrend('edrTrend',jetScore,SCORE_PREV.jet); setTrend('delayTrend',delayScore,SCORE_PREV.delay); setTrend('corridorTrend',corridorScore,SCORE_PREV.corridor);
-  document.querySelectorAll('.st').forEach(el=>el.classList.remove('alert-high')); const sfiTile=document.getElementById('sfiScore')?.closest('.st'); if(sfiTile && sfi>=70)sfiTile.classList.add('alert-high');
+  ['sfiNow','corridorNow','weatherNow','jetNow','delayNow','flightNow'].forEach(id=>setNowMarker(id,null));
+  updateKpDisplay();
+  document.querySelectorAll('.st').forEach(el=>el.classList.remove('alert-high')); if(live&&p>=0.5){const t=document.getElementById('sfiScore')?.closest('.st'); if(t)t.classList.add('alert-high');}
+
+  // ---- status, freshness, panels
   const liveCore=['traffic','faa','metar','openmeteo'].filter(feedLive);
-  setText('topDataStatus', liveCore.length===4?'All core feeds live':liveCore.length?'Partial · '+liveCore.length+' of 4 core feeds live':'No live data');
-  setDirectionClass('topDataStatus', liveCore.length===4?0:liveCore.length?60:80);
+  setText('topDataStatus', live&&liveCore.length===4?'All feeds live':live?'Index live · '+liveCore.length+' of 4 context feeds':'Index unavailable');
+  setDirectionClass('topDataStatus', live&&liveCore.length===4?0:live?60:80);
   const src=Object.keys(FEED_MAX_AGE_MIN).filter(k=>k!=='hubTraffic').map(k=>FEED_LABELS[k]+(feedLive(k)?' live':' unavailable'));
-  const dot=document.getElementById('sourceDot'); if(dot) dot.className='live-dot '+(liveCore.length===4?'':'warn');
+  const dot=document.getElementById('sourceDot'); if(dot) dot.className='live-dot '+(live?'':'warn');
   setText('sourceSummary',src.join(' · ')+' · EUROCONTROL not connected');
   updateFeedFreshness();
   updateRouteStatuses();
   updateLiveInsightPanel(corridorScore,weatherScore,jetScore);
   updateRegionAndDelaySummary();
+  drawTrackRecord();
 
-  if(sfi===null){ renderNoIndex(avail.length); drawMap(); return; }
+  if(!live){ renderNoIndex(0); drawMap(); return; }
 
-  const driverKey=avail.slice().sort((a,b)=>b[1]-a[1])[0][0];
-  const driver = driverKey==='corridor' ? 'corridor density' : driverKey==='weather' ? 'weather pressure' : 'upper-air jet stream';
-  const driverDisplay = driverKey==='corridor' ? 'Traffic' : driverKey==='weather' ? 'Weather' : 'Upper-Air';
-  let fragilityScore=computeFragility(corridorScore??0,weatherScore??0,jetScore??0);
-  const hist=updateSfiHistory(sfi,{corridorScore,weatherScore,jetScore,delayScore});
-  const accel=computeSfiAcceleration(hist.log);
-  SFI_HISTORY.push(sfi); if(SFI_HISTORY.length>500) SFI_HISTORY.shift();
+  // ---- headline
+  const C=O.contributions||{};
+  const drivers=[['persist','Recent FAA programs',C.persist],['usHubStressNext3','US hub weather (next 3 h)',C.usHubStressNext3],['tod','Time of day',C.tod],['usStorms','Thunderstorms at hubs',C.usStorms]];
+  const top=drivers.slice().sort((a,b)=>b[2]-a[2])[0];
+  const recentTxt=F.persist?F.persist+' new FAA program'+(F.persist>1?'s':'')+' in the last ~3 h ('+[...new Set(rp.map(x=>x.airport))].slice(0,4).join(', ')+')':'No new FAA programs in the last ~3 h';
+  const plainTerms=pct(p)+' chance of a bad stretch at US airports in the next 3 hours (typical for this hour: '+pct(O.typical)+'). '+recentTxt+'.';
+  setHTML('qrSfiScore',sfi+'<span class="qr-big-denom">%</span>');
+  const bar=document.getElementById('qrSfiBar'); if(bar){bar.className='qr-bar-fill '+(p>=0.5?'high':p>=0.25?'elevated':p>=0.10?'watch':'normal'); bar.style.width=clamp(sfi,2,100)+'%';}
+  const qp=document.getElementById('qrSfiPill'); if(qp){qp.className='pill '+lv[1]; qp.textContent=lv[0];}
+  const qt=document.getElementById('qrSfiTrend'); if(qt){ if(hourAgo){const d=sfi-hourAgo.sfi; qt.className='trend '+(d>=3?'trend-up':d<=-3?'trend-down':'trend-flat'); qt.textContent=(d>=3?'↑ ':d<=-3?'↓ ':'→ ')+(d>0?'+':'')+d+' pts vs 1 h ago';} else {qt.className='trend trend-flat'; qt.textContent='';} }
+  setText('plainTermsHero',plainTerms); setText('plainTermsVal',plainTerms);
+  setText('primaryDriverHero', top[2]>0.15 ? top[1] : 'Nothing unusual');
+  setText('primaryDriverContext', top[2]>0.15 ? (top[0]==='persist'?'Programs that start tend to cluster: recent ground stops raise the chance of more.':top[0]==='usHubStressNext3'?'Forecast storms, low visibility, low cloud or strong gusts at major US hubs.':top[0]==='tod'?'This is a busy time of day for US airports.':'Thunderstorms at a major hub right now.') : 'All inputs are near or below their usual levels for this hour.');
+  setText('fragilityHero', pct(O.p3)+' chance of at least one new program in the next 3 h');
+  setText('forecastBig', 'Tested score 0.83');
+  setText('qrForecastNote','On 6 held-out weeks it ranked risky hours above calm ones 83% of the time (0.5 = coin flip). The old index scored 0.48.');
 
-  // Pressure event tracker (this browser only, until server history is shown)
+  // direction row
+  const d60=hourAgo?sfi-hourAgo.sfi:null;
+  setText('systemDirectionVal', d60===null?'Collecting':(d60>=3?'Rising':d60<=-3?'Easing':'Steady')+' / '+lv[0]); setDirectionClass('systemDirectionVal', p>=0.5?80:p>=0.25?60:0);
+  const statusMarker=document.getElementById('systemStatusMarker'); if(statusMarker) statusMarker.style.left=clamp(sfi,0,100)+'%';
+  setText('riskWindowVal', pct(O.typical)); setDirectionClass('riskWindowVal', 0);
+
+  // action layer
+  setText('actionStatus', lv[0]+' disruption risk');
+  const dotA=document.getElementById('actionDot'); if(dotA) dotA.className='al-status-dot'+(lv[2]==='high'?' high':lv[2]==='warn'?' warn':'');
+  setHTML('actionExpect','<strong>Now:</strong> '+esc(plainTerms));
+  setText('actionHorizon','Next 3 hours'); setText('actionDriver', top[2]>0.15?top[1]:'None'); setText('actionTrajectory', d60===null?'Collecting':(d60>=3?'↑ Rising':d60<=-3?'↓ Easing':'→ Steady'));
+  [['Traffic',C.usHubStressNext3],['Weather',C.persist],['Jet',C.tod]].forEach(([n,c])=>{
+    const b=document.getElementById('alBar'+n), v=document.getElementById('alVal'+n);
+    if(b) b.style.width=clamp(Math.abs(c||0)/2.5*100,0,100)+'%';
+    if(b) b.style.opacity=(c||0)<0?'.45':'1';
+    if(v) v.textContent=((c||0)>=0?'+':'−')+Math.abs(c||0).toFixed(1);
+  });
+
+  // trend panel + pressure log use the stored history
+  const histStats=updateSfiHistory(sfi,{});
+  updateTrendOutlook(histStats,computeSfiAcceleration(histStats.log),sfi);
   if(!window.GAP_PEAK){window.GAP_PEAK={active:false,peakSfi:0,peakDriver:'',startTime:null};}
   const pk=window.GAP_PEAK;
-  if(!pk.active && sfi>=70){pk.active=true; pk.peakSfi=sfi; pk.peakDriver=driver; pk.startTime=Date.now();}
-  if(pk.active && sfi>pk.peakSfi){pk.peakSfi=sfi; pk.peakDriver=driver;}
-  if(pk.active && sfi<60){
-    try{
-      const evKey='gap_pressure_events';
-      const evts=JSON.parse(localStorage.getItem(evKey)||'[]');
-      evts.push({ts:new Date(pk.startTime).toISOString(),peakSfi:pk.peakSfi,driver:pk.peakDriver,durationMin:Math.round((Date.now()-pk.startTime)/60000)});
-      localStorage.setItem(evKey,JSON.stringify(evts.slice(-20)));
-    }catch(e){}
+  if(!pk.active && sfi>=50){pk.active=true; pk.peakSfi=sfi; pk.peakDriver=top[1]; pk.startTime=Date.now();}
+  if(pk.active && sfi>pk.peakSfi){pk.peakSfi=sfi; pk.peakDriver=top[1];}
+  if(pk.active && sfi<30){
+    try{const k='gap_outlook_events'; const ev=JSON.parse(localStorage.getItem(k)||'[]'); ev.push({ts:new Date(pk.startTime).toISOString(),peakSfi:pk.peakSfi,driver:pk.peakDriver,durationMin:Math.round((Date.now()-pk.startTime)/60000)}); localStorage.setItem(k,JSON.stringify(ev.slice(-20)));}catch(e){}
     pk.active=false; pk.peakSfi=0; pk.startTime=null;
   }
-
-  // Straight-line projection from this browser's recent SFI readings. Not a forecast.
-  const vel = Number.isFinite(hist.vel) && hist.count >= 4 ? hist.vel : 0;
-  const f1 = Math.round(clamp(sfi + vel*60, 0, 100));
-  const f3 = Math.round(clamp(sfi + vel*180, 0, 100));
-  const f6 = Math.round(clamp(sfi + vel*360, 0, 100));
-  const delta60=f1-sfi;
-  const faaLine = !faaOk ? '' : FAA_STATE.groundStops.length ? ' '+FAA_STATE.groundStops.length+' US ground stop'+(FAA_STATE.groundStops.length>1?'s':'')+' in effect.' : FAA_STATE.groundDelays.length ? ' US delay programs at '+FAA_STATE.groundDelays.map(p=>p.airport).join(', ')+'.' : ' No US delay programs.';
-  const level = sfi>=70 ? 'Network pressure high, driven by '+driverDisplay.toLowerCase()+'.' : sfi>=55 ? 'Pressure elevated, mainly '+driverDisplay.toLowerCase()+'.' : sfi>=45 ? 'Slight pressure, mainly '+driverDisplay.toLowerCase()+'.' : 'Conditions near normal.';
-  const plainTerms = level+faaLine;
-  const systemDirection = directionLabel(delta60).replace(/^[^ ]+ /,'') + ' / ' + statusWord(sfi);
-  const riskWindow = sfi>=70 ? 'Active now' : delta60>=2 ? 'Rising — watch the next hour' : 'Not near threshold';
-  LIVE_MODEL.snapshot={sfi,weatherScore,corridorScore,jetScore,delayScore,windStressScore,delta60,driver};
-
-  updateTrendOutlook(hist,accel,sfi);
-  const rv=document.getElementById('riskTrendVal'); if(rv){rv.className='sum-val '+(delta60>=2?'trend-up':delta60<=-2?'trend-down':'trend-flat'); rv.textContent=directionLabel(delta60)+(delta60>=2?' · Pressure building':delta60<=-2?' · Pressure easing':' · Holding steady');}
-  setText('riskTrendSub', hist.count>=4 ? 'Straight-line projection from the last hour: SFI '+sfi+' now → '+f1+' in 60 minutes. Main driver: '+driverDisplay+'.' : 'Collecting readings (needs ~4). Main driver: '+driverDisplay+'.');
-  setText('ttiVal',directionalTti(sfi,delta60));
-  setText('ttiSub',sfi>=70?'Pressure threshold already active.':'Directional readout only.');
-  setText('forecastBig','Now '+sfi+' → '+f1+' / +1h');
-  setText('forecastBigBottom', hist.count>=4 ? 'Now '+sfi+' → '+f6+' at +6h (straight line)' : 'Collecting readings…');
-  setText('fcNow',String(sfi)); setText('fcP1',String(f1)); setText('fcP3',String(f3)); setText('fcP6',String(f6));
-  drawOutlookChart([sfi,f1,f3,f6]);
-  setText('forecastCopy','Straight-line projection from the SFI readings this browser has collected. '+driverDisplay+' is the largest input right now. Not a forecast: real 3–6 hour forecasts come later, once stored history can test them.');
-  const allLive=missing.length===0;
-  updateDeltaCard(sfi,corridorScore,weatherScore);
-  updateQuickRead(sfi,corridorScore,weatherScore,jetScore,delayScore,driver);
-  setText('systemDirectionVal', systemDirection); setDirectionClass('systemDirectionVal', sfi);
-  const statusMarker=document.getElementById('systemStatusMarker'); if(statusMarker) statusMarker.style.left=clamp(sfi,0,100)+'%';
-  setText('primaryDriverVal', driverDisplay);
-  setText('riskWindowVal', riskWindow); setDirectionClass('riskWindowVal', sfi);
-  setText('confidenceVal', fragilityScore+'/100'); setDirectionClass('confidenceVal', fragilityScore); setText('fragilitySub','Rises non-linearly when inputs compound. '+(fragilityScore>=60?'Fragility building.':fragilityScore>=30?'Compound pressure watch.':'Low compound fragility.'));
-  setText('plainTermsVal',plainTerms);
-  setText('plainTermsHero',plainTerms);
-  setText('primaryDriverHero', driverDisplay+(allLive?'':' (partial inputs)'));
-  setText('primaryDriverContext', driverKey==='corridor'?'Aircraft count relative to time of day is the largest input right now.':driverKey==='weather'?'Airport weather is the largest input right now.':'Cruise-altitude (250 hPa) winds are the largest input right now.');
-  setText('fragilityHero', fragilityScore>=60?'High — inputs compounding':fragilityScore>=30?'Moderate — watch for convergence':'Low — inputs not compounding');
   setText('confTraffic', liveAircraftOk?'Live · '+(TRAFFIC_SRC==='adsblol'?'adsb.lol':'OpenSky')+asOf('traffic'):'No live data');
   setText('confVertical', weatherLive()?'Live · Open-Meteo upper-air':'No live data');
-
-  // Action layer
-  (function(){
-    const dot=document.getElementById('actionDot');
-    let statusLabel, statusCls;
-    if(sfi>=70){statusLabel='High pressure'; statusCls='high';}
-    else if(sfi>=55){statusLabel='Elevated'; statusCls='warn';}
-    else if(sfi>=45){statusLabel='Watch'; statusCls='warn';}
-    else {statusLabel='Normal'; statusCls='';}
-    const trajText = hist.count<4 ? 'Collecting' : delta60>=4 ? '↑ Rising fast' : delta60>=2 ? '↗ Building' : delta60<=-4 ? '↓ Easing fast' : delta60<=-2 ? '↘ Easing' : '→ Stable';
-    if(dot) dot.className='al-status-dot'+(statusCls==='high'?' high':statusCls==='warn'?' warn':'');
-    setText('actionStatus', statusLabel+(allLive?'':' · partial data'));
-    setHTML('actionExpect','<strong>Now:</strong> '+esc(plainTerms));
-    setText('actionHorizon', riskWindow);
-    setText('actionDriver', driverDisplay);
-    setText('actionTrajectory', trajText);
-    [['Traffic',corridorScore,.42],['Weather',weatherScore,.36],['Jet',jetScore,.22]].forEach(([n,v,w])=>{
-      const bar=document.getElementById('alBar'+n), val=document.getElementById('alVal'+n);
-      if(!Number.isFinite(v)){ if(bar) bar.style.width='0%'; if(val) val.textContent='--'; return; }
-      const c=Math.round(v*w/wsum);
-      if(bar) bar.style.width=Math.round(v)+'%';
-      if(val) val.textContent='+'+c;
-    });
-  })();
-
-  LIVE_MODEL.last=new Date();
-  SCORE_PREV.sfi=sfi; SCORE_PREV.weather=weatherScore; SCORE_PREV.jet=jetScore; SCORE_PREV.delay=delayScore; SCORE_PREV.corridor=corridorScore; saveScorePrev(SCORE_PREV);
-  updatePressureEventLog();
+  SCORE_PREV.sfi=sfi; saveScorePrev(SCORE_PREV);
   drawMap();
 }
-function renderNoIndex(n){
-  const msg = n===1 ? 'Only 1 of 3 inputs is live, so the index is not shown.' : 'No live inputs right now, so the index is not shown.';
-  setHTML('qrSfiScore','--<span class="qr-big-denom">/100</span>');
+// Track record panel: held-out test results from the published backtest
+let TRACK=null;
+function drawTrackRecord(){
+  const el=document.getElementById('trackRecord'); if(!el)return;
+  if(!TRACK){ el.innerHTML='<div class="data-source">Loading test results…</div>';
+    fetch('data/backtest-results.json').then(r=>r.ok?r.json():null).then(j=>{if(j){TRACK=j; drawTrackRecord();}}).catch(()=>{el.innerHTML='<div class="data-source">Test results unavailable.</div>';}); return; }
+  const P=TRACK.predictors, rows=[['model','The Sky Friction Index (this model)'],['tod','Time of day only'],['persist','Recent programs only'],['usHubStress','US hub weather only'],['sfi2','Old index (weather + upper-air)']];
+  el.innerHTML='<div class="tr-head">Held-out test, '+TRACK.testStart.slice(0,10)+' to '+TRACK.period.end.slice(0,10)+' · target: 3+ new US programs in the next 3 h</div>'+
+    rows.map(([k,label])=>{const a=P[k]&&P[k].y3big?P[k].y3big.aucTest:null; const w=a?clamp((a-0.4)/0.6*100,2,100):0;
+      return '<div class="tr-row'+(k==='model'?' tr-main':'')+'"><span class="tr-lbl">'+label+'</span><span class="tr-bar"><span style="width:'+w+'%"></span></span><span class="tr-val">'+(a?a.toFixed(2):'--')+'</span></div>';}).join('')+
+    '<div class="data-source" style="margin-top:6px">Score: how often a risky hour is ranked above a calm one (0.5 = coin flip, 1.0 = perfect). <a href="method.html">How it was tested →</a></div>';
+}
+function renderNoIndex(){
+  const msg='The outlook is not available right now: it needs live US hub weather and FAA advisories. Other panels still show live data.';
+  setHTML('qrSfiScore','--<span class="qr-big-denom">%</span>');
   const bar=document.getElementById('qrSfiBar'); if(bar){bar.style.width='0%';}
   const p=document.getElementById('qrSfiPill'); if(p){p.className='pill pill-nodata'; p.textContent='No data';}
   setText('qrSfiTrend','');
   setText('plainTermsHero',msg); setText('plainTermsVal',msg);
   setText('primaryDriverHero','--'); setText('primaryDriverContext','Waiting for live inputs.');
   setText('fragilityHero','--');
-  setText('actionStatus','Insufficient live data'); setHTML('actionExpect','<strong>Now:</strong> '+msg);
+  setText('actionStatus','Outlook unavailable'); setHTML('actionExpect','<strong>Now:</strong> '+msg);
   const dot=document.getElementById('actionDot'); if(dot) dot.className='al-status-dot warn';
-  ['actionHorizon','actionDriver','actionTrajectory','systemDirectionVal','riskWindowVal','forecastBig','forecastBigBottom','fcNow','fcP1','fcP3','fcP6','riskTrendVal'].forEach(id=>setText(id,'--'));
-  setText('riskTrendSub',msg);
-  drawOutlookChart(null);
+  ['actionHorizon','actionDriver','actionTrajectory','systemDirectionVal','riskWindowVal'].forEach(id=>setText(id,'--'));
 }
 function updateRegionAndDelaySummary(){
   const r=ADSB_STATS.regions;
@@ -1926,17 +1901,6 @@ function updateRegionAndDelaySummary(){
     else if(gd){setText('delayAirportVal',gd.airport+' · avg '+fmtMin(gd.avgMin)); setText('delayAirportSub','Ground delay program'+(gd.reason?' · '+gd.reason:'')+asOf('faa'));}
     else {setText('delayAirportVal','No US delay programs'); setText('delayAirportSub','FAA NAS Status'+asOf('faa'));}
   } else {setText('delayAirportVal','No live data'); setText('delayAirportSub','FAA feed unavailable'+asOf('faa'));}
-}
-function drawOutlookChart(vals){
-  const line=document.getElementById('fcLine'), area=document.getElementById('fcArea');
-  const dots=['fcDot0','fcDot1','fcDot2','fcDot3'].map(id=>document.getElementById(id));
-  if(!line||!area)return;
-  if(!vals){line.setAttribute('points',''); area.setAttribute('d',''); dots.forEach(d=>d&&d.setAttribute('r','0')); return;}
-  const xs=[0,70,140,210], y=v=>Math.round(68-v*0.6);
-  const pts=vals.map((v,i)=>xs[i]+','+y(v));
-  line.setAttribute('points',pts.join(' '));
-  area.setAttribute('d','M'+pts.join(' L')+' L210 72 L0 72Z');
-  dots.forEach((d,i)=>{if(d){d.setAttribute('cx',xs[i]); d.setAttribute('cy',y(vals[i])); d.setAttribute('r','4');}});
 }
 
 
@@ -2100,9 +2064,9 @@ not calibrated probabilities, trained forecasts, or aviation safety predictions.
     <summary style="cursor:pointer;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary);border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:#fff;max-width:320px;">▸ Model & Sources</summary>
     <div class="metric-box">
       <h3>Model & Sources</h3>
-      <p><strong>Purpose:</strong> GAPS is a situational-awareness prototype. It combines three independent inputs into one operational-pressure score: OpenSky aircraft density, Open-Meteo/AviationWeather hub weather, and Open-Meteo current-hour 250 hPa upper-air winds.</p>
-      <div class="formula">SFI = 42% Traffic + 36% Weather + 22% Upper-Air<br>Weights are heuristic and not fitted coefficients.<br>Delay pressure and wind/vertical stress are diagnostics, not independent SFI inputs.</div>
-      <p><strong>Limits:</strong> This is not an aviation safety system, accident predictor, or trained forecast. It shows when traffic, weather, and upper-air conditions are compounding at the same time.</p>
+      <p><strong>Purpose:</strong> GAPS shows live airline-network conditions and one tested number: the chance of a bad stretch (3+ new FAA ground stops or delay programs) at US airports in the next 3 hours.</p>
+      <div class="formula">Inputs: recent FAA programs · US hub weather (next 3 h) · time of day<br>Logistic model fitted to 120 days of FAA advisories; held-out score 0.83 (old index: 0.48).</div>
+      <p><strong>Limits:</strong> US airports only. Not an aviation safety system or accident predictor; it does not forecast individual flights. <a href="method.html">Method and test results</a>.</p>
     </div>
   </details>
 </section>
@@ -2122,7 +2086,7 @@ not calibrated probabilities, trained forecasts, or aviation safety predictions.
   <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:20px;line-height:1.7;"><strong style="color:#0b2a4a;">Upper-Air</strong> — At cruise altitude — roughly 35,000 feet — aircraft ride or fight the jet stream. When it is unusually strong, it compresses flight paths, forces reroutes, and adds time and fuel burn. We measure this using wind data at 250 hPa pressure level.</p>
 
   <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">The Sky Friction Index</h3>
-  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:20px;line-height:1.7;">We combine those three readings into one number: the Sky Friction Index, or SFI, running from 0 to 100. Below 55 is normal. 55–70 is watch territory — pressure is building. Above 70 means the network is losing its ability to absorb shocks. The formula is transparent: SFI = 42% corridor congestion + 36% weather pressure + 22% upper-air jet stream.</p>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:20px;line-height:1.7;">The Sky Friction Index is the estimated chance that 3 or more new FAA ground stops or ground delay programs start at US airports in the next 3 hours. It is built from the three things that actually predicted disruption in 120 days of FAA records: programs that have just started, forecast weather at major US hubs, and the time of day. An earlier version combined world traffic, weather at 8 world airports and jet-stream winds; tested against the same records it did no better than a coin flip, so it was replaced. <a href="method.html">See the method and the test.</a></p>
 
   <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">What Makes It More Than a Snapshot</h3>
   <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:6px;line-height:1.7;"><strong style="color:#0b2a4a;">Velocity</strong> — is the SFI rising or falling, and how fast?</p>
@@ -2136,8 +2100,8 @@ not calibrated probabilities, trained forecasts, or aviation safety predictions.
   <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">What GAPS Cannot Do</h3>
   <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;margin-bottom:20px;line-height:1.7;">GAPS cannot predict accidents. It cannot tell you a specific flight will be delayed. It cannot see inside airline operations, crew scheduling, or maintenance. It works entirely with public data. What it can do is identify when physical conditions are compounding in ways that historically precede widespread disruption — before those events appear in the news.</p>
 
-  <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">The Validation Log</h3>
-  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;line-height:1.7;">Every time SFI exceeds 70 and then recovers, the system automatically records the event — when it peaked, how high, what was driving it, and how long it lasted. Over time that log can be compared against real disruption events to assess whether the signals are genuinely predictive. The model earns its credibility over time.</p>
+  <h3 style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#5b6b7c;margin-bottom:10px;">Keeping It Honest</h3>
+  <p style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#3a4a5a;line-height:1.7;">Every 10 minutes GAPS stores its inputs and its outlook. The test is repeated as that history grows, and the model is refitted monthly. The current results, including where the model is weak, are on the <a href="method.html">Method page</a>.</p>
 </section>
 
 <!-- Voronoi Modal -->
