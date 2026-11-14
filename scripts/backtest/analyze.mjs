@@ -190,6 +190,24 @@ for (const y of ['y3big', 'y3']) {
     return { from: a, to: Math.min(b, 1), hours: d.length, predicted: d.length ? +(d.reduce((s2, r) => s2 + r['model_' + y], 0) / d.length).toFixed(3) : null, observed: d.length ? +(d.reduce((s2, r) => s2 + r[y], 0) / d.length).toFixed(3) : null };
   });
 }
+// ---- The 1-10 score shown on the site: each input becomes a score where 5 is
+// average (its percentile among past hours x 10), and the final score is the
+// weighted average of the three. Tested on the same held-out weeks.
+const SCALE_KEYS = { usHubStressNext3: 'usHubStressNext3', persist: 'persist', tod: 'tod_y3big' };
+const SCALE_W = { tod: 0.50, persist: 0.35, usHubStressNext3: 0.15 };
+const quantiles = (data, key) => { const v = data.map(r => r[key]).filter(Number.isFinite).sort((a2, b2) => a2 - b2); return Array.from({ length: 201 }, (_, i) => +v[Math.min(v.length - 1, Math.round(i / 200 * (v.length - 1)))].toFixed(4)); };
+const pctOf = (q, x) => { let lo = 0, eq = 0; for (const v of q) { if (v < x) lo++; else if (v === x) eq++; } return (lo + eq / 2) / q.length; };
+const to10 = (q, x) => Math.min(10, Math.max(1, Math.round(pctOf(q, x) * 10)));
+const qTrain = Object.fromEntries(Object.entries(SCALE_KEYS).map(([k, col]) => [k, quantiles(train, col)]));
+const finalOf = (r, Q, todCol) => SCALE_W.tod * to10(Q.tod, r[todCol]) + SCALE_W.persist * to10(Q.persist, r.persist) + SCALE_W.usHubStressNext3 * to10(Q.usHubStressNext3, r.usHubStressNext3);
+const meaning = {};
+for (const r of test) { const f = Math.min(10, Math.max(1, Math.round(finalOf(r, qTrain, 'tod_y3big')))); meaning[f] = meaning[f] || { hours: 0, rough: 0 }; meaning[f].hours++; meaning[f].rough += r.y3big; }
+results.score1to10 = {
+  aucTest: auc(test.map(r => ({ ...r, s10: finalOf(r, qTrain, 'tod_y3big') })), 's10', 'y3big'),
+  meaning: Object.entries(meaning).map(([score, m]) => ({ score: +score, hours: m.hours, roughRate: +(m.rough / m.hours).toFixed(3) })).sort((a2, b2) => a2.score - b2.score),
+  weights: SCALE_W,
+};
+console.log('1-10 score AUC (test):', results.score1to10.aucTest, JSON.stringify(results.score1to10.meaning));
 // Production model: same features, refitted on the whole period (the scores above
 // come from the version that never saw the test weeks).
 const production = {};
@@ -214,8 +232,10 @@ const usHubs = US12;
 // whether a reading is normal (median), above normal (top 25%) or elevated (top 10%).
 const q = (arr, f) => { const v = arr.filter(Number.isFinite).sort((x, y) => x - y); return +v[Math.min(v.length - 1, Math.floor(v.length * f))].toFixed(2); };
 const stats = Object.fromEntries(['usHubStressNext3', 'persist'].map(k => { const v = rows.map(r => r[k]); return [k, { mean: +(v.reduce((a2, b2) => a2 + b2, 0) / v.length).toFixed(2), p50: q(v, 0.5), p75: q(v, 0.75), p90: q(v, 0.9) }]; }));
+for (const r of rows) r.todProd = production.y3big.todTable[r.hour + '-' + (r.dow === 0 || r.dow === 6 ? 'we' : 'wd')] ?? 0;
+const scale = { weights: SCALE_W, quantiles: { usHubStressNext3: quantiles(rows, 'usHubStressNext3'), persist: quantiles(rows, 'persist'), tod: quantiles(rows, 'todProd') } };
 fs.writeFileSync(outPath.replace(/backtest-results\.json$/, 'sfi-model.json'), JSON.stringify({
-  version: 1, fittedAt: results.generatedAt, period: results.period, usHubs, stats,
+  version: 1, fittedAt: results.generatedAt, period: results.period, usHubs, stats, scale,
   target: { y3big: '3 or more new US ground stops / ground delay programs in the next 3 hours', y3: 'at least one new US ground stop or ground delay program in the next 3 hours' },
   models: production,
   heldOut: { y3big: { auc: results.predictors.model.y3big.aucTest, baseRate: results.baseRate.y3big }, y3: { auc: results.predictors.model.y3.aucTest, baseRate: results.baseRate.y3 } },

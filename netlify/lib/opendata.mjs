@@ -6,6 +6,10 @@ export function flatten(r) {
   const s = r.scores || {}, o = s.outlook || null, f = r.faa || null, m = r.metarCats || null, g = r.sigmets || null, A = s.airports || {};
   const row = {
     time_utc: r.t,
+    score_1to10: s.scale ? num(s.scale.score) : null,
+    score_tod_1to10: s.scale ? num(s.scale.tod) : null,
+    score_recent_programs_1to10: s.scale ? num(s.scale.persist) : null,
+    score_hub_weather_1to10: s.scale ? num(s.scale.weather) : null,
     sfi_pct: o ? num(s.sfi) : null,
     p_rough_3h: o ? num(o.p3big) : null,
     p_any_program_3h: o ? num(o.p3) : null,

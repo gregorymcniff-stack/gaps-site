@@ -14,6 +14,7 @@ export default async (req, context) => {
       // only rows from the tested outlook model (v2); earlier rows used the old formula
       sfi: r.scores?.outlook ? (r.scores.sfi ?? null) : null, p3: r.scores?.outlook?.p3 ?? null, persist: r.scores?.outlook?.features?.persist ?? null, hubWx: r.scores?.outlook?.features?.usHubStressNext3 ?? null, traffic: r.scores?.traffic ?? null, weather: r.scores?.weather ?? null, jet: r.scores?.jet ?? null,
       faaLoad: r.faa?.load ?? null, gs: r.faa?.gs ?? null, gdp: r.faa?.gdp ?? null,
+      score10: r.scores?.scale?.score ?? null, final10: r.scores?.scale?.final ?? null,
       sig: r.sigmets ? Object.values(r.sigmets).reduce((a, b) => a + b, 0) : null,
       ifr: r.metarCats ? (r.metarCats.IFR || 0) + (r.metarCats.LIFR || 0) : null,
       kp: r.kp ?? null,

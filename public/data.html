@@ -58,6 +58,8 @@ pre{background:var(--panel);border:1px solid var(--border);border-radius:6px;pad
 <div class="table-wrap"><table>
 <tr><th>Column</th><th>Meaning</th></tr>
 <tr><td><code>time_utc</code></td><td>When the reading was taken (every 10 minutes).</td></tr>
+<tr><td><code>score_1to10</code></td><td>The dashboard score, 1–10 (5 = average): weighted average of the three input scores below. Blank in readings from before the 1–10 update (14 Nov 2026).</td></tr>
+<tr><td><code>score_tod_1to10</code>, <code>score_recent_programs_1to10</code>, <code>score_hub_weather_1to10</code></td><td>Each input as a 1–10 score (its rank among past hours × 10, so 5 is average).</td></tr>
 <tr><td><code>sfi_pct</code></td><td>Sky Friction Index, 0–100: <code>p_rough_3h</code> × 100. Blank before the tested model went live (14 Nov 2026, about 04:20 UTC).</td></tr>
 <tr><td><code>p_rough_3h</code></td><td>Estimated chance that 3 or more new FAA ground stops or ground delay programs start at US airports in the next 3 hours.</td></tr>
 <tr><td><code>p_any_program_3h</code></td><td>Estimated chance of at least one new US ground stop or ground delay program in the next 3 hours.</td></tr>

@@ -45,33 +45,25 @@
     <h2 id="explainTitle" class="sr-only">What GAPS tells you</h2>
     <div class="step"><span class="n">1</span><div><h3>The question</h3><p><b>Will US air travel have a rough next 3 hours?</b> We count it as rough when the FAA has to start <b>3 or more new ground stops or delay programs</b>: its tools for holding or slowing flights when an airport can't cope. That happens in about 1 hour in 5.</p></div></div>
     <div class="step"><span class="n">2</span><div><h3>The clues</h3><p><b>Is it already happening?</b> New FAA programs in the last few hours. <b>Is bad weather coming</b> to major US airports? <b>Is it a busy time of day?</b> Evenings are worst.</p></div></div>
-    <div class="step"><span class="n">3</span><div><h3>The answer</h3><p>A <b>percentage chance</b>, from a formula fitted to 4 months of FAA records. On weeks it had never seen, it told rough hours from calm ones far better than guessing. <a href="method.html">How we know →</a></p></div></div>
+    <div class="step"><span class="n">3</span><div><h3>The answer</h3><p>A <b>score from 1 to 10, where 5 is average</b>. Each clue gets its own 1–10 score, and the weighted average is the final score. Tested on 4 months of FAA records. <a href="method.html#score">How we know →</a></p></div></div>
   </section>
 
   <section class="hero">
     <article class="card outlook" id="outlookCard" aria-labelledby="outlookTitle">
-      <h2 id="outlookTitle">Sky Friction Index · chance of a rough next 3 hours at US airports</h2>
-      <div>
-        <div class="big" aria-live="polite"><span id="sfi">--</span><small>%</small></div>
-        <div class="meter" aria-hidden="true"><span id="meter" style="width:0"></span></div>
-        <span class="pill none" id="level">Loading</span>
-        <div class="scale" aria-label="Levels"><span><i class="low"></i>Low &lt;10%</span><span><i class="moderate"></i>Moderate 10–25%</span><span><i class="elevated"></i>Elevated 25–50%</span><span><i class="high"></i>High 50%+</span></div>
-        <div class="typical">Typical for this hour: <b id="typical">--</b></div>
-        <div class="trendtxt" id="trend"></div>
+      <h2 id="outlookTitle">Sky Friction Index · next 3 hours · 1 to 10, where 5 is average</h2>
+      <div class="score-head">
+        <div class="big" aria-live="polite"><span id="sfi">--</span><small>/10</small></div>
+        <div><span class="pill none" id="level">Loading</span><p class="lede" id="lede">Loading live data…</p><div class="trendtxt" id="trend"></div></div>
       </div>
-      <div>
-        <p class="lede" id="lede">Loading live data…</p>
-        <div class="drivers" id="drivers" aria-label="What is moving the outlook"></div>
-        <div class="drivers-note">Bars show how far each input pushes the chance up (right) or down (left) from average.</div>
-        <details class="how"><summary>How it's calculated: inputs and weights</summary><div id="howBody">Loading…</div></details>
-        <div class="spark-label">Last 24 hours</div>
-        <div class="spark"></div>
-      </div>
-      <div class="foot">
-        <span><b>What it means:</b> estimated chance that the FAA starts 3 or more new ground stops or delay programs at US airports in the next 3 hours.</span>
-        <span id="anyProgram"></span>
-        <a href="method.html">How it was built and tested →</a>
-      </div>
+      <div class="s10 s10-big" id="scaleMain" aria-hidden="true"></div>
+      <h3 class="mini">The three inputs <span class="sub">· each 1–10, 5 = average</span></h3>
+      <div class="rows10" id="inputs10"></div>
+      <div class="calc" id="calc"></div>
+      <h3 class="mini">Delays right now <span class="sub">· 1–10, 5 = average · shown for context, not part of the score above</span></h3>
+      <div class="rows10" id="delayNow"></div>
+      <div class="spark-label">Score over the last 24 hours</div>
+      <div class="spark"></div>
+      <div class="foot"><span id="meaningLine"><b>What the score means:</b> loading…</span><a href="method.html#score">How it was built and tested →</a></div>
     </article>
 
     <article class="card faa" aria-labelledby="faaTitle">
@@ -124,7 +116,7 @@
   <section class="tiles" aria-label="Index inputs">
     <article class="card tile" id="tHub"><div class="cardhead"><h2>US hub weather</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d">Worst of the next 3 hours at 15 major hubs</div><div class="typ"></div><div class="spark"></div><p class="def"><b>What it means:</b> bad-weather points added up across 15 major US hubs for the worst of the next 3 hours: thunderstorm 3, very low visibility 2, low visibility 1, strong gusts 0.7–1.5, rain 0.7, overcast low cloud 0.6. Forecast from Open-Meteo.</p></article>
     <article class="card tile" id="tRecent"><div class="cardhead"><h2>New FAA programs</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d">Started in the current and previous two hours</div><div class="typ"></div><div class="spark"></div><p class="def"><b>What it means:</b> new ground stops (flights to an airport held at their origin) and ground delay programs (departures to an airport deliberately delayed) issued by the FAA Command Center in roughly the last 3 hours.</p></article>
-    <article class="card tile" id="tTypical"><h2>Typical for this hour</h2><div class="v">--</div><div class="d">Chance at this hour with average conditions</div><p class="def"><b>What it means:</b> the Sky Friction Index you would expect at this hour of the day (weekday or weekend) if weather and FAA activity were average. Compare it with the headline number to see whether now is unusual.</p></article>
+    <article class="card tile" id="tMeaning"><h2>What each score means</h2><div class="d">How often a rough stretch followed each score in the test weeks</div><div class="mtab" id="meaningTable"></div></article>
     <article class="card tile" id="tTrack"><h2>Track record</h2><div class="v">--</div><div class="d">Held-out test score (0.5 = coin flip)</div><div class="tr"></div><p class="def"><b>What it means:</b> on weeks the model never saw, how often an hour followed by a bad stretch was ranked above a calm hour. 1.00 would be perfect; 0.50 is guessing.</p></article>
   </section>
 

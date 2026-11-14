@@ -43,7 +43,7 @@ a:focus-visible,button:focus-visible{outline:3px solid #93c5fd;outline-offset:2p
 .statusbar .updated{margin-left:auto;white-space:nowrap}
 
 /* layout */
-.wrap{max-width:1320px;margin:0 auto;padding:var(--gap) 20px 40px;display:grid;gap:var(--gap)}
+.wrap{max-width:1320px;margin:0 auto;padding:var(--gap) 20px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap)}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
 .card h2{margin:0 0 2px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .sub{font-size:12px;color:var(--muted)}
@@ -52,13 +52,39 @@ a:focus-visible,button:focus-visible{outline:3px solid #93c5fd;outline-offset:2p
 
 /* what GAPS tells you */
 .explain{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap)}
-@media (max-width:900px){.explain{grid-template-columns:1fr}}
+@media (max-width:900px){.explain{grid-template-columns:minmax(0,1fr)}}
+.step>div{min-width:0}
 .step{display:flex;gap:12px;background:var(--navy);color:#e2e8f0;border-radius:var(--radius);padding:14px 16px}
 .step .n{flex:none;width:28px;height:28px;border-radius:50%;background:#fff;color:var(--navy);font-weight:700;display:grid;place-items:center;font-size:14px}
 .step h3{margin:2px 0 4px;color:#fff;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
 .step p{margin:0;font-size:13px;line-height:1.5}
 .step b{color:#fff}
 .step a{color:#93c5fd}
+/* 1-10 scales */
+.card.outlook{display:block}
+.score-head{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+.score-head .lede{margin:8px 0 2px;font-size:16px}
+.s10{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;position:relative}
+.s10 span{height:10px;border-radius:2px;background:#e8eef5}
+.s10 span.on{background:var(--c,#0b2a4a)}
+.s10 span.avg{outline:2px solid #0b2a4a;outline-offset:1px}
+.s10-big{margin:14px 0 4px}.s10-big span{height:14px}
+.s10-lbl{display:grid;grid-template-columns:repeat(10,1fr);font-size:10.5px;color:var(--muted);font-family:var(--mono);text-align:center;margin-bottom:6px}
+.mini{margin:16px 0 6px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mini .sub{text-transform:none;letter-spacing:0}
+.rows10{display:grid;gap:8px}
+.r10{display:grid;grid-template-columns:150px minmax(0,1fr) 46px 50px;gap:10px;align-items:center;font-size:13px}
+.r10 .nm{color:var(--ink);font-weight:600}
+.r10 .sc{font-family:var(--mono);font-weight:700;text-align:right}
+.r10 .wt{font-size:11px;color:var(--muted);text-align:right}
+.r10 .val{grid-column:2/-1;font-size:12px;color:var(--muted);margin-top:-4px}
+.calc{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--soft);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-top:10px;overflow-x:auto;white-space:nowrap}
+.mtab{display:grid;gap:3px;margin-top:8px}
+.mtab div{display:grid;grid-template-columns:44px minmax(0,1fr) 40px;gap:8px;align-items:center;font-size:12px}
+.mtab b{font-family:var(--mono)}
+.mtab i{display:block;height:7px;border-radius:3px;background:var(--c,#94a3b8)}
+.mtab .num{font-family:var(--mono);text-align:right}
+@media (max-width:640px){.r10{grid-template-columns:110px minmax(0,1fr) 36px 40px}.calc{white-space:normal}}
 /* outlook */
 .outlook{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto 1fr;gap:8px 28px;align-items:start;align-content:start}
 .outlook h2{grid-column:1/-1}

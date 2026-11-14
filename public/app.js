@@ -79,45 +79,64 @@ function tick() {
 const LEVELS = [[0.5, 'High', 'high', '#b91c1c'], [0.25, 'Elevated', 'elevated', '#c2410c'], [0.10, 'Moderate', 'moderate', '#b45309'], [0, 'Low', 'low', '#15803d']];
 const level = p => LEVELS.find(l => p >= l[0]);
 const DRIVER = { persist: 'Recent FAA programs', usHubStressNext3: 'US hub weather', tod: 'Time of day', usStorms: 'Hub thunderstorms' };
+// ---- 1-10 helpers (5 = average)
+const WORDS10 = [[2, 'Very low', 'low'], [4, 'Below average', 'low'], [5, 'Average', 'moderate'], [7, 'Above average', 'elevated'], [10, 'Well above average', 'high']];
+const word10 = s => { const w = WORDS10.find(x => s <= x[0]); return [w[1], w[2]]; };
+const COL10 = s => s <= 2 ? '#15803d' : s <= 4 ? '#65a30d' : s === 5 ? '#b45309' : s <= 7 ? '#c2410c' : '#b91c1c';
+const strip10 = s => Array.from({ length: 10 }, (_, i) => `<span class="${i < s ? 'on' : ''}${i === 4 ? ' avg' : ''}" style="--c:${COL10(s)}"></span>`).join('');
+const row10 = (name, s, weight, value) => `<div class="r10"><span class="nm">${esc(name)}</span><span class="s10" title="${s} out of 10 (5 = average)">${strip10(s)}</span><span class="sc" style="color:${COL10(s)}">${s}/10</span><span class="wt">${esc(weight)}</span><span class="val">${esc(value)}</span></div>`;
+function meaningOf(s) { const M = TRACK && TRACK.score1to10 && TRACK.score1to10.meaning; return M ? M.find(x => x.score === s) || null : null; }
+const pctWords = r => r == null ? 'n/a' : r < 0.015 ? 'almost never (' + Math.round(r * 100) + '%)' : `${Math.round(r * 100)}% of the time`;
+function renderDelayNow() {
+  const el = $('delayNow'); if (!el) return;
+  const f = fresh('faa') && feed('faa').data, load = f ? f.programLoad : null, h = histStats('faaLoad');
+  if (load == null) { el.innerHTML = '<span class="sub">No live FAA status data.</span>'; return; }
+  const worst = f.groundDelays.slice().sort((a, b) => (b.avgMin || 0) - (a.avgMin || 0))[0];
+  const txt = `${f.groundStops.length} ground stop${f.groundStops.length === 1 ? '' : 's'}, ${f.groundDelays.length} delay program${f.groundDelays.length === 1 ? '' : 's'} in effect${worst ? `; longest average delay ${worst.airport} ${fmtMin(worst.avgMin)}` : ''}`;
+  if (!h) { el.innerHTML = row10('FAA delays in effect', 5, '', txt + ' · average still being measured (needs about 2 hours of readings)').replace('>5/10<', '>--<'); return; }
+  const vals = HIST.map(r => r.faaLoad).filter(Number.isFinite).sort((a, b) => a - b);
+  let lo = 0, eq = 0; for (const v of vals) { if (v < load) lo++; else if (v === load) eq++; }
+  const s = Math.min(10, Math.max(1, Math.round((lo + eq / 2) / vals.length * 10)));
+  el.innerHTML = row10('FAA delays in effect', s, '', `${txt} · compared with the last ${h.hours} h of readings`);
+}
+function renderMeaning() {
+  const el = $('meaningTable'); const M = TRACK && TRACK.score1to10 && TRACK.score1to10.meaning; if (!el || !M) return;
+  el.innerHTML = M.map(m => `<div><b>${m.score}/10</b><i style="width:${Math.max(2, m.roughRate * 100)}%;--c:${COL10(m.score)}"></i><span class="num">${Math.round(m.roughRate * 100)}%</span></div>`).join('') +
+    `<p class="sub" style="margin:6px 0 0">Share of hours followed by 3+ new FAA programs within 3 hours. Score test result: ${TRACK.score1to10.aucTest.toFixed(2)} (0.5 = guessing).</p>`;
+  const ml = $('meaningLine'); if (ml) { const m5 = meaningOf(5); ml.innerHTML = `<b>What the score means:</b> 1–4 below average · 5 average (a rough stretch followed ${m5 ? Math.round(m5.roughRate * 100) + '%' : '~17%'} of the time) · 6–10 above average.`; }
+}
 function outlookNow() { const O = SNAP && SNAP.scores && SNAP.scores.outlook; return O && fresh('usHubWx') && fresh('faaAdvisories') ? O : null; }
 
 function renderOutlook() {
-  const O = outlookNow();
-  if (!O) {
-    $('sfi').textContent = '--'; $('meter').style.width = '0';
-    $('level').className = 'pill none'; $('level').textContent = SNAP ? 'Unavailable' : 'Loading';
-    $('typical').textContent = '--'; $('trend').textContent = '';
-    $('lede').textContent = SNAP ? 'The outlook is unavailable right now: it needs live FAA advisories and the US hub forecast. The other panels still show live data.' : (SNAP_ERR ? 'Cannot reach the GAPS data server. Retrying every 2 minutes.' : 'Loading live data…');
-    $('drivers').innerHTML = ''; $('anyProgram').textContent = '';
-    return;
+  const O = outlookNow(), S = O && SNAP.scores.scale;
+  if (!S) {
+    $('sfi').textContent = '--'; $('level').className = 'pill none'; $('level').textContent = SNAP ? 'Unavailable' : 'Loading';
+    $('lede').textContent = SNAP ? 'The score is unavailable right now: it needs live FAA advisories and the US hub forecast. The other panels still show live data.' : (SNAP_ERR ? 'Cannot reach the GAPS data server. Retrying every 2 minutes.' : 'Loading live data…');
+    ['scaleMain', 'inputs10', 'calc', 'trend'].forEach(id => { $(id).innerHTML = ''; });
+    renderDelayNow(); return;
   }
-  const p = O.p3big, sfi = Math.round(p * 100), L = level(p), F = O.features;
-  $('sfi').textContent = sfi;
-  const m = $('meter'); m.style.width = clamp(sfi, 2, 100) + '%'; m.style.background = L[3];
-  $('level').className = 'pill ' + L[2]; $('level').textContent = L[1];
-  $('typical').textContent = pct(O.typical);
-  const hist = HIST.filter(r => Number.isFinite(r.sfi));
+  const sc = S.score, W = S.weights, I = S.inputs, L = word10(sc);
+  $('sfi').textContent = sc;
+  $('level').className = 'pill ' + L[1]; $('level').textContent = L[0];
+  $('scaleMain').innerHTML = strip10(sc) + '';
+  $('scaleMain').insertAdjacentHTML('afterend', '');
+  const m = meaningOf(sc), mAvg = meaningOf(5);
+  const F = O.features, rp = F.recentPrograms || [];
+  $('lede').textContent = `${L[0]} for this time.` + (m ? ` In the test weeks, a score of ${sc} was followed by a rough stretch ${pctWords(m.roughRate)}; an average score of 5 was followed by one ${pctWords(mAvg ? mAvg.roughRate : null)}.` : '') +
+    (F.persist ? ` ${F.persist} new FAA program${F.persist > 1 ? 's' : ''} in the last ~3 hours (${[...new Set(rp.map(x => x.airport))].slice(0, 4).join(', ')}).` : '');
+  const d = new Date(), hh = String(d.getUTCHours()).padStart(2, '0');
+  const rows = [
+    ['Time of day', I.tod.score, W.tod, `${hh}:00 UTC on a ${d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday'}: ${I.tod.score >= 6 ? 'a busy' : I.tod.score <= 4 ? 'a quiet' : 'an ordinary'} time for US airports`],
+    ['Recent FAA programs', I.persist.score, W.persist, `${F.persist} new ground stop${F.persist === 1 ? '' : 's'} or delay program${F.persist === 1 ? '' : 's'} in the last ~3 h (average ${I.medians.persist})`],
+    ['Weather at US hubs', I.weather.score, W.usHubStressNext3, `${F.usHubStressNext3.toFixed(1)} bad-weather points over the next 3 h at 15 hubs (average ${I.medians.weather})${F.usStorms ? ' · storms at ' + F.stormHubs.join(', ') : ''}`],
+  ];
+  $('inputs10').innerHTML = rows.map(([n, s, w, v]) => row10(n, s, Math.round(w * 100) + '%', v)).join('');
+  $('calc').textContent = `Score = ${rows.map(r => r[2].toFixed(2) + ' × ' + r[1]).join(' + ')} = ${S.final.toFixed(1)} → ${sc}`;
+  const hist = HIST.filter(r => Number.isFinite(r.score10));
   const ago = hist.slice().reverse().find(r => Date.now() - Date.parse(r.t) >= 50 * 60000);
-  $('trend').textContent = ago ? (sfi - ago.sfi > 2 ? '↑ ' : sfi - ago.sfi < -2 ? '↓ ' : '→ ') + (sfi - ago.sfi > 0 ? '+' : '') + (sfi - ago.sfi) + ' points vs 1 hour ago' : '';
-  const rp = F.recentPrograms || [];
-  const airports = [...new Set(rp.map(x => x.airport))].slice(0, 4).join(', ');
-  // Compare with the usual chance for this hour in percentage points, so a
-  // small change at a quiet hour doesn't sound alarming ("8 times the usual").
-  const diff = Math.round((p - O.typical) * 100);
-  const vs = diff >= 15 ? `, well above the usual ${pct(O.typical)} for this hour` : diff >= 5 ? `, above the usual ${pct(O.typical)} for this hour`
-    : diff <= -5 ? `, below the usual ${pct(O.typical)} for this hour` : `, close to the usual ${pct(O.typical)} for this hour`;
-  $('lede').textContent = `${pct(p)} chance of a rough next 3 hours at US airports${vs}. ` +
-    (F.persist ? `${F.persist} new FAA program${F.persist > 1 ? 's' : ''} in the last ~3 hours (${airports}).` : 'No new FAA programs in the last ~3 hours.') +
-    (F.usStorms ? ` Thunderstorms forecast at ${F.stormHubs.join(', ')}.` : '');
-  const C = O.contributions || {};
-  $('drivers').innerHTML = ['persist', 'usHubStressNext3', 'tod'].filter(k => k in C).map(k => {
-    const c = C[k] || 0, w = clamp(Math.abs(c) / 2.5 * 50, 0, 50);
-    const style = c >= 0 ? `left:50%;width:${w}%;background:#b91c1c` : `left:${50 - w}%;width:${w}%;background:#15803d`;
-    const shown = Math.abs(c) < 0.05 ? '0.0' : (c > 0 ? '+' : '−') + Math.abs(c).toFixed(1);
-    return `<div class="drv"><span>${DRIVER[k]}</span><span class="bar"><span style="${style}"></span></span><span class="val">${shown}</span></div>`;
-  }).join('');
-  $('anyProgram').textContent = `At least one new program: ${pct(O.p3)}.`;
-  spark($('outlookCard'), 'sfi', '#0b2a4a', '%');
+  $('trend').textContent = ago ? (sc > ago.score10 ? '↑ up from ' : sc < ago.score10 ? '↓ down from ' : '→ same as ') + ago.score10 + ' an hour ago' : '';
+  renderDelayNow();
+  spark($('outlookCard'), 'score10', '#0b2a4a', '/10');
 }
 
 // ---------------------------------------------------------------- FAA
@@ -147,7 +166,7 @@ function renderFaa() {
 // ---------------------------------------------------------------- tiles
 function spark(el, key, color, unit = '') {
   const box = el.querySelector('.spark'); if (!box) return;
-  const pts = HIST.map(r => [Date.parse(r.t), r[key]]).filter(([t, v]) => Number.isFinite(t) && Number.isFinite(v));
+  const pts = HIST.map(r => [Date.parse(r.t), r[key]]).filter(([t, v]) => Number.isFinite(t) && Number.isFinite(v) && Date.now() - t <= 864e5);
   if (pts.length < 3) { box.innerHTML = `<div class="n">24-hour trend: ${pts.length ? pts.length + ' readings saved so far' : 'collecting'}</div>`; return; }
   const W = 200, H = 36, t1 = Date.now(), t0 = t1 - 864e5, vals = pts.map(p => p[1]);
   let lo = Math.min(...vals), hi = Math.max(...vals); if (hi - lo < 4) { const mid = (hi + lo) / 2; lo = mid - 2; hi = mid + 2; }
@@ -163,10 +182,10 @@ function setTile(id, value, desc, live) {
 }
 function renderTiles() {
   const O = outlookNow(), F = O && O.features;
-  const S = MODEL && MODEL.stats;
-  const tHub = setTile('tHub', F ? F.usHubStressNext3.toFixed(1) + '<small> pts</small>' : '--',
+  const S = MODEL && MODEL.stats, SC = O && SNAP.scores.scale;
+  const tHub = setTile('tHub', SC ? SC.inputs.weather.score + '<small>/10 · ' + F.usHubStressNext3.toFixed(1) + ' pts</small>' : '--',
     F ? `Worst of the next 3 h at 15 hubs${F.usStorms ? ' · storms at ' + F.stormHubs.join(', ') : ''} · ${asOf('usHubWx')}` : 'No live hub forecast', !!F);
-  const tRec = setTile('tRecent', F ? F.persist + '<small> new</small>' : '--',
+  const tRec = setTile('tRecent', SC ? SC.inputs.persist.score + '<small>/10 · ' + F.persist + ' new</small>' : '--',
     F ? `Started in the current and previous two hours · ${asOf('faaAdvisories')}` : 'No live FAA advisories', !!F);
   [[tHub, 'usHubStressNext3', F && F.usHubStressNext3, x => x.toFixed(1)], [tRec, 'persist', F && F.persist, x => String(x)]].forEach(([el, k, v, fmt]) => {
     const st = S && S[k];
@@ -175,9 +194,6 @@ function renderTiles() {
     setTyp(el, `Typical (Jul–Nov): <b>${fmt(st.p50)}</b> · above normal over ${fmt(st.p75)} · elevated over ${fmt(st.p90)}`);
   });
   spark(tHub, 'hubWx', '#b45309'); spark(tRec, 'persist', '#b91c1c');
-  const d = new Date();
-  setTile('tTypical', O ? Math.round(O.typical * 100) + '<small>%</small>' : '--',
-    O ? `Chance at ${String(d.getUTCHours()).padStart(2, '0')}:00 UTC on a ${d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday'} with average weather and activity` : 'Chance at this hour with average conditions', !!O);
   const el = $('tTrack');
   if (TRACK) {
     const P = TRACK.predictors, rows = [['model', 'This index', 'main'], ['tod', 'Time of day only'], ['persist', 'Recent programs only'], ['sfi2', 'Old index']];
@@ -332,7 +348,7 @@ async function refreshLive() {
   if (first && SNAP) { const c = location.hash.slice(1).toUpperCase(); if (/^[A-Z]{3}$/.test(c)) openAirport(c); }
 }
 async function refreshHistory() {
-  try { const h = await getJSON('/api/history?range=24h', 15000); HIST = Array.isArray(h.rows) ? h.rows : []; } catch (e) { /* trend lines show "collecting" */ }
+  try { const h = await getJSON('/api/history?range=7d', 15000); HIST = Array.isArray(h.rows) ? h.rows : []; } catch (e) { /* trend lines show "collecting" */ }
   renderOutlook(); renderTiles(); renderContext();
 }
 function prepLand(rings) { // unwrap shapes that cross the 180° line and draw them on both sides
@@ -346,8 +362,8 @@ tick(); setInterval(tick, 1000);
 renderAll();
 refreshLive(); setInterval(refreshLive, 120000);
 refreshHistory(); setInterval(refreshHistory, 600000);
-getJSON('data/backtest-results.json', 15000).then(j => { TRACK = j; renderTiles(); }).catch(() => {});
-getJSON('data/sfi-model.json', 15000).then(j => { MODEL = j; renderTiles(); $('howBody').innerHTML = window.renderModelTable(j, { link: true }); }).catch(() => { $('howBody').textContent = 'Model details unavailable.'; });
+getJSON('data/backtest-results.json', 15000).then(j => { TRACK = j; renderTiles(); renderMeaning(); renderOutlook(); }).catch(() => {});
+getJSON('data/sfi-model.json', 15000).then(j => { MODEL = j; renderTiles(); }).catch(() => {});
 getJSON('data/land-110m.json', 15000).then(d => { LAND = prepLand(d); drawMap(); }).catch(() => {});
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshLive(); });
 setInterval(renderHeader, 60000);

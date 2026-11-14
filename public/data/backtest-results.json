@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-14T04:47:59.190Z",
+ "generatedAt": "2026-11-14T07:25:57.079Z",
  "period": {
   "start": "2026-07-16T00:00",
   "end": "2026-11-12T23:00"
@@ -1124,5 +1124,60 @@
    "sfi2": 58.1,
    "usHubStress": 1.3
   }
- ]
+ ],
+ "score1to10": {
+  "aucTest": 0.818,
+  "meaning": [
+   {
+    "score": 1,
+    "hours": 11,
+    "roughRate": 0
+   },
+   {
+    "score": 2,
+    "hours": 143,
+    "roughRate": 0.014
+   },
+   {
+    "score": 3,
+    "hours": 175,
+    "roughRate": 0.034
+   },
+   {
+    "score": 4,
+    "hours": 148,
+    "roughRate": 0.108
+   },
+   {
+    "score": 5,
+    "hours": 135,
+    "roughRate": 0.17
+   },
+   {
+    "score": 6,
+    "hours": 132,
+    "roughRate": 0.364
+   },
+   {
+    "score": 7,
+    "hours": 119,
+    "roughRate": 0.387
+   },
+   {
+    "score": 8,
+    "hours": 73,
+    "roughRate": 0.575
+   },
+   {
+    "score": 9,
+    "hours": 21,
+    "roughRate": 0.619
+   }
+  ],
+  "weights": {
+   "tod": 0.5,
+   "persist": 0.35,
+   "usHubStressNext3": 0.15
+  }
+ }
 }
