@@ -3,7 +3,7 @@
 import { refreshSnapshot } from '../lib/store.mjs';
 
 export default async () => {
-  const snap = await refreshSnapshot({ appendHistory: true });
+  const snap = await refreshSnapshot({ appendHistory: true, openskyTimeout: 20000 });
   const status = Object.fromEntries(Object.entries(snap.feeds).map(([k, f]) => [k, f.ok ? 'ok' : f.error]));
   console.log('GAPS snapshot', snap.generatedAt, JSON.stringify(status));
 };

@@ -8,9 +8,9 @@ export async function readLatest() {
 }
 
 // Fetch every feed, merge with the previous snapshot, save as "latest".
-export async function refreshSnapshot({ appendHistory = false } = {}) {
+export async function refreshSnapshot({ appendHistory = false, openskyTimeout } = {}) {
   const prev = await readLatest();
-  const snap = mergeWithPrevious(await buildSnapshot(), prev);
+  const snap = mergeWithPrevious(await buildSnapshot({ openskyTimeout }), prev);
   const s = store();
   await s.setJSON('latest', snap);
   if (appendHistory) {

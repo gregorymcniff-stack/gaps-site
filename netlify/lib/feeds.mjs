@@ -123,9 +123,9 @@ export function summarizeStates(states) {
   };
 }
 
-async function fetchOpenSky() {
+async function fetchOpenSky(timeout = 5000) {
   const auth = await openskyAuthHeader().catch(() => null);
-  const res = await get('https://opensky-network.org/api/states/all', { headers: auth ? { Authorization: auth } : {}, timeout: 9000 });
+  const res = await get('https://opensky-network.org/api/states/all', { headers: auth ? { Authorization: auth } : {}, timeout });
   const j = await res.json();
   if (!j || !Array.isArray(j.states)) throw new Error('unexpected response');
   const remaining = res.headers.get('x-rate-limit-remaining');
@@ -316,10 +316,12 @@ async function fetchEmergencies() {
 }
 
 // ---------------------------------------------------------------- Snapshot
-export async function buildSnapshot() {
+// openskyTimeout: short when a visitor is waiting (page request), longer in the
+// scheduled job, which can run for up to 30 seconds.
+export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
   const [opensky, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies] = await Promise.all([
-    feed('opensky', fetchOpenSky), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
+    feed('opensky', () => fetchOpenSky(openskyTimeout)), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
     feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies),
   ]);
   return {
