@@ -305,6 +305,33 @@ async function fetchHubTraffic() {
   if (!results.some(([, v]) => v)) throw new Error('no hub responses');
   return { data: { radiusNm: 40, hubs } };
 }
+// Worldwide airliner count from adsb.lol, by aircraft type. Used when OpenSky is
+// unavailable (OpenSky does not accept connections from Netlify's servers).
+// Covers the ~28 most common airliner types; coverage depends on volunteer
+// receivers, so it is a relative traffic signal, not a total of all flights.
+export const AIRLINER_TYPES = ['A320', 'A20N', 'A321', 'A21N', 'A319', 'B738', 'B38M', 'B739', 'B737', 'B39M', 'E75L', 'E190', 'E195', 'CRJ9',
+  'B77W', 'B789', 'B788', 'B78X', 'A333', 'A359', 'B763', 'B772', 'A388', 'B744', 'B748', 'A339', 'B752', 'AT76'];
+async function fetchAirliners() {
+  const lists = [];
+  for (let i = 0; i < AIRLINER_TYPES.length; i += 7) { // 7 at a time, to be polite to a free service
+    lists.push(...await Promise.all(AIRLINER_TYPES.slice(i, i + 7).map(t =>
+      get(`https://api.adsb.lol/v2/type/${t}`, { timeout: 5000 }).then(r => r.json()).then(j => j.ac || []).catch(() => null))));
+  }
+  const answered = lists.filter(Boolean).length;
+  if (answered < AIRLINER_TYPES.length * 0.85) throw new Error(`only ${answered} of ${AIRLINER_TYPES.length} type queries answered`);
+  const seen = new Set(), states = [];
+  for (const a of lists.flat().filter(Boolean)) {
+    if (seen.has(a.hex) || a.lat == null || a.lon == null) continue;
+    seen.add(a.hex);
+    const ground = a.alt_baro === 'ground';
+    const altM = typeof a.alt_baro === 'number' ? a.alt_baro * 0.3048 : null;
+    // Same layout as OpenSky state vectors, so one summary function serves both.
+    states.push([a.hex, a.flight || '', null, 0, 0, a.lon, a.lat, altM, ground, a.gs != null ? a.gs * 0.5144 : null, a.track ?? null,
+      a.baro_rate != null ? a.baro_rate * 0.00508 : null, null, altM, a.squawk || '']);
+  }
+  return { data: { ...summarizeStates(states), source: 'adsb.lol', typesQueried: AIRLINER_TYPES.length, typesAnswered: answered } };
+}
+
 async function fetchEmergencies() {
   const lists = await Promise.all(['7700', '7600', '7500'].map(sq =>
     get(`https://api.adsb.lol/v2/sqk/${sq}`, { timeout: 6000 }).then(r => r.json()).then(j => (j.ac || []).map(a => ({ ...a, sq })))));
@@ -320,14 +347,14 @@ async function fetchEmergencies() {
 // scheduled job, which can run for up to 30 seconds.
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
-  const [opensky, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies] = await Promise.all([
-    feed('opensky', () => fetchOpenSky(openskyTimeout)), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
+  const [opensky, airliners, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies] = await Promise.all([
+    feed('opensky', () => fetchOpenSky(openskyTimeout)), feed('airliners', fetchAirliners), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
     feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies),
   ]);
   return {
     version: 2, generatedAt: new Date().toISOString(), buildMs: Date.now() - t0,
     airports: AIRPORTS,
-    feeds: { opensky, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies,
+    feeds: { opensky, airliners, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies,
       eurocontrol: { ok: false, fetchedAt: null, sourceTime: null, error: 'not connected', note: 'EUROCONTROL flow data needs an approved B2B account; no free public feed exists.', data: null } },
   };
 }
@@ -351,6 +378,8 @@ export function historyRow(s) {
   const fresh = k => f[k].ok && !f[k].carriedOver;
   return {
     t: s.generatedAt,
+    scores: s.scores || null,
+    airliners: f.airliners && fresh('airliners') ? f.airliners.data.airborne : null,
     aircraft: fresh('opensky') ? f.opensky.data.airborne : null,
     cruise: fresh('opensky') ? f.opensky.data.cruise : null,
     faa: fresh('faa') ? { gs: f.faa.data.groundStops.length, gdp: f.faa.data.groundDelays.length, afp: f.faa.data.airspaceFlows.length, ad: f.faa.data.arrDepDelays.length, load: f.faa.data.programLoad, airports: f.faa.data.affectedAirports } : null,
