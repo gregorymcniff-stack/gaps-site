@@ -690,7 +690,7 @@ body{
     <div>
       <div class="hdr-title-main">GAPS</div>
       <div class="hdr-title-sub">GLOBAL AIRLINE PRESSURE SYSTEM</div>
-      <div class="hdr-sub">Real-time network pressure across traffic, weather, and upper-air conditions</div>
+      <div class="hdr-sub">Live US airport disruption outlook and airline network conditions</div>
     </div>
     <div class="hdr-live" id="hdrLive">● CONNECTING…</div>
   </div>
@@ -939,9 +939,9 @@ body{
   <aside class="right-pane">
     <div class="pane-title">System Summary</div>
     <div class="sum-card predictive hl">
-      <div class="sum-lbl">Pressure Trend <span class="metric-tag predictive">Directional</span></div>
+      <div class="sum-lbl">Outlook Trend <span class="metric-tag derived">Last hour</span></div>
       <div class="sum-val trend-flat" id="riskTrendVal">--</div>
-      <div class="sum-sub" id="riskTrendSub">Velocity-extrapolated. Not a trained forecast — direction only.</div>
+      <div class="sum-sub" id="riskTrendSub">Change in the outlook over the last hour.</div>
     </div>
     <!-- hidden IDs still needed by JS -->
     <span id="ttiVal" style="display:none"></span>
@@ -950,9 +950,9 @@ body{
     <div class="sum-card" id="deltaCard" style="background:#f8fbff">
       <div class="sum-lbl">What Changed <span class="metric-tag derived">Last cycle</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px;text-align:center">
-        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">Traffic</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaTraffic">--</div></div>
-        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">Weather</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaWeather">--</div></div>
-        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">SFI</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaSfi">--</div></div>
+        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">Hub wx</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaTraffic">--</div></div>
+        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">Recent</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaWeather">--</div></div>
+        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--secondary)">Outlook</div><div class="mono" style="font-size:14px;font-weight:800;color:var(--navy)" id="deltaSfi">--</div></div>
       </div>
     </div>
     <div class="sum-card hl"><div class="sum-lbl">Busiest Regions <span class="metric-tag observed" id="regionSrcTag">Live</span></div><div class="sum-val" id="topCorridorVal">--</div><div class="sum-sub" id="topCorridorSub">Updating…</div></div>
@@ -1829,8 +1829,14 @@ function updateDerivedLiveModel(){
   setText('forecastBig', 'Tested score 0.83');
   setText('qrForecastNote','On 6 held-out weeks it ranked risky hours above calm ones 83% of the time (0.5 = coin flip). The old index scored 0.48.');
 
+  // FAA programs in effect (quick-read line), change since last reading, pressure trend
+  const dv=document.getElementById('qrDelayVal'); if(dv) dv.textContent=Number.isFinite(delayScore)?delayScore+'/100':'--';
+  const dp=document.getElementById('qrDelayPill'); if(dp){ if(Number.isFinite(delayScore)){dp.className='pill '+scoreClass(delayScore); dp.textContent=statusWord(delayScore);} else {dp.className='pill pill-nodata'; dp.textContent='No data';} }
+  updateDeltaCard(sfi, F.usHubStressNext3, F.persist);
   // direction row
   const d60=hourAgo?sfi-hourAgo.sfi:null;
+  const rv=document.getElementById('riskTrendVal'); if(rv){rv.className='sum-val '+(d60>=3?'trend-up':d60<=-3?'trend-down':'trend-flat'); rv.textContent=d60===null?'Collecting':(d60>=3?'↑ Rising':d60<=-3?'↓ Easing':'→ Steady')+' · '+(d60>0?'+':'')+d60+' pts in 1 h';}
+  setText('riskTrendSub', d60===null?'Needs an hour of stored readings. Main driver now: '+(top[2]>0.15?top[1]:'nothing unusual')+'.':'Outlook '+hourAgo.sfi+'% an hour ago, '+sfi+'% now. Main driver: '+(top[2]>0.15?top[1]:'nothing unusual')+'.');
   setText('systemDirectionVal', d60===null?'Collecting':(d60>=3?'Rising':d60<=-3?'Easing':'Steady')+' / '+lv[0]); setDirectionClass('systemDirectionVal', p>=0.5?80:p>=0.25?60:0);
   const statusMarker=document.getElementById('systemStatusMarker'); if(statusMarker) statusMarker.style.left=clamp(sfi,0,100)+'%';
   setText('riskWindowVal', pct(O.typical)); setDirectionClass('riskWindowVal', 0);
