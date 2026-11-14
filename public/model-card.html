@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAPS Model Card</title>
+<meta name="description" content="Model card for the GAPS Sky Friction Index and per-airport outlooks: intended use, data, evaluation, limitations and change history.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0b2a4a;--text:#334155;--muted:#5b6b7c;--border:#e2e8f0;--panel:#f8fbff;--amber:#b45309}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.65}
+header{background:var(--navy);color:#fff;padding:22px 16px}header .in,main{max-width:900px;margin:0 auto}header a{color:#93c5fd;text-decoration:none;font-size:13px}
+header h1{margin:6px 0 4px;font-size:26px}header p{margin:0;color:#cbd5e1;font-size:14px}
+main{padding:8px 16px 60px}h2{color:var(--navy);font-size:19px;margin:32px 0 8px;border-top:1px solid var(--border);padding-top:20px}h3{color:var(--navy);font-size:15px;margin:16px 0 4px}
+p,li{font-size:14.5px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;width:30%}
+td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
+.callout{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--amber);border-radius:6px;padding:10px 14px;margin:12px 0}
+.toc{font-size:13.5px;columns:2;margin:10px 0}@media(max-width:600px){.toc{columns:1}}
+</style>
+</head>
+<body>
+<header><div class="in"><a href="./">← Back to the dashboard</a><h1>Model card</h1><p>The Sky Friction Index and the per-airport outlooks: what they are for, how they were built and tested, and where they fall short.</p></div></header>
+<main>
+<ul class="toc">
+  <li><a href="#details">Model details</a></li><li><a href="#use">Intended use</a></li><li><a href="#data">Training and evaluation data</a></li>
+  <li><a href="#metrics">Metrics and results</a></li><li><a href="#limits">Limitations and risks</a></li><li><a href="#maintenance">Maintenance</a></li><li><a href="#changes">Change history</a></li>
+</ul>
+
+<h2 id="details">Model details</h2>
+<div class="table-wrap"><table>
+<tr><th>Models</th><td><b>Sky Friction Index</b>: chance of 3+ new US ground stops or ground delay programs (any airport) in the next 3 hours.<br><b>Per-airport outlooks</b>: chance of a new ground stop or ground delay program at each of 15 US hubs in the next 3 hours.</td></tr>
+<tr><th>Type</th><td>Logistic regression on standardised inputs (one model for the index; one pooled model for the 15 airports), with the intercept re-centred on the most recent 30 days.</td></tr>
+<tr><th>Index inputs</th><td id="idxInputs">Loading…</td></tr>
+<tr><th>Airport inputs</th><td id="apInputs">Loading…</td></tr>
+<tr><th>Fitted</th><td id="fitted">Loading…</td></tr>
+<tr><th>Code</th><td><a href="https://github.com/gregorymcniff-stack/gaps-site/tree/main/scripts/backtest">scripts/backtest</a> (fitting and testing) · <a href="https://github.com/gregorymcniff-stack/gaps-site/blob/main/netlify/lib/scores.mjs">netlify/lib/scores.mjs</a> (live calculation)</td></tr>
+<tr><th>Parameters</th><td><a href="data/sfi-model.json">sfi-model.json</a> · <a href="data/airport-model.json">airport-model.json</a> (weights, averages, spreads, time-of-day tables)</td></tr>
+<tr><th>Owner</th><td>GAPS (dashboardrunway.live). Free public tool; no affiliation with the FAA or any airline.</td></tr>
+</table></div>
+
+<h2 id="use">Intended use</h2>
+<p><b>For:</b> situational awareness by aviation enthusiasts, travellers, journalists, data scientists and aviation professionals; seeing whether US airports are heading into a rough few hours, and where.</p>
+<p><b>Not for:</b> flight planning, dispatch, air traffic or any operational or safety decision; predicting individual flights; airports outside the US; commercial forecasting without checking the licences of the underlying data.</p>
+
+<h2 id="data">Training and evaluation data</h2>
+<div class="table-wrap"><table>
+<tr><th>Target events</th><td>New US ground stops and ground delay programs from the FAA ATCSCC Advisory Database (cancellations, proposals, revisions, extensions and non-US facilities excluded): <b id="events">2,788</b> programs. <a href="data/faa-advisories.csv">Download</a>.</td></tr>
+<tr><th>Weather</th><td>Open-Meteo historical forecasts (hourly weather code, gusts, visibility, low cloud) at 15 US hubs. The live model uses the same Open-Meteo forecast product.</td></tr>
+<tr><th>Period</th><td id="period">Loading…</td></tr>
+<tr><th>Split</th><td>Time-ordered: fitted on the first two-thirds, scored on the final third (<span id="testRange">six weeks</span>), never seen during fitting. The production models are then refitted on the whole period.</td></tr>
+<tr><th>Not used</th><td>Aircraft counts (no free historical archive), weather at 8 world airports and jet-stream winds (no predictive value in testing), airport forecasts (TAFs; no free historical archive was available).</td></tr>
+</table></div>
+
+<h2 id="metrics">Metrics and results</h2>
+<p>Main metric: <b>AUC</b> on the held-out weeks: how often an hour followed by the event is ranked above one that was not (0.5 = coin flip, 1.0 = perfect). Every model is compared with simpler rivals.</p>
+<h3>Sky Friction Index</h3><div class="table-wrap" id="idxMetrics">Loading…</div>
+<h3>Per-airport outlooks</h3><div class="table-wrap" id="apMetrics">Loading…</div>
+<p>Calibration tables (does "30%" mean 30%?) and per-airport results are on the <a href="method.html">Method page</a>.</p>
+
+<h2 id="limits">Limitations and risks</h2>
+<ul>
+  <li><b>Seasonal drift.</b> Trained mostly on summer storm season; on the autumn test weeks the higher estimates ran too high (for example, the index said about 61% when the rate was about 41%). Mitigation: re-centring on the last 30 days. The re-centred model has not yet been tested on new data.</li>
+  <li><b>No winter.</b> Four months of data (July–November). Snow, de-icing and winter storms are not represented.</li>
+  <li><b>Leans on persistence.</b> Recent programs are a strong input, so the outlooks are better at recognising a bad stretch under way than at warning before the first program.</li>
+  <li><b>Small airports in the test.</b> DFW, ATL, IAH, CLT and LAX had fewer than 15 programs in the test weeks and cannot be judged on their own.</li>
+  <li><b>Coarse target.</b> A short ground stop and an all-day delay program count the same.</li>
+  <li><b>Data dependencies.</b> FAA advisories are read from a public web page (not an official API); weather and aircraft come from free services with usage limits. When an input is missing, the outlook is not shown rather than estimated.</li>
+  <li><b>US only.</b> No free equivalent of the FAA records exists for Europe or elsewhere.</li>
+</ul>
+
+<h2 id="maintenance">Maintenance</h2>
+<ul>
+  <li>Inputs and outlooks are stored every 10 minutes (<a href="data.html">open data</a>), so live performance can be scored against what actually happened.</li>
+  <li>Planned: a live track record on the dashboard, and monthly refits with time-series cross-validation and uncertainty intervals.</li>
+  <li>Monitoring: <code>/api/health</code> is checked every 5 minutes by an external service.</li>
+</ul>
+
+<h2 id="changes">Change history</h2>
+<div class="table-wrap"><table>
+<tr><th>Date (UTC)</th><td><b>Change</b></td></tr>
+<tr><th>2026-11-14 06:24</th><td>Per-airport outlooks published (pooled model, 15 hubs). PHL, CLT and IAH added to monitored airports.</td></tr>
+<tr><th>2026-11-14 04:53</th><td>Index: removed the separate "thunderstorms at hubs" input. It had almost no training examples, so a single storm would have pushed the chance to about 100%. Storms still count inside hub weather. Held-out score unchanged (0.835).</td></tr>
+<tr><th>2026-11-14 04:18</th><td>Sky Friction Index rebuilt as a tested US disruption outlook, replacing the earlier hand-weighted formula (world traffic, world weather, jet stream), which scored 0.48 on the same test.</td></tr>
+</table></div>
+</main>
+<script src="model-explain.js"></script>
+<script>
+(async () => {
+  const get = u => fetch(u).then(r => r.json());
+  const [R, M, A, AM] = await Promise.all([get('data/backtest-results.json'), get('data/sfi-model.json'), get('data/airport-backtest.json'), get('data/airport-model.json')]).catch(() => []);
+  if (!R) return;
+  const set = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  const d = s => new Date(s).toISOString().slice(0, 10);
+  const E = window.explainModel(M);
+  set('idxInputs', E.rows.map(r => `${r.name} (${Math.round(r.share * 100)}% of the weight)`).join(' · '));
+  const apNames = { wxNext3: 'weather at the airport, next 3 h', own3: 'programs there, last ~3 h', own24: 'programs there, last 24 h', others3: 'programs elsewhere, last ~3 h', tod: "the airport's usual rate at this hour" };
+  const aw = AM.model.w.map(Math.abs), at = aw.reduce((a, b) => a + b, 0);
+  set('apInputs', AM.model.keys.map((k, i) => `${apNames[k]} (${Math.round(aw[i] / at * 100)}%)`).join(' · '));
+  set('fitted', `Index ${d(M.fittedAt)} · airports ${d(AM.fittedAt)} · re-centred on the last ${M.models.y3big.recentring.days} days`);
+  set('events', R.events.total.toLocaleString());
+  set('period', `${d(R.period.start + 'Z')} to ${d(R.period.end + 'Z')} (hourly)`);
+  set('testRange', `${d(R.testStart)} to ${d(R.period.end + 'Z')}`);
+  const P = R.predictors;
+  set('idxMetrics', '<table><tr><th>Model</th><td><b>AUC (held-out)</b></td></tr>' + [['model', 'Sky Friction Index'], ['tod', 'Time of day only'], ['persist', 'Recent programs only'], ['usHubStress', 'US hub weather only'], ['sfi2', 'Previous index (retired)']]
+    .map(([k, l]) => `<tr><th>${l}</th><td class="num">${P[k].y3big.aucTest.toFixed(3)}</td></tr>`).join('') + `<tr><th>Event rate (test)</th><td class="num">${Math.round(R.baseRate.y3big * 100)}% of hours</td></tr></table>`);
+  set('apMetrics', '<table><tr><th>Model</th><td><b>AUC (held-out, pooled)</b></td></tr>' + [['model', 'Per-airport outlooks'], ['tod', "Airport's usual rate only"], ['own24', 'Programs there in the last 24 h only'], ['wxNext3', 'Airport weather only']]
+    .map(([k, l]) => `<tr><th>${l}</th><td class="num">${A.pooled[k].aucTest.toFixed(3)}</td></tr>`).join('') + `<tr><th>Event rate (test)</th><td class="num">${(A.baseRate * 100).toFixed(1)}% of airport-hours</td></tr></table>`);
+})();
+</script>
+</body>
+</html>

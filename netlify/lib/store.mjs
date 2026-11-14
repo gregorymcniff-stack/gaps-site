@@ -47,3 +47,16 @@ export async function readHistory(days) {
   }
   return out;
 }
+
+// Every stored history row, oldest first (one blob per UTC day).
+export async function readHistoryAll() {
+  const s = store();
+  const { blobs } = await s.list({ prefix: 'history/' });
+  const keys = blobs.map(b => b.key).sort();
+  const out = [];
+  for (const key of keys) {
+    const rows = await s.get(key, { type: 'json' }).catch(() => null);
+    if (Array.isArray(rows)) out.push(...rows);
+  }
+  return out;
+}
