@@ -60,6 +60,12 @@ a{color:#1d4ed8}
 </table>
 <p>The three are combined with a logistic model whose weights were <b>fitted to the FAA records</b>, not chosen by hand. The hubs are JFK, LGA, EWR, BOS, PHL, ATL, CLT, MIA, ORD, DFW, IAH, DEN, SFO, SEA and LAX.</p>
 
+<h2 id="score">The 1–10 score on the dashboard</h2>
+<p>To make the outlook easy to read, each input is shown as a score from 1 to 10 where <b>5 is average</b>: the input's rank among all past hours, times ten. A 2 means calmer than about 80% of hours; an 8 means busier than about 80%.</p>
+<p>The final score is the weighted average of the three: <b>time of day 50%, recent FAA programs 35%, weather at US hubs 15%</b>, rounded to a whole number. Example: 0.50 × 2 + 0.35 × 2 + 0.15 × 7 = 2.8 → 3.</p>
+<div class="table-wrap" id="score10">Loading…</div>
+<div class="callout"><b>Accuracy.</b> On the held-out weeks the 1–10 score separated rough hours from calm ones with a score of <b id="auc10">0.82</b>, close to the full model's 0.835 (0.5 = guessing). It is slightly less precise in exchange for being easy to read and check by hand. In this simple form, equal weights work about as well; the 50/35/15 split comes from the tested model.</div>
+
 <h2 id="formula">The formula and the weights</h2>
 <p>In plain terms: each input is compared with its average, scaled by how much it varies, multiplied by its weight, and added up. The total is turned into a chance between 0% and 100% with the standard logistic curve.</p>
 <div class="formula-box"><code>chance = 1 / (1 + e<sup>−z</sup>)</code>, where <code>z = intercept + Σ weight<sub>i</sub> × (input<sub>i</sub> − average<sub>i</sub>) / spread<sub>i</sub></code></div>
@@ -121,6 +127,11 @@ a{color:#1d4ed8}
 <script>
 (async () => {
   const [R, M] = await Promise.all([fetch('data/backtest-results.json').then(r => r.json()), fetch('data/sfi-model.json').then(r => r.json())]).catch(() => [null, null]);
+  if (R && R.score1to10) {
+    document.getElementById('auc10').textContent = R.score1to10.aucTest.toFixed(2);
+    document.getElementById('score10').innerHTML = '<table><tr><th>Final score</th><th>Hours in test weeks</th><th>Followed by a rough stretch</th></tr>' +
+      R.score1to10.meaning.map(m => `<tr><td><b>${m.score}/10</b> ${m.score <= 4 ? 'below average' : m.score === 5 ? 'average' : 'above average'}</td><td class="num">${m.hours}</td><td class="num">${Math.round(m.roughRate * 100)}%</td></tr>`).join('') + '</table>';
+  }
   if (M) {
     document.getElementById('weights').innerHTML = window.renderModelTable(M);
     const m = M.models.y3big, names = { usHubStressNext3: 'US hub weather (pts, worst of next 3 h)', persist: 'New FAA programs, last ~3 h', tod: 'Time-of-day rate' };

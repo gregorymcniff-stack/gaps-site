@@ -69,3 +69,16 @@ test('per-airport outlooks: programs and weather at an airport raise its own cha
   assert.ok(airportOutlooks(stormy, NOW).JFK.p > calm.JFK.p);
   for (const v of Object.values(b)) assert.ok(v.p > 0 && v.p < 1);
 });
+
+import { scores1to10, to10 } from '../netlify/lib/scores.mjs';
+test('1-10 scores: average inputs score about 5, busy conditions score higher', () => {
+  const q = Array.from({ length: 201 }, (_, i) => i); // 0..200, median 100
+  assert.equal(to10(q, 100), 5);
+  assert.equal(to10(q, 0), 1);
+  assert.equal(to10(q, 200), 10);
+  const calm = scores1to10({ features: { persist: 0, usHubStressNext3: 0, todKey: '8-wd' } });
+  const busy = scores1to10({ features: { persist: 12, usHubStressNext3: 9, todKey: '22-wd' } });
+  assert.ok(calm.score >= 1 && calm.score <= 4, 'calm ' + calm.score);
+  assert.ok(busy.score >= 7, 'busy ' + busy.score);
+  assert.ok(busy.inputs.persist.score > calm.inputs.persist.score);
+});

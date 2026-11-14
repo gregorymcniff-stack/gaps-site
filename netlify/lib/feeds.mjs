@@ -469,7 +469,7 @@ async function fetchEmergencies() {
 // scheduled job, which can run for up to 30 seconds.
 // Bump when the snapshot format changes, so stored snapshots from older code
 // are rebuilt instead of served.
-export const SNAPSHOT_VERSION = 10;
+export const SNAPSHOT_VERSION = 11;
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
   const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories, taf] = await Promise.all([
@@ -503,7 +503,7 @@ export function historyRow(s) {
   const fresh = k => f[k].ok && !f[k].carriedOver;
   return {
     t: s.generatedAt,
-    scores: s.scores ? { ...s.scores, airports: s.scores.airports ? Object.fromEntries(Object.entries(s.scores.airports).map(([k, v]) => [k, v.p])) : null, outlook: s.scores.outlook ? { p3big: s.scores.outlook.p3big, p3: s.scores.outlook.p3, typical: s.scores.outlook.typical, features: { usHubStressNext3: s.scores.outlook.features.usHubStressNext3, usStorms: s.scores.outlook.features.usStorms, persist: s.scores.outlook.features.persist } } : null } : null,
+    scores: s.scores ? { ...s.scores, scale: s.scores.scale ? { score: s.scores.scale.score, final: s.scores.scale.final, tod: s.scores.scale.inputs.tod.score, persist: s.scores.scale.inputs.persist.score, weather: s.scores.scale.inputs.weather.score } : null, airports: s.scores.airports ? Object.fromEntries(Object.entries(s.scores.airports).map(([k, v]) => [k, v.p])) : null, outlook: s.scores.outlook ? { p3big: s.scores.outlook.p3big, p3: s.scores.outlook.p3, typical: s.scores.outlook.typical, features: { usHubStressNext3: s.scores.outlook.features.usHubStressNext3, usStorms: s.scores.outlook.features.usStorms, persist: s.scores.outlook.features.persist } } : null } : null,
     adsblol: f.adsblol && fresh('adsblol') ? f.adsblol.data.airborne : null,
     aircraft: fresh('opensky') ? f.opensky.data.airborne : null,
     cruise: fresh('opensky') ? f.opensky.data.cruise : null,

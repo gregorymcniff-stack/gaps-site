@@ -180,6 +180,7 @@ export function airportOutlooks(feeds, now = Date.now()) {
 export function scoreSnapshot(snap, now = Date.now()) {
   const scores = withSfi(scoreSnapshotRaw(snap, now));
   scores.airports = airportOutlooks(snap.feeds, now);
+  scores.scale = scores1to10(scores.outlook);
   return scores;
 }
 function scoreSnapshotRaw(snap, now) {
@@ -198,6 +199,25 @@ function scoreSnapshotRaw(snap, now) {
     faaLoad: isFresh(f.faa, 'faa', now) ? f.faa.data.programLoad : null,
   };
 }
+// ---------------------------------------------------------------- 1-10 scores (5 = average)
+// Each input's percentile among past hours x 10, so 5 is average; the final
+// score is their weighted average. Tested in scripts/backtest/analyze.mjs.
+function pctOf(q, x) { let lo = 0, eq = 0; for (const v of q) { if (v < x) lo++; else if (v === x) eq++; } return (lo + eq / 2) / q.length; }
+export const to10 = (q, x) => Math.min(10, Math.max(1, Math.round(pctOf(q, x) * 10)));
+export function scores1to10(outlookObj) {
+  const S = model.scale;
+  if (!outlookObj || !S) return null;
+  const f = outlookObj.features, tod = model.models.y3big.todTable[f.todKey] ?? 0;
+  const inputs = {
+    tod: { value: tod, score: to10(S.quantiles.tod, tod) },
+    persist: { value: f.persist, score: to10(S.quantiles.persist, f.persist) },
+    weather: { value: f.usHubStressNext3, score: to10(S.quantiles.usHubStressNext3, f.usHubStressNext3) },
+    medians: { tod: S.quantiles.tod[100], persist: S.quantiles.persist[100], weather: S.quantiles.usHubStressNext3[100] },
+  };
+  const final = S.weights.tod * inputs.tod.score + S.weights.persist * inputs.persist.score + S.weights.usHubStressNext3 * inputs.weather.score;
+  return { inputs, weights: S.weights, final: +final.toFixed(1), score: Math.min(10, Math.max(1, Math.round(final))) };
+}
+
 // The Sky Friction Index (v2): estimated chance, 0-100, of 3+ new US ground
 // stops / ground delay programs in the next 3 hours.
 export function withSfi(scores) {

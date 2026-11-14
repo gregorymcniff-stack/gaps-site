@@ -31,6 +31,7 @@ td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
 <h2 id="details">Model details</h2>
 <div class="table-wrap"><table>
 <tr><th>Models</th><td><b>Sky Friction Index</b>: chance of 3+ new US ground stops or ground delay programs (any airport) in the next 3 hours.<br><b>Per-airport outlooks</b>: chance of a new ground stop or ground delay program at each of 15 US hubs in the next 3 hours.</td></tr>
+<tr><th>Shown as</th><td>A 1–10 score where 5 is average: each input ranked against past hours, weighted 50/35/15 (time of day, recent programs, hub weather). Held-out score 0.82. The underlying probability model is described below.</td></tr>
 <tr><th>Type</th><td>Logistic regression on standardised inputs (one model for the index; one pooled model for the 15 airports), with the intercept re-centred on the most recent 30 days.</td></tr>
 <tr><th>Index inputs</th><td id="idxInputs">Loading…</td></tr>
 <tr><th>Airport inputs</th><td id="apInputs">Loading…</td></tr>
@@ -80,6 +81,7 @@ td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
 <h2 id="changes">Change history</h2>
 <div class="table-wrap"><table>
 <tr><th>Date (UTC)</th><td><b>Change</b></td></tr>
+<tr><th>2026-11-14</th><td>Dashboard shows the index as a 1–10 score (5 = average) with each input on the same scale; tested at 0.82 on the held-out weeks.</td></tr>
 <tr><th>2026-11-14 06:24</th><td>Per-airport outlooks published (pooled model, 15 hubs). PHL, CLT and IAH added to monitored airports.</td></tr>
 <tr><th>2026-11-14 04:53</th><td>Index: removed the separate "thunderstorms at hubs" input. It had almost no training examples, so a single storm would have pushed the chance to about 100%. Storms still count inside hub weather. Held-out score unchanged (0.835).</td></tr>
 <tr><th>2026-11-14 04:18</th><td>Sky Friction Index rebuilt as a tested US disruption outlook, replacing the earlier hand-weighted formula (world traffic, world weather, jet stream), which scored 0.48 on the same test.</td></tr>
