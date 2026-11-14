@@ -12,6 +12,7 @@ const fmtMin = m => !Number.isFinite(m) ? '?' : m >= 60 ? Math.floor(m / 60) + '
 
 let SNAP = null, SNAP_ERR = null, HIST = [], TRACK = null, LAND = null, HUBS = [], MODEL = null;
 let OPEN_AP = null, LAST_FOCUS = null; // airport detail panel
+let GL = null, GL_READY = false;      // zoomable map (MapLibre)
 
 // ---------------------------------------------------------------- typical values and status labels
 // Index inputs are compared with 120 days of history (from the backtest);
@@ -322,7 +323,7 @@ async function getJSON(url, ms) {
   const opts = { cache: 'no-store' }; if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(ms);
   const r = await fetch(url, opts); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
 }
-function renderAll() { renderHeader(); renderOutlook(); renderFaa(); renderTiles(); renderContext(); drawMap(); renderAirportOutlooks(); renderAirports(); }
+function renderAll() { renderHeader(); renderOutlook(); renderFaa(); renderTiles(); renderContext(); if (GL_READY) updateGL(); else drawMap(); renderAirportOutlooks(); renderAirports(); }
 async function refreshLive() {
   const first = !SNAP;
   try { const s = await getJSON('/api/live', 20000); if (!s || !s.feeds) throw new Error('unexpected response'); SNAP = s; SNAP_ERR = null; }
@@ -481,3 +482,81 @@ function airportOutlookSection(iata) {
     <p class="sub">Inputs now: ${F.own3} program(s) here in the last ~3 h, ${F.own24} in the last 24 h, ${F.others3} elsewhere in the US in the last ~3 h, weather ${F.wxNext3.toFixed(1)} pts over the next 3 h. ${tested} A program already in effect makes a new one less likely, not more.</p></div>`;
 }
 getJSON('data/airport-backtest.json', 15000).then(j => { APT = j; if (OPEN_AP) openAirport(OPEN_AP, false); }).catch(() => {});
+
+// ---------------------------------------------------------------- zoomable map (MapLibre + OpenFreeMap)
+// Falls back to the canvas map above if MapLibre, WebGL or the base map is unavailable.
+const VIEWS = { world: [[-170, -50], [178, 72]], us: [[-125, 23], [-66, 50]], europe: [[-12, 35], [32, 60]], asia: [[90, -12], [150, 46]] };
+const STATUS_COLOR = { high: '#b91c1c', watch: '#b45309', normal: '#15803d', unknown: '#94a3b8' };
+const HAZ_COLOR = { TS: '#ea580c', TURB: '#7c3aed', ICE: '#0284c7', VA: '#475569' };
+const fc = features => ({ type: 'FeatureCollection', features });
+function glData() {
+  const tk = trafficKey(), d = tk && feed(tk).data, cell = (d && d.densityCellDeg) || 3;
+  const dens = d && d.density ? d.density.map(([i, j, n]) => { const x0 = i * cell - 180, y0 = j * cell - 90;
+    return { type: 'Feature', properties: { n }, geometry: { type: 'Polygon', coordinates: [[[x0, y0], [x0 + cell, y0], [x0 + cell, y0 + cell], [x0, y0 + cell], [x0, y0]]] } }; }) : [];
+  const sig = fresh('sigmet') ? feed('sigmet').data.items.map(s => ({ type: 'Feature', properties: { hazard: s.hazard, color: HAZ_COLOR[s.hazard] || '#64748b', fir: s.fir || '', top: s.top || '', base: s.base || '', validTo: s.validTo },
+    geometry: s.poly ? { type: 'Polygon', coordinates: [s.poly] } : { type: 'Point', coordinates: [s.lon, s.lat] } })) : [];
+  const aps = ((SNAP && SNAP.airports) || []).map(a => { const s = hubStatus(a), o = airportOutlook(a.iata);
+    return { type: 'Feature', properties: { iata: a.iata, status: s.status, color: STATUS_COLOR[s.status], label: s.status === 'high' || s.status === 'watch' ? s.label : a.iata, rank: { high: 3, watch: 2, normal: 1, unknown: 0 }[s.status], outlook: o ? pct(o.p) : '' },
+      geometry: { type: 'Point', coordinates: [a.lon, a.lat] } }; });
+  const em = fresh('emergencies') ? feed('emergencies').data.items.map(a => ({ type: 'Feature', properties: { label: a.callsign + ' ' + a.code }, geometry: { type: 'Point', coordinates: [a.lon, a.lat] } })) : [];
+  return { density: fc(dens), sigmets: fc(sig), airports: fc(aps), emergencies: fc(em), maxN: d && d.density && d.density.length ? Math.max(...d.density.map(x => x[2])) : 1 };
+}
+function updateGL() {
+  if (!GL_READY) return;
+  const D = glData();
+  ['density', 'sigmets', 'airports', 'emergencies'].forEach(k => GL.getSource(k).setData(D[k]));
+  // shading by aircraft count; fades as you zoom in, where 3-degree squares look coarse
+  const byCount = max => ['interpolate', ['linear'], ['ln', ['+', 1, ['get', 'n']]], 0, 0.03, Math.log(1 + D.maxN), max];
+  GL.setPaintProperty('density', 'fill-opacity', ['interpolate', ['linear'], ['zoom'], 1.5, byCount(0.5), 4.5, byCount(0.18)]);
+}
+function glAirportPopup(iata) {
+  const a = ((SNAP && SNAP.airports) || []).find(x => x.iata === iata); if (!a) return '';
+  const s = hubStatus(a), m = s.metar, o = airportOutlook(iata);
+  return `<b>${esc(a.iata)}</b> · ${esc(a.name || a.icao)}<br>${s.lines.length ? s.lines.map(esc).join('<br>') : s.status === 'unknown' ? 'No live data' : 'No FAA programs'}${o ? `<br>Next 3 h: <b>${pct(o.p)}</b> chance of a new program (usual ${pct(o.typical)})` : ''}${m ? `<br>Weather: ${esc(m.fltCat || '?')}${m.wx ? ' · ' + esc(m.wx) : ''}<div class="raw">${esc(m.raw)}</div>` : ''}<br><i>Click for full details</i>`;
+}
+function initGL() {
+  const box = $('mapgl');
+  const fail = () => { if (GL) { try { GL.remove(); } catch (e) {} } GL = null; GL_READY = false; box.hidden = true; $('map').hidden = false; document.querySelector('.mapviews').hidden = true; drawMap(); };
+  const webgl = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
+  if (!window.maplibregl || !webgl) return fail();
+  box.hidden = false; $('map').hidden = true; document.querySelector('.mapviews').hidden = false;
+  const timer = setTimeout(() => { if (!GL_READY) fail(); }, 12000);
+  try {
+    GL = new maplibregl.Map({ container: box, style: 'https://tiles.openfreemap.org/styles/positron', bounds: VIEWS.world, renderWorldCopies: true, attributionControl: { compact: true }, cooperativeGestures: window.matchMedia('(pointer: coarse)').matches });
+  } catch (e) { clearTimeout(timer); return fail(); }
+  GL.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  GL.on('error', e => { if (!GL_READY) { clearTimeout(timer); fail(); } });
+  GL.on('load', () => {
+    clearTimeout(timer);
+    const firstSymbol = (GL.getStyle().layers.find(l => l.type === 'symbol') || {}).id;
+    const D = glData();
+    ['density', 'sigmets', 'airports', 'emergencies'].forEach(k => GL.addSource(k, { type: 'geojson', data: D[k] }));
+    GL.addLayer({ id: 'density', type: 'fill', source: 'density', paint: { 'fill-color': '#1d4ed8', 'fill-opacity': 0.25, 'fill-outline-color': 'rgba(0,0,0,0)', 'fill-antialias': false } }, firstSymbol);
+    GL.addLayer({ id: 'sigmet-fill', type: 'fill', source: 'sigmets', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.15 } }, firstSymbol);
+    GL.addLayer({ id: 'sigmet-line', type: 'line', source: 'sigmets', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'line-color': ['get', 'color'], 'line-width': 1.2, 'line-opacity': 0.8 } }, firstSymbol);
+    GL.addLayer({ id: 'sigmet-pt', type: 'circle', source: 'sigmets', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-color': ['get', 'color'], 'circle-radius': 4, 'circle-opacity': 0.8 } });
+    GL.addLayer({ id: 'emergencies', type: 'circle', source: 'emergencies', paint: { 'circle-color': '#b91c1c', 'circle-radius': 6, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
+    GL.addLayer({ id: 'airports', type: 'circle', source: 'airports', layout: { 'circle-sort-key': ['get', 'rank'] }, paint: {
+      'circle-color': ['get', 'color'], 'circle-radius': ['match', ['get', 'status'], 'high', 8, 'watch', 7, 5], 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
+    GL.addLayer({ id: 'airport-labels', type: 'symbol', source: 'airports', layout: {
+      'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-offset': [0.9, 0], 'text-anchor': 'left', 'text-optional': true, 'symbol-sort-key': ['-', 3, ['get', 'rank']] },
+      paint: { 'text-color': ['match', ['get', 'status'], 'high', '#991b1b', 'watch', '#92400e', '#0b2a4a'], 'text-halo-color': '#fff', 'text-halo-width': 1.5 } });
+    GL_READY = true; updateGL();
+    const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+    GL.on('mouseenter', 'airports', e => { GL.getCanvas().style.cursor = 'pointer'; popup.setLngLat(e.features[0].geometry.coordinates).setHTML(glAirportPopup(e.features[0].properties.iata)).addTo(GL); });
+    GL.on('mouseleave', 'airports', () => { GL.getCanvas().style.cursor = ''; popup.remove(); });
+    GL.on('click', 'airports', e => { popup.remove(); openAirport(e.features[0].properties.iata); });
+    GL.on('click', 'sigmet-fill', e => { const p = e.features[0].properties, names = { TS: 'Thunderstorm', TURB: 'Turbulence', ICE: 'Icing', VA: 'Volcanic ash', MTW: 'Mountain wave' };
+      new maplibregl.Popup({ offset: 6 }).setLngLat(e.lngLat).setHTML(`<b>${esc(names[p.hazard] || p.hazard)} SIGMET</b><br>${esc(p.fir)}${p.base || p.top ? `<br>${p.base ? 'from ' + Number(p.base).toLocaleString() + ' ft ' : ''}${p.top ? 'to ' + Number(p.top).toLocaleString() + ' ft' : ''}` : ''}<br>Valid until ${utc(p.validTo)}`).addTo(GL); });
+  });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-view]'); if (!b || !GL) return;
+  GL.fitBounds(VIEWS[b.dataset.view], { padding: 20, duration: 800 });
+  document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+});
+(function loadGL() {
+  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'vendor/maplibre/maplibre-gl.css'; document.head.appendChild(css);
+  const js = document.createElement('script'); js.src = 'vendor/maplibre/maplibre-gl.js'; js.onload = initGL; js.onerror = () => { document.querySelector('.mapviews').hidden = true; };
+  document.head.appendChild(js);
+})();
