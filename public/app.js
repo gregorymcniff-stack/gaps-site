@@ -11,6 +11,7 @@ const utc = t => { const d = new Date(t); return isNaN(d) ? '--' : String(d.getU
 const fmtMin = m => !Number.isFinite(m) ? '?' : m >= 60 ? Math.floor(m / 60) + 'h' + String(m % 60).padStart(2, '0') : m + 'm';
 
 let SNAP = null, SNAP_ERR = null, HIST = [], TRACK = null, LAND = null, HUBS = [], MODEL = null;
+let OPEN_AP = null, LAST_FOCUS = null; // airport detail panel
 
 // ---------------------------------------------------------------- typical values and status labels
 // Index inputs are compared with 120 days of history (from the backtest);
@@ -35,7 +36,7 @@ function compareToHistory(el, key, now, fmt = x => x) {
 }
 
 // ---------------------------------------------------------------- freshness
-const MAX_AGE = { faaAdvisories: 30, usHubWx: 90, faa: 25, opensky: 25, adsblol: 25, metar: 90, sigmet: 60, openmeteo: 90, kp: 240, emergencies: 30 };
+const MAX_AGE = { taf: 120, hubTraffic: 30, faaAdvisories: 30, usHubWx: 90, faa: 25, opensky: 25, adsblol: 25, metar: 90, sigmet: 60, openmeteo: 90, kp: 240, emergencies: 30 };
 const LABEL = { faaAdvisories: 'FAA advisories', usHubWx: 'Hub forecast', faa: 'FAA status', traffic: 'Aircraft', metar: 'METARs', sigmet: 'SIGMETs', kp: 'Space weather' };
 const feed = k => (SNAP && SNAP.feeds && SNAP.feeds[k]) || null;
 const ageMin = k => { const f = feed(k); return f && f.data && f.fetchedAt ? (Date.now() - Date.parse(f.fetchedAt)) / 60000 : Infinity; };
@@ -297,7 +298,7 @@ function drawMap() {
   const parts = [];
   if (tk) parts.push('Aircraft: ' + (tk === 'adsblol' ? 'positions of the 8 most common airliner types (adsb.lol)' : 'all aircraft seen by OpenSky') + ', ' + asOf(tk));
   if (fresh('sigmet')) parts.push('SIGMETs ' + asOf('sigmet'));
-  $('mapFoot').textContent = (parts.join(' · ') || 'Live map data unavailable.') + ' · Hover or tap an airport for details.';
+  $('mapFoot').textContent = (parts.join(' · ') || 'Live map data unavailable.') + ' · Hover for a summary; click an airport for full details.';
 }
 function showTip(ev) {
   if (!MAPGEOM) return;
@@ -319,11 +320,13 @@ async function getJSON(url, ms) {
   const opts = { cache: 'no-store' }; if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(ms);
   const r = await fetch(url, opts); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
 }
-function renderAll() { renderHeader(); renderOutlook(); renderFaa(); renderTiles(); renderContext(); drawMap(); }
+function renderAll() { renderHeader(); renderOutlook(); renderFaa(); renderTiles(); renderContext(); drawMap(); renderAirports(); }
 async function refreshLive() {
+  const first = !SNAP;
   try { const s = await getJSON('/api/live', 20000); if (!s || !s.feeds) throw new Error('unexpected response'); SNAP = s; SNAP_ERR = null; }
   catch (e) { SNAP_ERR = (e && e.message) || 'error'; }
   renderAll();
+  if (first && SNAP) { const c = location.hash.slice(1).toUpperCase(); if (/^[A-Z]{3}$/.test(c)) openAirport(c); }
 }
 async function refreshHistory() {
   try { const h = await getJSON('/api/history?range=24h', 15000); HIST = Array.isArray(h.rows) ? h.rows : []; } catch (e) { /* trend lines show "collecting" */ }
@@ -349,3 +352,93 @@ let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTime
 $('map').addEventListener('mousemove', showTip);
 $('map').addEventListener('mouseleave', () => { $('tip').style.display = 'none'; });
 $('map').addEventListener('touchstart', showTip, { passive: true });
+
+// ---------------------------------------------------------------- airports list and detail panel
+const CAT_TEXT = { VFR: 'VFR · good visibility and high cloud', MVFR: 'MVFR · cloud 1,000–3,000 ft or visibility 3–5 mi', IFR: 'IFR · cloud below 1,000 ft or visibility under 3 mi', LIFR: 'LIFR · cloud below 500 ft or visibility under 1 mi' };
+const WMO = c => c >= 95 ? 'Thunderstorm' : c >= 85 ? 'Snow showers' : c >= 80 ? 'Rain showers' : c >= 71 ? 'Snow' : c >= 61 ? 'Rain' : c >= 51 ? 'Drizzle' : c >= 45 ? 'Fog' : c >= 1 ? 'Cloudy' : 'Clear';
+function hubPointsAt(h, j) { // same scoring as the server's US hub weather
+  const at = k => (h[k] && h[k][j] != null ? Number(h[k][j]) : null);
+  const wc = at('weather_code') || 0, vis = at('visibility'), low = at('cloud_cover_low'), gust = at('wind_gusts_10m') || 0;
+  let x = 0;
+  if (wc >= 95) x += 3; else if (wc >= 61 && wc <= 82) x += 0.7; else if (wc >= 71 && wc <= 77) x += 1.5;
+  if (vis != null && vis < 1600) x += 2; else if (vis != null && vis < 4800) x += 1;
+  if (low != null && low >= 95) x += 0.6;
+  if (gust >= 40) x += 1.5; else if (gust >= 30) x += 0.7;
+  return x;
+}
+function renderAirports() {
+  const list = ((SNAP && SNAP.airports) || []).map(a => ({ ...a, ...hubStatus(a) }));
+  const rank = { high: 3, watch: 2, normal: 1, unknown: 0 };
+  const chip = a => `<button type="button" class="ap s-${a.status}" data-ap="${esc(a.iata)}"><b>${esc(a.iata)}</b><span>${esc(a.status === 'high' || a.status === 'watch' ? a.label.slice(a.iata.length + 1) : a.status === 'unknown' ? 'no data' : (a.metar && a.metar.fltCat) ? a.metar.fltCat + ' · normal' : 'normal')}</span><span>${esc(a.name || '')}</span></button>`;
+  const sorted = list.slice().sort((x, y) => rank[y.status] - rank[x.status] || x.iata.localeCompare(y.iata));
+  $('apUS').innerHTML = sorted.filter(a => a.region === 'US').map(chip).join('') || '<span class="sub">Loading…</span>';
+  $('apIntl').innerHTML = sorted.filter(a => a.region !== 'US').map(chip).join('');
+  if (OPEN_AP) openAirport(OPEN_AP, false);
+}
+function tafSection(iata) {
+  const f = feed('taf'), t = f && f.data ? f.data.airports[iata] : null;
+  if (!t) return '<div class="dr-sec"><h3>Next 12 hours · official forecast (TAF)</h3><p>No forecast available for this airport right now.</p></div>';
+  const hrs = t.hours.filter(h => Date.parse(h.t) + 3600000 > Date.now()).slice(0, 12);
+  const cells = hrs.map(h => `<div class="cat-${h.cat || 'none'}" title="${utc(h.t)}: ${h.cat || 'no forecast'}${h.wx ? ' · ' + esc(h.wx) : ''}${h.windKt != null ? ' · wind ' + h.windKt + (h.gustKt ? 'G' + h.gustKt : '') + ' kt' : ''}"></div>`).join('');
+  const alts = hrs.map(h => h.alt ? `<div class="alt cat-${h.alt.cat}" title="${esc(h.alt.kind)}: ${h.alt.cat}${h.alt.wx ? ' · ' + esc(h.alt.wx) : ''}"></div>` : '<div class="alt alt-none"></div>').join('');
+  const labels = hrs.map((h, i) => `<span>${i % 3 === 0 ? utc(h.t).slice(0, 2) + 'Z' : ''}</span>`).join('');
+  // plain-language list of changes
+  const ch = []; let prev = null;
+  hrs.forEach(h => {
+    const desc = `${h.cat || 'no forecast'}${h.wx ? ', ' + h.wx : ''}${h.gustKt ? ', gusts ' + h.gustKt + ' kt' : ''}`;
+    if (!prev || desc !== prev) ch.push(`<li><b class="mono">${utc(h.t)}</b> ${esc(desc)}</li>`); prev = desc;
+    if (h.alt) { const a = `<li><b class="mono">${utc(h.t)}</b> ${h.alt.kind.startsWith('PROB') ? h.alt.kind.slice(4) + '% chance of' : 'at times'} ${esc(h.alt.cat)}${h.alt.wx ? ', ' + esc(h.alt.wx) : ''}</li>`; if (!ch.includes(a)) ch.push(a); }
+  });
+  return `<div class="dr-sec"><h3>Next 12 hours · official forecast (TAF)</h3>
+    <div class="tl">${cells}</div><div class="tl">${alts}</div><div class="tl-lbl">${labels}</div>
+    <div class="tl-legend"><span><i class="cat-VFR"></i>VFR</span><span><i class="cat-MVFR"></i>MVFR</span><span><i class="cat-IFR"></i>IFR</span><span><i class="cat-LIFR"></i>LIFR</span><span>thin bar: temporary or possible spell</span></div>
+    <ul class="changes">${ch.slice(0, 8).join('')}</ul>
+    <div class="raw">${esc(t.raw)}</div><p class="sub">Issued ${utc(t.issued)} · NOAA Aviation Weather Center${fresh('taf') ? '' : ' · out of date'}</p></div>`;
+}
+function openAirport(iata, focus = true) {
+  const a = ((SNAP && SNAP.airports) || []).find(x => x.iata === iata);
+  if (!a) return;
+  const s = hubStatus(a), m = s.metar, el = $('drawer');
+  OPEN_AP = iata;
+  const pill = s.status === 'high' ? ['high', 'Disrupted'] : s.status === 'watch' ? ['elevated', 'Delays or low cloud'] : s.status === 'normal' ? ['low', 'Normal'] : ['none', 'No data'];
+  let html = `<div class="dr-h"><h2 id="drTitle">${esc(a.iata)}</h2><span class="ic">${esc(a.icao)}</span><span class="nm">${esc(a.name || '')}</span><span class="pill ${pill[0]}">${pill[1]}</span></div>`;
+  html += `<div class="dr-sec"><h3>FAA status now</h3><p>${s.lines.length ? s.lines.map(esc).join('<br>') : a.region === 'US' ? (fresh('faa') ? 'No ground stops, delay programs or closures.' : 'No live FAA data.') : 'Outside the US: no FAA programs. Live delay data for this region is not available.'}</p></div>`;
+  html += `<div class="dr-sec"><h3>Weather now (METAR)</h3>${m ? `<dl class="kv"><dt>Conditions</dt><dd>${esc(CAT_TEXT[m.fltCat] || m.fltCat || '?')}</dd>${m.wx ? `<dt>Weather</dt><dd>${esc(m.wx)}</dd>` : ''}<dt>Wind</dt><dd>${m.windKt != null ? m.windKt + ' kt' + (m.gustKt ? ', gusts ' + m.gustKt + ' kt' : '') : '?'}</dd><dt>Visibility</dt><dd>${m.visSm != null ? m.visSm + '+ mi'.slice(m.visSm >= 10 ? 0 : 1) : '?'}</dd><dt>Observed</dt><dd>${utc(m.obsTime)}</dd></dl><div class="raw">${esc(m.raw)}</div>` : '<p>No live weather report.</p>'}</div>`;
+  html += tafSection(iata);
+  const hw = fresh('usHubWx') && feed('usHubWx').data;
+  if (hw && hw.hourly[iata]) {
+    const h = hw.hourly[iata], start = Math.floor(Date.now() / 3600000) * 3600000;
+    const rows = hw.times.map((t, j) => [t, j]).filter(([t]) => Date.parse(t + ':00Z') >= start).slice(0, 4)
+      .map(([t, j]) => `<tr><td class="mono">${utc(t + ':00Z')}</td><td>${WMO(h.weather_code[j] || 0)}</td><td>${Math.round(h.wind_gusts_10m[j] || 0)} mph</td><td>${h.visibility[j] != null ? (h.visibility[j] / 1609).toFixed(1) + ' mi' : '?'}</td><td class="mono">${hubPointsAt(h, j).toFixed(1)}</td></tr>`).join('');
+    html += `<div class="dr-sec"><h3>Index input · hub weather forecast (Open-Meteo)</h3><table class="hubhrs"><tr><th>Hour</th><th>Weather</th><th>Gusts</th><th>Visibility</th><th>Points</th></tr>${rows}</table><p class="sub">Points feed the Sky Friction Index (see "US hub weather").</p></div>`;
+  }
+  const adv = feed('faaAdvisories') && feed('faaAdvisories').data;
+  if (a.region === 'US') {
+    const day = adv ? adv.programs.filter(p => p.airport === iata && Date.now() - Date.parse(p.sent) <= 864e5) : null;
+    html += `<div class="dr-sec"><h3>FAA programs issued, last 24 hours</h3>${day == null ? '<p>No live advisory data.</p>' : day.length ? `<ul class="dr-list">${day.map(p => `<li><span>${p.type === 'GS' ? 'Ground stop' : 'Ground delay program'}</span><span class="mono">${utc(p.sent)}</span></li>`).join('')}</ul>` : '<p>None in the last 24 hours.</p>'}</div>`;
+  }
+  const ht = fresh('hubTraffic') && feed('hubTraffic').data.hubs[iata];
+  if (ht) html += `<div class="dr-sec"><h3>Aircraft nearby</h3><p>${ht.airborne} airborne and ${ht.total - ht.airborne} on the ground within ${feed('hubTraffic').data.radiusNm} nm (adsb.lol volunteer receivers) · ${asOf('hubTraffic')}</p></div>`;
+  html += `<div class="dr-sec"><h3>More</h3><div class="dr-links"><a href="https://aviationweather.gov/data/metar/?id=${esc(a.icao)}&taf=1" target="_blank" rel="noopener">METAR and TAF at AviationWeather.gov</a>${a.region === 'US' ? '<a href="https://nasstatus.faa.gov/" target="_blank" rel="noopener">FAA NAS Status</a>' : ''}<a href="https://www.flightaware.com/live/airport/${esc(a.icao)}" target="_blank" rel="noopener">Flights on FlightAware</a></div><p class="sub">Link to this page: dashboardrunway.live/#${esc(a.iata)}</p></div>`;
+  $('drBody').innerHTML = html;
+  if (el.hidden) { LAST_FOCUS = document.activeElement; el.hidden = false; document.body.style.overflow = 'hidden'; }
+  if (focus) { el.querySelector('.drawer-x').focus(); if (location.hash !== '#' + iata) history.replaceState(null, '', '#' + iata); }
+}
+function closeAirport() {
+  const el = $('drawer'); if (el.hidden) return;
+  el.hidden = true; document.body.style.overflow = ''; OPEN_AP = null;
+  history.replaceState(null, '', location.pathname + location.search);
+  if (LAST_FOCUS && LAST_FOCUS.focus) LAST_FOCUS.focus();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-ap]'); if (b) { openAirport(b.dataset.ap); return; }
+  if (e.target.closest('[data-close]')) closeAirport();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAirport(); });
+$('map').addEventListener('click', ev => {
+  if (!MAPGEOM) return;
+  const r = $('map').getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  let best = null, bd = 16; HUBS.forEach(h => { const d = Math.hypot(h.X - mx, h.Y - my); if (d < bd) { bd = d; best = h; } });
+  if (best) openAirport(best.iata);
+});
+window.addEventListener('hashchange', () => { const c = location.hash.slice(1).toUpperCase(); if (/^[A-Z]{3}$/.test(c)) openAirport(c); else closeAirport(); });

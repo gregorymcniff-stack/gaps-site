@@ -10,29 +10,29 @@ const TIMEOUT_MS = 7000;
 
 // Reference list of monitored airports (static coordinates, not live data).
 export const AIRPORTS = [
-  { iata: 'JFK', icao: 'KJFK', lat: 40.64, lon: -73.78, region: 'US' },
-  { iata: 'LGA', icao: 'KLGA', lat: 40.78, lon: -73.87, region: 'US' },
-  { iata: 'EWR', icao: 'KEWR', lat: 40.69, lon: -74.17, region: 'US' },
-  { iata: 'BOS', icao: 'KBOS', lat: 42.36, lon: -71.01, region: 'US' },
-  { iata: 'ORD', icao: 'KORD', lat: 41.98, lon: -87.90, region: 'US' },
-  { iata: 'ATL', icao: 'KATL', lat: 33.64, lon: -84.43, region: 'US' },
-  { iata: 'DFW', icao: 'KDFW', lat: 32.90, lon: -97.04, region: 'US' },
-  { iata: 'DEN', icao: 'KDEN', lat: 39.86, lon: -104.67, region: 'US' },
-  { iata: 'LAX', icao: 'KLAX', lat: 33.94, lon: -118.41, region: 'US' },
-  { iata: 'SFO', icao: 'KSFO', lat: 37.62, lon: -122.38, region: 'US' },
-  { iata: 'SEA', icao: 'KSEA', lat: 47.45, lon: -122.31, region: 'US' },
-  { iata: 'MIA', icao: 'KMIA', lat: 25.79, lon: -80.29, region: 'US' },
-  { iata: 'LHR', icao: 'EGLL', lat: 51.47, lon: -0.45, region: 'EU' },
-  { iata: 'CDG', icao: 'LFPG', lat: 49.01, lon: 2.55, region: 'EU' },
-  { iata: 'FRA', icao: 'EDDF', lat: 50.03, lon: 8.57, region: 'EU' },
-  { iata: 'AMS', icao: 'EHAM', lat: 52.31, lon: 4.76, region: 'EU' },
-  { iata: 'DXB', icao: 'OMDB', lat: 25.25, lon: 55.36, region: 'ME' },
-  { iata: 'SIN', icao: 'WSSS', lat: 1.36, lon: 103.99, region: 'AS' },
-  { iata: 'HKG', icao: 'VHHH', lat: 22.31, lon: 113.91, region: 'AS' },
-  { iata: 'NRT', icao: 'RJAA', lat: 35.77, lon: 140.39, region: 'AS' },
-  { iata: 'SYD', icao: 'YSSY', lat: -33.95, lon: 151.18, region: 'OC' },
-  { iata: 'GRU', icao: 'SBGR', lat: -23.43, lon: -46.47, region: 'SA' },
-  { iata: 'SCL', icao: 'SCEL', lat: -33.39, lon: -70.79, region: 'SA' },
+  { iata: 'JFK', icao: 'KJFK', name: "New York JFK", lat: 40.64, lon: -73.78, region: 'US' },
+  { iata: 'LGA', icao: 'KLGA', name: "New York LaGuardia", lat: 40.78, lon: -73.87, region: 'US' },
+  { iata: 'EWR', icao: 'KEWR', name: "Newark", lat: 40.69, lon: -74.17, region: 'US' },
+  { iata: 'BOS', icao: 'KBOS', name: "Boston Logan", lat: 42.36, lon: -71.01, region: 'US' },
+  { iata: 'ORD', icao: 'KORD', name: "Chicago O'Hare", lat: 41.98, lon: -87.90, region: 'US' },
+  { iata: 'ATL', icao: 'KATL', name: "Atlanta", lat: 33.64, lon: -84.43, region: 'US' },
+  { iata: 'DFW', icao: 'KDFW', name: "Dallas/Fort Worth", lat: 32.90, lon: -97.04, region: 'US' },
+  { iata: 'DEN', icao: 'KDEN', name: "Denver", lat: 39.86, lon: -104.67, region: 'US' },
+  { iata: 'LAX', icao: 'KLAX', name: "Los Angeles", lat: 33.94, lon: -118.41, region: 'US' },
+  { iata: 'SFO', icao: 'KSFO', name: "San Francisco", lat: 37.62, lon: -122.38, region: 'US' },
+  { iata: 'SEA', icao: 'KSEA', name: "Seattle-Tacoma", lat: 47.45, lon: -122.31, region: 'US' },
+  { iata: 'MIA', icao: 'KMIA', name: "Miami", lat: 25.79, lon: -80.29, region: 'US' },
+  { iata: 'LHR', icao: 'EGLL', name: "London Heathrow", lat: 51.47, lon: -0.45, region: 'EU' },
+  { iata: 'CDG', icao: 'LFPG', name: "Paris Charles de Gaulle", lat: 49.01, lon: 2.55, region: 'EU' },
+  { iata: 'FRA', icao: 'EDDF', name: "Frankfurt", lat: 50.03, lon: 8.57, region: 'EU' },
+  { iata: 'AMS', icao: 'EHAM', name: "Amsterdam Schiphol", lat: 52.31, lon: 4.76, region: 'EU' },
+  { iata: 'DXB', icao: 'OMDB', name: "Dubai", lat: 25.25, lon: 55.36, region: 'ME' },
+  { iata: 'SIN', icao: 'WSSS', name: "Singapore Changi", lat: 1.36, lon: 103.99, region: 'AS' },
+  { iata: 'HKG', icao: 'VHHH', name: "Hong Kong", lat: 22.31, lon: 113.91, region: 'AS' },
+  { iata: 'NRT', icao: 'RJAA', name: "Tokyo Narita", lat: 35.77, lon: 140.39, region: 'AS' },
+  { iata: 'SYD', icao: 'YSSY', name: "Sydney", lat: -33.95, lon: 151.18, region: 'OC' },
+  { iata: 'GRU', icao: 'SBGR', name: "São Paulo Guarulhos", lat: -23.43, lon: -46.47, region: 'SA' },
+  { iata: 'SCL', icao: 'SCEL', name: "Santiago", lat: -33.39, lon: -70.79, region: 'SA' },
 ];
 
 // The eight points used for the Open-Meteo weather and 250 hPa wind sample.
@@ -380,7 +380,64 @@ async function fetchFaaAdvisories() {
     }
   }
   programs.sort((a, b) => b.sent.localeCompare(a.sent));
-  return { data: { programs: programs.slice(0, 60) } };
+  return { data: { programs: programs.slice(0, 250) } };
+}
+
+// ---------------------------------------------------------------- TAF (airport forecasts)
+// Turn a TAF into an hour-by-hour timeline: the prevailing forecast plus any
+// temporary or probable spells (TEMPO / PROB) covering that hour.
+const cloudCeil = (clouds, vv) => {
+  const c = (clouds || []).filter(x => (x.cover === 'BKN' || x.cover === 'OVC') && x.base != null).map(x => Number(x.base));
+  if (vv != null) c.push(Number(vv));
+  return c.length ? Math.min(...c) : null;
+};
+const visNum = v => v == null ? null : typeof v === 'string' ? parseFloat(v) : Number(v);
+export function flightCategory(ceilFt, visSm) {
+  if ((ceilFt != null && ceilFt < 500) || (visSm != null && visSm < 1)) return 'LIFR';
+  if ((ceilFt != null && ceilFt < 1000) || (visSm != null && visSm < 3)) return 'IFR';
+  if ((ceilFt != null && ceilFt <= 3000) || (visSm != null && visSm <= 5)) return 'MVFR';
+  return 'VFR';
+}
+const CAT_RANK = { VFR: 0, MVFR: 1, IFR: 2, LIFR: 3 };
+export function tafTimeline(taf, fromMs, hours = 12) {
+  const periods = (taf.fcsts || []).map(f => ({ ...f, from: f.timeFrom * 1000, to: f.timeTo * 1000 }));
+  const state = p => ({ windDir: p.wdir ?? null, windKt: p.wspd ?? null, gustKt: p.wgst ?? null, visSm: visNum(p.visib), ceilFt: cloudCeil(p.clouds, p.vertVis), wx: p.wxString && p.wxString !== 'NSW' ? p.wxString : '' });
+  const out = [];
+  const start = Math.floor(fromMs / 3600000) * 3600000;
+  for (let k = 0; k < hours; k++) {
+    const t = start + k * 3600000, mid = t + 1800000;
+    let prev = null;
+    for (const p of periods) {
+      if (p.fcstChange === 'TEMPO' || p.fcstChange === 'PROB' || p.from > mid) continue;
+      const st = state(p);
+      if (!prev || !p.fcstChange || p.fcstChange === 'FM') prev = st;
+      else prev = Object.fromEntries(Object.entries(st).map(([k2, v]) => [k2, v == null || v === '' ? prev[k2] : v])); // BECMG keeps what it doesn't change
+    }
+    if (!prev) { out.push({ t: new Date(t).toISOString(), cat: null }); continue; }
+    const row = { t: new Date(t).toISOString(), ...prev, cat: flightCategory(prev.ceilFt, prev.visSm) };
+    let alt = null;
+    for (const p of periods) {
+      if ((p.fcstChange !== 'TEMPO' && p.fcstChange !== 'PROB') || p.from > mid || p.to <= mid) continue;
+      const st = state(p), ceil = st.ceilFt ?? prev.ceilFt, vis = st.visSm ?? prev.visSm, cat = flightCategory(ceil, vis);
+      const cand = { kind: p.fcstChange === 'PROB' ? 'PROB' + (p.probability || '') : 'TEMPO', cat, wx: st.wx, gustKt: st.gustKt };
+      if (!alt || CAT_RANK[cat] > CAT_RANK[alt.cat] || (/TS/.test(cand.wx) && !/TS/.test(alt.wx || ''))) alt = cand;
+    }
+    if (alt && (CAT_RANK[alt.cat] > CAT_RANK[row.cat] || /TS/.test(alt.wx || '') || (alt.gustKt || 0) > (row.gustKt || 0) + 10)) row.alt = alt;
+    out.push(row);
+  }
+  return out;
+}
+async function fetchTaf() {
+  const ids = AIRPORTS.map(a => a.icao).join(',');
+  const arr = await (await get(`https://aviationweather.gov/api/data/taf?ids=${ids}&format=json`)).json();
+  if (!Array.isArray(arr) || !arr.length) throw new Error('no forecasts returned');
+  const now = Date.now(), airports = {};
+  for (const t of arr) {
+    const ap = AIRPORTS.find(a => a.icao === t.icaoId); if (!ap) continue;
+    if (airports[ap.iata] && airports[ap.iata].issued > t.issueTime) continue;
+    airports[ap.iata] = { issued: t.issueTime, raw: t.rawTAF, hours: tafTimeline(t, now, 12) };
+  }
+  return { data: { airports } };
 }
 
 async function fetchEmergencies() {
@@ -398,17 +455,17 @@ async function fetchEmergencies() {
 // scheduled job, which can run for up to 30 seconds.
 // Bump when the snapshot format changes, so stored snapshots from older code
 // are rebuilt instead of served.
-export const SNAPSHOT_VERSION = 6;
+export const SNAPSHOT_VERSION = 7;
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
-  const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories] = await Promise.all([
+  const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories, taf] = await Promise.all([
     feed('opensky', () => fetchOpenSky(openskyTimeout)), feed('adsblol', fetchAdsbLol), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
-    feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies), feed('usHubWx', fetchUsHubWeather), feed('faaAdvisories', fetchFaaAdvisories),
+    feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies), feed('usHubWx', fetchUsHubWeather), feed('faaAdvisories', fetchFaaAdvisories), feed('taf', fetchTaf),
   ]);
   return {
     version: SNAPSHOT_VERSION, generatedAt: new Date().toISOString(), buildMs: Date.now() - t0,
     airports: AIRPORTS,
-    feeds: { opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories,
+    feeds: { opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories, taf,
       eurocontrol: { ok: false, fetchedAt: null, sourceTime: null, error: 'not connected', note: 'EUROCONTROL flow data needs an approved B2B account; no free public feed exists.', data: null } },
   };
 }
