@@ -22,6 +22,9 @@ export const AIRPORTS = [
   { iata: 'SFO', icao: 'KSFO', name: "San Francisco", lat: 37.62, lon: -122.38, region: 'US' },
   { iata: 'SEA', icao: 'KSEA', name: "Seattle-Tacoma", lat: 47.45, lon: -122.31, region: 'US' },
   { iata: 'MIA', icao: 'KMIA', name: "Miami", lat: 25.79, lon: -80.29, region: 'US' },
+  { iata: 'PHL', icao: 'KPHL', name: "Philadelphia", lat: 39.87, lon: -75.24, region: 'US' },
+  { iata: 'CLT', icao: 'KCLT', name: "Charlotte", lat: 35.21, lon: -80.94, region: 'US' },
+  { iata: 'IAH', icao: 'KIAH', name: "Houston Intercontinental", lat: 29.98, lon: -95.34, region: 'US' },
   { iata: 'LHR', icao: 'EGLL', name: "London Heathrow", lat: 51.47, lon: -0.45, region: 'EU' },
   { iata: 'CDG', icao: 'LFPG', name: "Paris Charles de Gaulle", lat: 49.01, lon: 2.55, region: 'EU' },
   { iata: 'FRA', icao: 'EDDF', name: "Frankfurt", lat: 50.03, lon: 8.57, region: 'EU' },
@@ -455,7 +458,7 @@ async function fetchEmergencies() {
 // scheduled job, which can run for up to 30 seconds.
 // Bump when the snapshot format changes, so stored snapshots from older code
 // are rebuilt instead of served.
-export const SNAPSHOT_VERSION = 7;
+export const SNAPSHOT_VERSION = 9;
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
   const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories, taf] = await Promise.all([
@@ -489,7 +492,7 @@ export function historyRow(s) {
   const fresh = k => f[k].ok && !f[k].carriedOver;
   return {
     t: s.generatedAt,
-    scores: s.scores ? { ...s.scores, outlook: s.scores.outlook ? { p3big: s.scores.outlook.p3big, p3: s.scores.outlook.p3, typical: s.scores.outlook.typical, features: { usHubStressNext3: s.scores.outlook.features.usHubStressNext3, usStorms: s.scores.outlook.features.usStorms, persist: s.scores.outlook.features.persist } } : null } : null,
+    scores: s.scores ? { ...s.scores, airports: s.scores.airports ? Object.fromEntries(Object.entries(s.scores.airports).map(([k, v]) => [k, v.p])) : null, outlook: s.scores.outlook ? { p3big: s.scores.outlook.p3big, p3: s.scores.outlook.p3, typical: s.scores.outlook.typical, features: { usHubStressNext3: s.scores.outlook.features.usHubStressNext3, usStorms: s.scores.outlook.features.usStorms, persist: s.scores.outlook.features.persist } } : null } : null,
     adsblol: f.adsblol && fresh('adsblol') ? f.adsblol.data.airborne : null,
     aircraft: fresh('opensky') ? f.opensky.data.airborne : null,
     cruise: fresh('opensky') ? f.opensky.data.cruise : null,

@@ -87,6 +87,22 @@ a{color:#1d4ed8}
 <svg id="daily" class="chart" viewBox="0 0 860 220" role="img" aria-label="FAA programs per day over the test period"></svg>
 <div class="legend"><span style="background:#b91c1c"></span>New US ground stops and delay programs per day (FAA) <span style="background:#b45309"></span>US hub weather (daily average, model data)</div>
 
+<h2 id="airports">Per-airport outlooks</h2>
+<p>For each of 15 major US hubs, GAPS also estimates the chance that the FAA starts a <b>new</b> ground stop or ground delay program at that airport in the next 3 hours. One model covers all 15 airports, so each weight is learned from far more examples than any single airport could provide. Its inputs:</p>
+<ul>
+  <li><b>Weather at the airport</b>: the same bad-weather points as the index, worst hour of the next 3, at that airport only.</li>
+  <li><b>Programs at the airport</b> in the last ~3 hours and the last 24 hours.</li>
+  <li><b>Programs at other airports</b> in the last ~3 hours: a sign the whole system is under strain.</li>
+  <li><b>The airport's usual rate</b> at this hour on a weekday or weekend.</li>
+</ul>
+<p>Tested the same way as the index: fitted on the first two-thirds of the period and scored on the held-out weeks. A program already in effect makes a <i>new</i> one less likely, so an airport under a long delay program can show a low chance.</p>
+<div class="table-wrap" id="apPooled">Loading…</div>
+<h3 style="color:var(--navy);font-size:15px;margin:18px 0 4px">Results by airport (held-out weeks)</h3>
+<div class="table-wrap" id="apByAirport"></div>
+<h3 style="color:var(--navy);font-size:15px;margin:18px 0 4px">Does "20%" mean 20%?</h3>
+<div class="table-wrap" id="apCalib"></div>
+<div class="callout warn"><b>Same seasonal weakness as the index.</b> On the autumn test weeks the higher estimates ran too high (the model learned mostly from summer storms). The live model is re-centred on the most recent 30 days. Airports with very few programs in the test weeks, such as LAX, cannot be judged on their own; their outlooks lean on the pooled model.</div>
+
 <h2>Limits</h2>
 <ul>
   <li><b>US only.</b> The FAA publishes free disruption records; Europe's EUROCONTROL data needs an organisation agreement.</li>
@@ -111,6 +127,17 @@ a{color:#1d4ed8}
       m.keys.map((k, i) => `<tr><td>${names[k]}</td><td class="num">${m.w[i].toFixed(3)}</td><td class="num">${m.mu[i].toFixed(3)}</td><td class="num">${m.sd[i].toFixed(3)}</td></tr>`).join('') +
       `<tr><td>Intercept (after re-centring on the last ${m.recentring.days} days)</td><td class="num">${m.intercept.toFixed(3)}</td><td></td><td></td></tr></table>`;
   }
+  fetch('data/airport-backtest.json').then(r => r.json()).then(A => {
+    const pooledRows = [['model', 'main'], ['tod'], ['own24'], ['wxNext3'], ['others3'], ['own3']];
+    document.getElementById('apPooled').innerHTML = '<table><tr><th>Predictor</th><th></th><th>Score</th></tr>' + pooledRows.map(([k, c]) => { const a = A.pooled[k].aucTest;
+      return `<tr class="${c || ''}"><td>${A.pooled[k].label}</td><td style="width:40%"><span class="bar" style="width:${Math.max(2, (a - 0.4) / 0.6 * 100)}%"></span></td><td class="num">${a.toFixed(2)}</td></tr>`; }).join('') + '</table>';
+    document.getElementById('apByAirport').innerHTML = '<table><tr><th>Airport</th><th>New programs in test weeks</th><th>Model score</th><th>Usual-rate-only score</th></tr>' +
+      A.hubs.slice().sort((x, y) => A.byAirport[y].eventsTest - A.byAirport[x].eventsTest).map(h => { const b = A.byAirport[h], few = b.eventsTest < 15;
+        return `<tr><td><b>${h}</b></td><td class="num">${b.eventsTest}</td><td class="num">${few ? '<span title="too few programs to judge">n/a*</span>' : b.aucModel.toFixed(2)}</td><td class="num">${few ? 'n/a*' : b.aucTod.toFixed(2)}</td></tr>`; }).join('') +
+      '</table><p style="font-size:12.5px;color:var(--muted)">* Fewer than 15 hours with a new program in the test weeks: too few to judge this airport on its own.</p>';
+    document.getElementById('apCalib').innerHTML = '<table><tr><th>Model said</th><th>Airport-hours</th><th>Average estimate</th><th>Actually happened</th></tr>' +
+      A.calibration.filter(b => b.hours).map(b => `<tr><td>${Math.round(b.from * 100)}–${Math.round(b.to * 100)}%</td><td class="num">${b.hours.toLocaleString()}</td><td class="num">${Math.round(b.predicted * 100)}%</td><td class="num">${Math.round(b.observed * 100)}%</td></tr>`).join('') + '</table>';
+  }).catch(() => { document.getElementById('apPooled').textContent = 'Results unavailable.'; });
   if (!R) return;
   const fmtD = s => new Date(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const set = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };

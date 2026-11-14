@@ -1,4 +1,5 @@
 import model from '../../public/data/sfi-model.json' with { type: 'json' };
+import airportModel from '../../public/data/airport-model.json' with { type: 'json' };
 // Sky Friction Index inputs, computed on the server from a snapshot so every
 // history row records the scores alongside the raw data. The formulas match
 // the ones in public/index.html; keep the two in step.
@@ -144,8 +145,42 @@ export function outlook(feeds, now = Date.now()) {
   return out;
 }
 
+// ---------------------------------------------------------------- per-airport outlooks
+// Chance of a new ground stop or ground delay program at each of 15 US hubs in
+// the next 3 hours. Same inputs as scripts/backtest/analyze-airports.mjs.
+export function airportOutlooks(feeds, now = Date.now()) {
+  if (!isFresh(feeds.usHubWx, 'usHubWx', now) || !isFresh(feeds.faaAdvisories, 'faaAdvisories', now)) return null;
+  const hw = feeds.usHubWx.data, M = airportModel.model;
+  const hourStart = Math.floor(now / 3600000) * 3600000;
+  const idx = hw.times.findIndex(t => Date.parse(t + ':00Z') === hourStart);
+  if (idx < 0) return null;
+  const progs = feeds.faaAdvisories.data.programs.map(p => ({ ...p, ts: Date.parse(p.sent) }));
+  const since3 = hourStart - 2 * 3600000, since24 = hourStart - 23 * 3600000;
+  const national = progs.filter(p => p.ts >= since3).length;
+  const d = new Date(now), we = d.getUTCDay() === 0 || d.getUTCDay() === 6;
+  const sig = z => 1 / (1 + Math.exp(-z));
+  const out = {};
+  for (const a of airportModel.hubs) {
+    if (!hw.hourly[a]) continue;
+    let wxNext3 = 0; for (let j = idx; j <= idx + 3 && j < hw.times.length; j++) wxNext3 = Math.max(wxNext3, hubStressAt({ hubs: [a], hourly: hw.hourly }, j));
+    const own3 = progs.filter(p => p.airport === a && p.ts >= since3).length;
+    const own24 = progs.filter(p => p.airport === a && p.ts >= since24).length;
+    const x = { wxNext3, own3, own24, others3: national - own3, tod: M.todTable[`${a}-${d.getUTCHours()}-${we ? 'we' : 'wd'}`] ?? 0 };
+    const contrib = Object.fromEntries(M.keys.map((k, i) => [k, M.w[i] * (x[k] - M.mu[i]) / M.sd[i]]));
+    out[a] = {
+      p: +sig(M.intercept + Object.values(contrib).reduce((s2, c) => s2 + c, 0)).toFixed(3),
+      typical: +sig(M.intercept + contrib.tod).toFixed(3), // usual for this hour, other inputs at their averages
+      features: { ...x, wxNext3: +wxNext3.toFixed(2), tod: +x.tod.toFixed(4) },
+      contributions: Object.fromEntries(Object.entries(contrib).map(([k, c]) => [k, +c.toFixed(3)])),
+    };
+  }
+  return out;
+}
+
 export function scoreSnapshot(snap, now = Date.now()) {
-  return withSfi(scoreSnapshotRaw(snap, now));
+  const scores = withSfi(scoreSnapshotRaw(snap, now));
+  scores.airports = airportOutlooks(snap.feeds, now);
+  return scores;
 }
 function scoreSnapshotRaw(snap, now) {
   const f = snap.feeds;

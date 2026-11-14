@@ -135,6 +135,20 @@ a:focus-visible,button:focus-visible{outline:3px solid #93c5fd;outline-offset:2p
 .tip .raw{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px;word-break:break-word}
 .mapfoot{padding:10px 20px;border-top:1px solid var(--border);font-size:11.5px;color:var(--muted)}
 
+/* airport outlooks */
+.apo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 24px}
+@media (max-width:1000px){.apo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.apo-grid{grid-template-columns:1fr}}
+.apo-row{display:grid;grid-template-columns:42px minmax(0,1fr) 44px;align-items:center;gap:10px;padding:7px 4px;border:0;border-bottom:1px solid #f1f5f9;background:none;font:inherit;text-align:left;cursor:pointer;color:var(--text);width:100%}
+.apo-row:hover{background:var(--soft)}
+.apo-row b{font-family:var(--mono);color:var(--navy)}
+.apo-row .bar{display:block;height:8px;background:#eef2f7;border-radius:4px;position:relative;overflow:hidden}
+.apo-row .bar span{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.apo-row .bar i{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--navy);opacity:.55}
+.apo-row .pct{font-family:var(--mono);font-weight:700;text-align:right;color:var(--ink)}
+.apo-row small{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.apo-legend{font-size:11px;color:var(--muted);margin-top:8px}
+.apo-legend i{display:inline-block;width:2px;height:10px;background:var(--navy);opacity:.55;vertical-align:-1px;margin:0 4px}
 /* airports */
 .apgroup{margin:12px 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .apgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
