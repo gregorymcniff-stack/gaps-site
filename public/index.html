@@ -41,12 +41,12 @@
 
 <main class="wrap" id="main">
 
-  <section class="explain" aria-labelledby="explainTitle">
-    <h2 id="explainTitle" class="sr-only">What GAPS tells you</h2>
-    <div class="step"><span class="n">1</span><div><h3>The question</h3><p><b>Will US air travel have a rough next 3 hours?</b> We count it as rough when the FAA has to start <b>3 or more new ground stops or delay programs</b>: its tools for holding or slowing flights when an airport can't cope. That happens in about 1 hour in 5.</p></div></div>
-    <div class="step"><span class="n">2</span><div><h3>The clues</h3><p><b>Is it already happening?</b> New FAA programs in the last few hours. <b>Is bad weather coming</b> to major US airports? <b>Is it a busy time of day?</b> Evenings are worst.</p></div></div>
-    <div class="step"><span class="n">3</span><div><h3>The answer</h3><p>A <b>score from 1 to 10, where 5 is average</b>. Each clue gets its own 1–10 score, and the weighted average is the final score. Tested on 4 months of FAA records. <a href="method.html#score">How we know →</a></p></div></div>
+  <section class="card snapshot" aria-labelledby="snapTitle">
+    <div class="cardhead"><h2 id="snapTitle">Global snapshot · where we stand now</h2><span class="sub" id="snapTime"></span></div>
+    <div class="snap-key" aria-hidden="true"><span><i class="k-band"></i>usual range</span><span><i class="k-avg"></i>average</span><span><i class="k-now"></i>now</span><span>bar runs from the lowest to the highest reading on record</span></div>
+    <div id="snapRows"><span class="sub">Loading live data…</span></div>
   </section>
+
 
   <section class="hero">
     <article class="card outlook" id="outlookCard" aria-labelledby="outlookTitle">
@@ -80,7 +80,7 @@
 
   <section class="card apo" aria-labelledby="apoTitle">
     <div class="cardhead"><h2 id="apoTitle">Airport outlooks · next 3 hours</h2><a class="sub" href="method.html#airports">How they were tested →</a></div>
-    <p class="sub" style="margin:2px 0 10px">Chance that the FAA starts a <b>new</b> ground stop or delay program at each major US hub in the next 3 hours, against its usual chance at this hour. Select an airport for details.</p>
+    <p class="sub" style="margin:2px 0 10px">How likely the FAA is to start a <b>new</b> ground stop or delay program at each major US hub in the next 3 hours, from 1 to 10, where <b>5 is average for that airport</b>. Select an airport for details.</p>
     <div class="apo-grid" id="apoList"><span class="sub">Loading…</span></div>
   </section>
 
@@ -131,6 +131,15 @@
       <article class="card" id="cEu"><div class="cardhead"><h2>Europe</h2><span class="pill none st">Off</span></div><div class="v">Not connected</div><div class="d">EUROCONTROL flow data needs an approved B2B account; there is no free public feed, so no European delay data is shown.</div></article>
     </div>
   </section>
+
+  <details class="card howread"><summary>How GAPS works, in three steps</summary>
+  <div class="explain" aria-labelledby="explainTitle">
+    <h2 id="explainTitle" class="sr-only">What GAPS tells you</h2>
+    <div class="step"><span class="n">1</span><div><h3>The question</h3><p><b>Will US air travel have a rough next 3 hours?</b> We count it as rough when the FAA has to start <b>3 or more new ground stops or delay programs</b>: its tools for holding or slowing flights when an airport can't cope. That happens in about 1 hour in 5.</p></div></div>
+    <div class="step"><span class="n">2</span><div><h3>The clues</h3><p><b>Is it already happening?</b> New FAA programs in the last few hours. <b>Is bad weather coming</b> to major US airports? <b>Is it a busy time of day?</b> Evenings are worst.</p></div></div>
+    <div class="step"><span class="n">3</span><div><h3>The answer</h3><p>A <b>score from 1 to 10, where 5 is average</b>. Each clue gets its own 1–10 score, and the weighted average is the final score. Tested on 4 months of FAA records. <a href="method.html#score">How we know →</a></p></div></div>
+  </div>
+  </details>
 
   <section class="card about" aria-labelledby="aboutTitle">
     <div>

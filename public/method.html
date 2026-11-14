@@ -103,6 +103,9 @@ a{color:#1d4ed8}
 </ul>
 <p>Tested the same way as the index: fitted on the first two-thirds of the period and scored on the held-out weeks. A program already in effect makes a <i>new</i> one less likely, so an airport under a long delay program can show a low chance.</p>
 <div class="table-wrap" id="apPooled">Loading…</div>
+<h3 style="color:var(--navy);font-size:15px;margin:18px 0 4px">The 1–10 airport score</h3>
+<p>On the dashboard each airport's chance is shown from 1 to 10, where <b>5 is average for that airport</b>: the chance is ranked against that airport's own past hours. Boston has delay programs far more often than Charlotte, so each airport is compared with its own normal. Within each airport the 1–10 score ranked risky hours with a held-out score of <b id="ap10auc">0.81</b>. New programs at a single airport are rare in any 3-hour window, so even high scores mean a minority chance:</p>
+<div class="table-wrap" id="ap10table">Loading…</div>
 <h3 style="color:var(--navy);font-size:15px;margin:18px 0 4px">Results by airport (held-out weeks)</h3>
 <div class="table-wrap" id="apByAirport"></div>
 <h3 style="color:var(--navy);font-size:15px;margin:18px 0 4px">Does "20%" mean 20%?</h3>
@@ -147,6 +150,10 @@ a{color:#1d4ed8}
       A.hubs.slice().sort((x, y) => A.byAirport[y].eventsTest - A.byAirport[x].eventsTest).map(h => { const b = A.byAirport[h], few = b.eventsTest < 15;
         return `<tr><td><b>${h}</b></td><td class="num">${b.eventsTest}</td><td class="num">${few ? '<span title="too few programs to judge">n/a*</span>' : b.aucModel.toFixed(2)}</td><td class="num">${few ? 'n/a*' : b.aucTod.toFixed(2)}</td></tr>`; }).join('') +
       '</table><p style="font-size:12.5px;color:var(--muted)">* Fewer than 15 hours with a new program in the test weeks: too few to judge this airport on its own.</p>';
+    if (A.score1to10) {
+      document.getElementById('ap10auc').textContent = A.score1to10.aucTestWithinAirport.toFixed(2);
+      document.getElementById('ap10table').innerHTML = '<table><tr><th>Airport score</th><th>Airport-hours</th><th>Followed by a new program there</th></tr>' + A.score1to10.meaning.map(m => `<tr><td><b>${m.score}/10</b></td><td class="num">${m.hours.toLocaleString()}</td><td class="num">${(m.eventRate * 100).toFixed(m.eventRate < 0.01 ? 1 : 0)}%</td></tr>`).join('') + '</table>';
+    }
     document.getElementById('apCalib').innerHTML = '<table><tr><th>Model said</th><th>Airport-hours</th><th>Average estimate</th><th>Actually happened</th></tr>' +
       A.calibration.filter(b => b.hours).map(b => `<tr><td>${Math.round(b.from * 100)}–${Math.round(b.to * 100)}%</td><td class="num">${b.hours.toLocaleString()}</td><td class="num">${Math.round(b.predicted * 100)}%</td><td class="num">${Math.round(b.observed * 100)}%</td></tr>`).join('') + '</table>';
   }).catch(() => { document.getElementById('apPooled').textContent = 'Results unavailable.'; });

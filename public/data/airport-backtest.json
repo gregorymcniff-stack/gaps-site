@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-14T05:43:57.188Z",
+ "generatedAt": "2026-11-14T07:40:19.531Z",
  "period": {
   "start": "2026-07-16T00:00",
   "end": "2026-11-12T23:00"
@@ -198,5 +198,61 @@
   "own24": 0.238,
   "others3": 0.192,
   "tod": 0.936
+ },
+ "score1to10": {
+  "aucTestPooled": 0.79,
+  "aucTestWithinAirport": 0.813,
+  "meaning": [
+   {
+    "score": 1,
+    "hours": 3206,
+    "eventRate": 0.003
+   },
+   {
+    "score": 2,
+    "hours": 1278,
+    "eventRate": 0.006
+   },
+   {
+    "score": 3,
+    "hours": 1526,
+    "eventRate": 0.01
+   },
+   {
+    "score": 4,
+    "hours": 1416,
+    "eventRate": 0.02
+   },
+   {
+    "score": 5,
+    "hours": 1521,
+    "eventRate": 0.037
+   },
+   {
+    "score": 6,
+    "hours": 1425,
+    "eventRate": 0.036
+   },
+   {
+    "score": 7,
+    "hours": 1421,
+    "eventRate": 0.044
+   },
+   {
+    "score": 8,
+    "hours": 1180,
+    "eventRate": 0.075
+   },
+   {
+    "score": 9,
+    "hours": 959,
+    "eventRate": 0.1
+   },
+   {
+    "score": 10,
+    "hours": 333,
+    "eventRate": 0.27
+   }
+  ]
  }
 }

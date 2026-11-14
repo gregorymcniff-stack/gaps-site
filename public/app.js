@@ -339,7 +339,7 @@ async function getJSON(url, ms) {
   const opts = { cache: 'no-store' }; if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(ms);
   const r = await fetch(url, opts); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
 }
-function renderAll() { renderHeader(); renderOutlook(); renderFaa(); renderTiles(); renderContext(); if (GL_READY) updateGL(); else drawMap(); renderAirportOutlooks(); renderAirports(); }
+function renderAll() { renderHeader(); renderSnapshot(); renderOutlook(); renderFaa(); renderTiles(); renderContext(); if (GL_READY) updateGL(); else drawMap(); renderAirportOutlooks(); renderAirports(); }
 async function refreshLive() {
   const first = !SNAP;
   try { const s = await getJSON('/api/live', 20000); if (!s || !s.feeds) throw new Error('unexpected response'); SNAP = s; SNAP_ERR = null; }
@@ -349,7 +349,7 @@ async function refreshLive() {
 }
 async function refreshHistory() {
   try { const h = await getJSON('/api/history?range=7d', 15000); HIST = Array.isArray(h.rows) ? h.rows : []; } catch (e) { /* trend lines show "collecting" */ }
-  renderOutlook(); renderTiles(); renderContext();
+  renderOutlook(); renderTiles(); renderContext(); renderSnapshot();
 }
 function prepLand(rings) { // unwrap shapes that cross the 180° line and draw them on both sides
   const out = [];
@@ -362,8 +362,8 @@ tick(); setInterval(tick, 1000);
 renderAll();
 refreshLive(); setInterval(refreshLive, 120000);
 refreshHistory(); setInterval(refreshHistory, 600000);
-getJSON('data/backtest-results.json', 15000).then(j => { TRACK = j; renderTiles(); renderMeaning(); renderOutlook(); }).catch(() => {});
-getJSON('data/sfi-model.json', 15000).then(j => { MODEL = j; renderTiles(); }).catch(() => {});
+getJSON('data/backtest-results.json', 15000).then(j => { TRACK = j; renderTiles(); renderMeaning(); renderOutlook(); renderSnapshot(); }).catch(() => {});
+getJSON('data/sfi-model.json', 15000).then(j => { MODEL = j; renderTiles(); renderSnapshot(); }).catch(() => {});
 getJSON('data/land-110m.json', 15000).then(d => { LAND = prepLand(d); drawMap(); }).catch(() => {});
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshLive(); });
 setInterval(renderHeader, 60000);
@@ -388,7 +388,7 @@ function hubPointsAt(h, j) { // same scoring as the server's US hub weather
 function renderAirports() {
   const list = ((SNAP && SNAP.airports) || []).map(a => ({ ...a, ...hubStatus(a) }));
   const rank = { high: 3, watch: 2, normal: 1, unknown: 0 };
-  const chip = a => `<button type="button" class="ap s-${a.status}" data-ap="${esc(a.iata)}"><b>${esc(a.iata)}</b><span>${esc(a.status === 'high' || a.status === 'watch' ? a.label.slice(a.iata.length + 1) : a.status === 'unknown' ? 'no data' : (a.metar && a.metar.fltCat) ? a.metar.fltCat + ' · normal' : 'normal')}</span><span>${esc(a.name || '')}</span>${airportOutlook(a.iata) ? `<span>Next 3 h: <b class="mono">${pct(airportOutlook(a.iata).p)}</b></span>` : ''}</button>`;
+  const chip = a => `<button type="button" class="ap s-${a.status}" data-ap="${esc(a.iata)}"><b>${esc(a.iata)}</b><span>${esc(a.status === 'high' || a.status === 'watch' ? a.label.slice(a.iata.length + 1) : a.status === 'unknown' ? 'no data' : (a.metar && a.metar.fltCat) ? a.metar.fltCat + ' · normal' : 'normal')}</span><span>${esc(a.name || '')}</span>${airportOutlook(a.iata) && Number.isFinite(airportOutlook(a.iata).score10) ? `<span>Next 3 h: <b class="mono">${airportOutlook(a.iata).score10}/10</b></span>` : ''}</button>`;
   const sorted = list.slice().sort((x, y) => rank[y.status] - rank[x.status] || x.iata.localeCompare(y.iata));
   $('apUS').innerHTML = sorted.filter(a => a.region === 'US').map(chip).join('') || '<span class="sub">Loading…</span>';
   $('apIntl').innerHTML = sorted.filter(a => a.region !== 'US').map(chip).join('');
@@ -472,16 +472,16 @@ function apoDriver(o) {
   return c && c[1] > 0.25 ? APO_DRIVER[c[0]] : null;
 }
 function apoColor(p) { return p >= 0.5 ? '#b91c1c' : p >= 0.25 ? '#c2410c' : p >= 0.10 ? '#b45309' : '#15803d'; }
+function apMeaning(sc) { const M = APT && APT.score1to10 && APT.score1to10.meaning; const m = M && M.find(x => x.score === sc); return m ? m.eventRate : null; }
 function renderAirportOutlooks() {
   const el = $('apoList'); if (!el) return;
   const A = SNAP && SNAP.scores && SNAP.scores.airports;
   if (!A || !fresh('usHubWx') || !fresh('faaAdvisories')) { el.innerHTML = `<span class="sub">${SNAP ? 'Unavailable: needs live FAA advisories and the US hub forecast.' : 'Loading…'}</span>`; return; }
   const names = Object.fromEntries(((SNAP && SNAP.airports) || []).map(a => [a.iata, a.name]));
-  el.innerHTML = Object.entries(A).sort((a, b) => b[1].p - a[1].p).map(([k, o]) => {
-    const d = apoDriver(o), ratio = o.typical > 0 ? o.p / o.typical : 1;
-    const note = (d ? 'mainly ' + d : 'nothing unusual') + ` · usual ${pct(o.typical)}`;
-    return `<button type="button" class="apo-row" data-ap="${esc(k)}" aria-label="${esc(k)}: ${pct(o.p)} chance of a new FAA program in the next 3 hours"><b>${esc(k)}</b><span><span class="bar"><span style="width:${clamp(o.p * 200, 1, 100)}%;background:${apoColor(o.p)}"></span><i style="left:${clamp(o.typical * 200, 0, 99)}%"></i></span><small>${esc(names[k] || '')} · ${esc(note)}</small></span><span class="pct">${pct(o.p)}</span></button>`;
-  }).join('') + '<div class="apo-legend" style="grid-column:1/-1">Bar: chance now (full bar = 50% or more) · <i></i> mark: usual chance at this hour</div>';
+  el.innerHTML = Object.entries(A).filter(([, o]) => Number.isFinite(o.score10)).sort((a, b) => b[1].score10 - a[1].score10 || b[1].p - a[1].p).map(([k, o]) => {
+    const d = apoDriver(o), w = word10(o.score10)[0].toLowerCase();
+    return `<button type="button" class="apo-row" data-ap="${esc(k)}" aria-label="${esc(k)}: ${o.score10} out of 10, ${w} for this airport"><b>${esc(k)}</b><span><span class="s10" aria-hidden="true">${strip10(o.score10)}</span><small>${esc(names[k] || '')} · ${esc(w)}${d ? ' · mainly ' + esc(d) : ''}</small></span><span class="pct" style="color:${COL10(o.score10)}">${o.score10}/10</span></button>`;
+  }).join('') + '<div class="apo-legend" style="grid-column:1/-1">1–10 for each airport, where 5 is average for that airport · outlined box = 5</div>';
 }
 function airportOutlookSection(iata) {
   const o = airportOutlook(iata); if (!o) return '';
@@ -493,7 +493,9 @@ function airportOutlookSection(iata) {
   const F = o.features;
   const tested = bt ? (bt.eventsTest < 15 ? `Too few programs here in the test weeks (${bt.eventsTest}) to judge this airport on its own; the pooled score across all 15 hubs is ${APT.pooled.model.aucTest.toFixed(2)}.` : `Tested score at ${iata}: ${bt.aucModel.toFixed(2)} (usual-rate-only: ${bt.aucTod.toFixed(2)}; 0.5 = coin flip).`) : '';
   return `<div class="dr-sec"><h3>Outlook · next 3 hours</h3>
-    <p style="font-size:15px;color:var(--ink)"><b class="mono" style="font-size:22px;color:${apoColor(o.p)}">${pct(o.p)}</b> chance the FAA starts a new ground stop or delay program here in the next 3 hours. Usual at this hour: <b>${pct(o.typical)}</b>.</p>
+    <p style="font-size:15px;color:var(--ink)"><b class="mono" style="font-size:26px;color:${COL10(o.score10)}">${o.score10}/10</b> · <b>${esc(word10(o.score10)[0])}</b> for ${esc(iata)} (5 = average for this airport).</p>
+    <div class="s10" style="margin:6px 0 8px" aria-hidden="true">${strip10(o.score10)}</div>
+    <p class="sub">Estimated chance of a new ground stop or delay program here in the next 3 hours: about ${o.p < 0.1 ? (o.p * 100).toFixed(1) : Math.round(o.p * 100)}%. The score compares that with all past hours at ${esc(iata)}, so busy times of day and stormy days score higher.</p>
     <div class="drivers" style="margin-top:8px">${rows}</div>
     <p class="sub">Inputs now: ${F.own3} program(s) here in the last ~3 h, ${F.own24} in the last 24 h, ${F.others3} elsewhere in the US in the last ~3 h, weather ${F.wxNext3.toFixed(1)} pts over the next 3 h. ${tested} A program already in effect makes a new one less likely, not more.</p></div>`;
 }
@@ -528,7 +530,7 @@ function updateGL() {
 function glAirportPopup(iata) {
   const a = ((SNAP && SNAP.airports) || []).find(x => x.iata === iata); if (!a) return '';
   const s = hubStatus(a), m = s.metar, o = airportOutlook(iata);
-  return `<b>${esc(a.iata)}</b> · ${esc(a.name || a.icao)}<br>${s.lines.length ? s.lines.map(esc).join('<br>') : s.status === 'unknown' ? 'No live data' : 'No FAA programs'}${o ? `<br>Next 3 h: <b>${pct(o.p)}</b> chance of a new program (usual ${pct(o.typical)})` : ''}${m ? `<br>Weather: ${esc(m.fltCat || '?')}${m.wx ? ' · ' + esc(m.wx) : ''}<div class="raw">${esc(m.raw)}</div>` : ''}<br><i>Click for full details</i>`;
+  return `<b>${esc(a.iata)}</b> · ${esc(a.name || a.icao)}<br>${s.lines.length ? s.lines.map(esc).join('<br>') : s.status === 'unknown' ? 'No live data' : 'No FAA programs'}${o && Number.isFinite(o.score10) ? `<br>Next 3 h: <b>${o.score10}/10</b> · ${esc(word10(o.score10)[0].toLowerCase())} for this airport` : ''}${m ? `<br>Weather: ${esc(m.fltCat || '?')}${m.wx ? ' · ' + esc(m.wx) : ''}<div class="raw">${esc(m.raw)}</div>` : ''}<br><i>Click for full details</i>`;
 }
 function initGL() {
   const box = $('mapgl');
@@ -576,3 +578,60 @@ document.addEventListener('click', e => {
   const js = document.createElement('script'); js.src = 'vendor/maplibre/maplibre-gl.js'; js.onload = initGL; js.onerror = () => { document.querySelector('.mapviews').hidden = true; };
   document.head.appendChild(js);
 })();
+
+// ---------------------------------------------------------------- global snapshot: mean, extremes, now
+// Each line: the bar spans the lowest to the highest reading on record, the
+// shaded band is the usual range (middle half of readings), the tick is the
+// average, the dot is now.
+function distFromValues(vals) {
+  const v = vals.filter(Number.isFinite).sort((a, b) => a - b); if (v.length < 12) return null;
+  const q = f => v[Math.min(v.length - 1, Math.floor(f * (v.length - 1)))];
+  return { mean: v.reduce((a, b) => a + b, 0) / v.length, p25: q(0.25), p75: q(0.75), p95: q(0.95), p99: q(0.99), min: v[0], max: v[v.length - 1], n: v.length };
+}
+function distFromQuantiles(qs, mean) { return { mean, p25: qs[50], p75: qs[150], p95: qs[190], p99: qs[198], min: qs[0], max: qs[200] }; }
+function liveTag(keys, provider) {
+  const ages = keys.map(k => { const kk = k === 'traffic' ? trafficKey() : k; const f = kk && feed(kk); return f && f.data && f.fetchedAt ? { k, age: (Date.now() - Date.parse(f.fetchedAt)) / 60000, live: fresh(kk) } : { k, age: null, live: false }; });
+  const allLive = ages.every(a => a.live), worst = Math.max(...ages.map(a => a.age ?? Infinity));
+  const state = allLive ? `<i class="ld on"></i>live · ${worst < 1 ? 'just now' : Math.round(worst) + ' min ago'}` : ages.some(a => a.age != null) ? '<i class="ld old"></i>out of date' : '<i class="ld off"></i>no data';
+  return `<span class="src">${esc(provider)} · ${state}</span>`;
+}
+function snapRow({ label, def, now, d, fmt = x => String(Math.round(x)), unit = '', source, neutral = false, feeds = [], provider = '' }) {
+  const tag = provider ? liveTag(feeds, provider) : '';
+  if (!Number.isFinite(now)) return `<div class="srow"><div class="lbl"><b>${esc(label)}</b><span>${esc(def)}</span>${tag}</div><div class="gauge"><div class="trk"></div></div><div class="num"><b>--</b><span>no live data</span></div></div>`;
+  if (!d) return `<div class="srow"><div class="lbl"><b>${esc(label)}</b><span>${esc(def)}</span>${tag}</div><div class="gauge"><div class="trk"></div></div><div class="num"><b>${fmt(now)}<small>${esc(unit)}</small></b><span>average still being measured</span></div></div>`;
+  const lo = Math.min(d.min, now), hi = Math.max(d.p99 > d.p75 ? d.p99 : d.max, now, d.p75 + 1e-9);
+  const X = v => clamp((v - lo) / (hi - lo || 1) * 100, 0, 100);
+  const pos = now < d.p25 ? ['below usual', '#15803d'] : now <= d.p75 ? ['usual', '#64748b'] : now <= d.p95 ? ['above usual', '#c2410c'] : ['well above usual', '#b91c1c'];
+  const color = neutral ? '#1d4ed8' : pos[1];
+  return `<div class="srow${neutral ? '' : ''}"><div class="lbl"><b>${esc(label)}</b><span>${esc(def)}</span>${tag}</div>
+    <div class="gauge" role="img" aria-label="${esc(label)}: now ${fmt(now)}, average ${fmt(d.mean)}, usual ${fmt(d.p25)} to ${fmt(d.p75)}, highest ${fmt(d.max)}">
+      <div class="trk"></div><div class="band" style="left:${X(d.p25)}%;width:${Math.max(1, X(d.p75) - X(d.p25))}%"></div>
+      <div class="avg" style="left:${X(d.mean)}%"></div><div class="now" style="left:${X(now)}%;background:${color}"></div>
+      <div class="ends"><span>${fmt(lo)}</span><span>${fmt(hi)}${hi < d.max ? '+' : ''}</span></div></div>
+    <div class="num"><b>${fmt(now)}<small>${esc(unit)}</small></b> <em style="color:${color}">${neutral ? '' : pos[0]}</em><span>low ${fmt(d.min)} · avg ${fmt(d.mean)} · high ${fmt(d.max)}</span><span>usual ${fmt(d.p25)}–${fmt(d.p75)}${source ? ' · compared with ' + esc(source) : ''}</span></div></div>`;
+}
+function renderSnapshot() {
+  const el = $('snapRows'); if (!el) return;
+  if (!SNAP) { el.innerHTML = `<span class="sub">${SNAP_ERR ? 'Cannot reach the GAPS data server. Retrying every 2 minutes.' : 'Loading live data…'}</span>`; return; }
+  const sc = SNAP.scores && SNAP.scores.scale && outlookNow() ? SNAP.scores.scale : null, F = outlookNow() && SNAP.scores.outlook.features;
+  const hours = (() => { const h = HIST.filter(r => Number.isFinite(r.faaLoad)); return h.length ? Math.max(1, Math.round((Date.now() - Date.parse(h[0].t)) / 36e5)) : 0; })();
+  const since = hours ? (hours >= 48 ? `last ${Math.round(hours / 24)} days` : `last ${hours} h`) : '';
+  // score distribution from the test weeks
+  const M = TRACK && TRACK.score1to10 && TRACK.score1to10.meaning;
+  const scoreDist = M ? distFromValues(M.flatMap(m => Array(m.hours).fill(m.score))) : null;
+  const Q = MODEL && MODEL.scale && MODEL.scale.quantiles, ST = MODEL && MODEL.stats;
+  const f = fresh('faa') && feed('faa').data, mt = fresh('metar') && feed('metar').data, sg = fresh('sigmet') && feed('sigmet').data;
+  const tk = trafficKey(), ac = tk ? feed(tk).data.airborne : null;
+  const rows = [
+    { label: 'Disruption outlook, next 3 h', def: 'Score 1–10 (5 = average) from the three items below', now: sc ? sc.score : NaN, d: scoreDist, unit: '/10', feeds: ['faaAdvisories', 'usHubWx'], provider: 'GAPS score from FAA advisories + Open-Meteo forecast', source: 'Jul–Nov 2026 test weeks' },
+    { label: 'New FAA programs, last 3 h', def: 'Ground stops and delay programs just started', now: F ? F.persist : NaN, d: Q && ST ? distFromQuantiles(Q.persist, ST.persist.mean) : null, fmt: x => x < 10 && x % 1 ? x.toFixed(1) : String(Math.round(x)), feeds: ['faaAdvisories'], provider: 'FAA ATCSCC advisories', source: 'Jul–Nov 2026' },
+    { label: 'Weather at US hubs, next 3 h', def: 'Storms, fog, low cloud and gusts at 15 hubs (points)', now: F ? F.usHubStressNext3 : NaN, d: Q && ST ? distFromQuantiles(Q.usHubStressNext3, ST.usHubStressNext3.mean) : null, fmt: x => x.toFixed(1), unit: ' pts', feeds: ['usHubWx'], provider: 'Open-Meteo forecast', source: 'Jul–Nov 2026' },
+    { label: 'FAA delays in effect', def: 'Ground stops and delay programs running now', now: f ? f.groundStops.length + f.groundDelays.length : NaN, d: distFromValues(HIST.filter(r => Number.isFinite(r.gs) && Number.isFinite(r.gdp)).map(r => r.gs + r.gdp)), feeds: ['faa'], provider: 'FAA NAS Status', source: since ? 'the ' + since + ' of readings' : '' },
+    { label: 'Airports in low cloud or fog', def: 'Of 26 monitored airports, how many report IFR or LIFR', now: mt ? mt.reports.filter(x => x.fltCat === 'IFR' || x.fltCat === 'LIFR').length : NaN, d: distFromValues(HIST.map(r => r.ifr)), feeds: ['metar'], provider: 'METAR reports, AviationWeather.gov', source: since ? 'the ' + since + ' of readings' : '' },
+    { label: 'Hazard warnings worldwide', def: 'Active SIGMETs: storms, turbulence, icing, ash', now: sg ? sg.total : NaN, d: distFromValues(HIST.map(r => r.sig)), feeds: ['sigmet'], provider: 'SIGMETs, AviationWeather.gov', source: since ? 'the ' + since + ' of readings' : '' },
+    { label: 'Aircraft tracked worldwide', def: tk === 'adsblol' ? 'adsb.lol volunteer receivers; follows the time of day' : 'OpenSky receivers; follows the time of day', now: ac, d: distFromValues(HIST.filter(r => r.src === tk).map(r => r.aircraft)), fmt: x => Math.round(x).toLocaleString(), feeds: ['traffic'], provider: tk === 'adsblol' ? 'adsb.lol' : 'OpenSky Network', source: since ? 'the ' + since + ' of readings' : '', neutral: true },
+    { label: 'Space weather (Kp)', def: 'Geomagnetic activity, 0–9; storm at 5 or more', now: fresh('kp') ? feed('kp').data.kp : NaN, d: { mean: 2, p25: 1, p75: 3, p95: 5, p99: 6, min: 0, max: 9 }, fmt: x => x.toFixed(1), feeds: ['kp'], provider: 'NOAA SWPC', source: 'the NOAA scale (typical 1–3)' },
+  ];
+  el.innerHTML = rows.map(snapRow).join('');
+  $('snapTime').textContent = SNAP.generatedAt ? 'Updated ' + utc(SNAP.generatedAt) + ' (' + localTime(SNAP.generatedAt) + ' your time)' : '';
+}
