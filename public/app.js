@@ -40,10 +40,15 @@ function renderHeader() {
     const age = has ? Math.round((Date.now() - Date.parse(f.fetchedAt)) / 60000) : null;
     return `<span class="feed ${cls}" title="${esc(LABEL[k])}: ${ok ? 'live' : has ? 'out of date' : 'unavailable'}"><i></i>${esc(LABEL[k])}${age != null ? ' ' + (age < 1 ? 'now' : age + 'm') : ' ·  off'}</span>`;
   }).join('') + '<span class="feed off" title="Needs an approved EUROCONTROL account"><i></i>Europe off</span>' +
-    `<span class="updated">${SNAP && SNAP.generatedAt ? 'Server snapshot ' + utc(SNAP.generatedAt) : ''}${SNAP_ERR ? ' · cannot reach the data server' : ''}</span>`;
+    `<span class="updated">${SNAP && SNAP.generatedAt ? 'Server snapshot ' + utc(SNAP.generatedAt) + ' (' + localTime(SNAP.generatedAt) + ' your time)' : ''}${SNAP_ERR ? ' · cannot reach the data server' : ''}</span>`;
   $('feeds').innerHTML = html;
 }
-function tick() { const d = new Date(); $('clock').textContent = String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0') + ':' + String(d.getUTCSeconds()).padStart(2, '0'); }
+const localTime = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+function tick() {
+  const d = new Date();
+  $('clock').textContent = String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0') + ':' + String(d.getUTCSeconds()).padStart(2, '0');
+  $('localClock').textContent = 'Your time ' + localTime(d);
+}
 
 // ---------------------------------------------------------------- outlook
 const LEVELS = [[0.5, 'High', 'high', '#b91c1c'], [0.25, 'Elevated', 'elevated', '#c2410c'], [0.10, 'Moderate', 'moderate', '#b45309'], [0, 'Low', 'low', '#15803d']];
@@ -71,8 +76,11 @@ function renderOutlook() {
   $('trend').textContent = ago ? (sfi - ago.sfi > 2 ? '↑ ' : sfi - ago.sfi < -2 ? '↓ ' : '→ ') + (sfi - ago.sfi > 0 ? '+' : '') + (sfi - ago.sfi) + ' points vs 1 hour ago' : '';
   const rp = F.recentPrograms || [];
   const airports = [...new Set(rp.map(x => x.airport))].slice(0, 4).join(', ');
-  const ratio = O.typical > 0 ? p / O.typical : null;
-  const vs = ratio == null ? '' : ratio >= 1.5 ? `, ${ratio >= 10 ? 'many' : ratio.toFixed(ratio < 3 ? 1 : 0)} times the usual for this hour` : ratio <= 0.67 ? ', below the usual for this hour' : ', about usual for this hour';
+  // Compare with the usual chance for this hour in percentage points, so a
+  // small change at a quiet hour doesn't sound alarming ("8 times the usual").
+  const diff = Math.round((p - O.typical) * 100);
+  const vs = diff >= 15 ? `, well above the usual ${pct(O.typical)} for this hour` : diff >= 5 ? `, above the usual ${pct(O.typical)} for this hour`
+    : diff <= -5 ? `, below the usual ${pct(O.typical)} for this hour` : `, close to the usual ${pct(O.typical)} for this hour`;
   $('lede').textContent = `${pct(p)} chance of a bad stretch at US airports in the next 3 hours${vs}. ` +
     (F.persist ? `${F.persist} new FAA program${F.persist > 1 ? 's' : ''} in the last ~3 hours (${airports}).` : 'No new FAA programs in the last ~3 hours.') +
     (F.usStorms ? ` Thunderstorms forecast at ${F.stormHubs.join(', ')}.` : '');
