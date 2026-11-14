@@ -26,6 +26,11 @@ export function evaluateHealth({ snapshot, heartbeat, requireCollector = true, n
   // aircraft: either source is fine
   checks.aircraft = { ok: fresh('opensky', 25) || fresh('adsblol', 25), source: fresh('opensky', 25) ? 'opensky' : fresh('adsblol', 25) ? 'adsblol' : null };
   if (snapshot && !checks.aircraft.ok) problems.push('aircraft feeds are down (OpenSky and adsb.lol)');
+  // The outlooks keep working on the backup, but the advisory page needs fixing.
+  if (feeds.faaAdvisories?.source === 'nas-status-backup') {
+    checks.faaAdvisories = { ok: false, backup: true, error: feeds.faaAdvisories.error || null };
+    problems.push('FAA advisory database unreachable; outlooks are running on the NAS Status backup' + (feeds.faaAdvisories.error ? ' (' + feeds.faaAdvisories.error + ')' : ''));
+  }
   checks.outlook = { ok: Number.isFinite(snapshot?.scores?.sfi) };
   if (snapshot && !checks.outlook.ok) problems.push('the Sky Friction Index could not be calculated');
   for (const [k, max] of Object.entries(INFO)) checks[k] = { ok: fresh(k, max), info: true };

@@ -1,6 +1,7 @@
 import { getStore } from '@netlify/blobs';
 import { buildSnapshot, mergeWithPrevious, historyRow } from './feeds.mjs';
 import { scoreSnapshot } from './scores.mjs';
+import { updateProgramLog, backupAdvisoryFeed } from './backup.mjs';
 
 // Production uses the 'gaps' store. Deploy previews and branch deploys get their
 // own store, so testing a change can never overwrite the live site's data.
@@ -18,8 +19,16 @@ export async function readLatest() {
 export async function refreshSnapshot({ appendHistory = false, openskyTimeout } = {}) {
   const prev = await readLatest();
   const snap = mergeWithPrevious(await buildSnapshot({ openskyTimeout }), prev);
-  snap.scores = scoreSnapshot(snap);
   const s = store();
+  // Backup for the FAA advisory feed (see backup.mjs)
+  const faa = snap.feeds.faa;
+  if (faa && faa.ok && !faa.carriedOver) {
+    const log = updateProgramLog(await s.get('nas-program-log', { type: 'json' }).catch(() => null), faa.data, snap.generatedAt);
+    await s.setJSON('nas-program-log', log);
+    const adv = snap.feeds.faaAdvisories;
+    if (!adv || !adv.ok || adv.carriedOver) snap.feeds.faaAdvisories = backupAdvisoryFeed(adv, log, snap.generatedAt);
+  }
+  snap.scores = scoreSnapshot(snap);
   await s.setJSON('latest', snap);
   if (appendHistory) {
     const key = 'history/' + snap.generatedAt.slice(0, 10); // one file per UTC day

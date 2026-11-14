@@ -59,9 +59,10 @@ function renderHeader() {
     const kk = k === 'traffic' ? (trafficKey() || 'adsblol') : k;
     const ok = k === 'traffic' ? !!trafficKey() : fresh(k);
     const f = feed(kk), has = f && f.data;
-    const cls = ok ? 'ok' : has ? 'stale' : 'off';
+    const isBackup = k === 'faaAdvisories' && f && f.source === 'nas-status-backup';
+    const cls = isBackup ? 'stale' : ok ? 'ok' : has ? 'stale' : 'off';
     const age = has ? Math.round((Date.now() - Date.parse(f.fetchedAt)) / 60000) : null;
-    return `<span class="feed ${cls}" title="${esc(LABEL[k])}: ${ok ? 'live' : has ? 'out of date' : 'unavailable'}"><i></i>${esc(LABEL[k])}${age != null ? ' ' + (age < 1 ? 'now' : age + 'm') : ' ·  off'}</span>`;
+    return `<span class="feed ${cls}" title="${esc(LABEL[k])}: ${ok ? 'live' : has ? 'out of date' : 'unavailable'}"><i></i>${esc(LABEL[k])}${isBackup ? ' (backup)' : ''}${age != null ? ' ' + (age < 1 ? 'now' : age + 'm') : ' ·  off'}</span>`;
   }).join('') + '<span class="feed off" title="Needs an approved EUROCONTROL account"><i></i>Europe off</span>' +
     `<span class="updated">${SNAP && SNAP.generatedAt ? 'Server snapshot ' + utc(SNAP.generatedAt) + ' (' + localTime(SNAP.generatedAt) + ' your time)' : ''}${SNAP_ERR ? ' · cannot reach the data server' : ''}</span>`;
   $('feeds').innerHTML = html;
@@ -138,7 +139,8 @@ function renderFaa() {
   rec.innerHTML = rp == null ? '<li class="empty" style="display:block">No live advisory data.</li>' : rp.length ?
     rp.slice(0, 6).map(p => `<li><b>${esc(p.airport)}</b><span class="what">${p.type === 'GS' ? 'Ground stop' : 'Ground delay program'} <span class="why">· ${utc(p.sent)}</span></span></li>`).join('') + (rp.length > 6 ? `<li class="empty" style="display:block">and ${rp.length - 6} more</li>` : '') :
     '<li class="empty" style="display:block">None.</li>';
-  $('faaSrc').textContent = 'Sources: FAA NAS Status (' + asOf('faa') + ') · ATCSCC advisory database (' + asOf('faaAdvisories') + ')';
+  const backup = feed('faaAdvisories') && feed('faaAdvisories').source === 'nas-status-backup';
+  $('faaSrc').textContent = 'Sources: FAA NAS Status (' + asOf('faa') + ') · ' + (backup ? 'BACKUP IN USE: the ATCSCC advisory database could not be read, so recent programs are taken from changes in FAA NAS Status (may miss very short ground stops)' : 'ATCSCC advisory database (' + asOf('faaAdvisories') + ')');
 }
 
 // ---------------------------------------------------------------- tiles
