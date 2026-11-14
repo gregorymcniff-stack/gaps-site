@@ -345,6 +345,9 @@ async function fetchEmergencies() {
 // ---------------------------------------------------------------- Snapshot
 // openskyTimeout: short when a visitor is waiting (page request), longer in the
 // scheduled job, which can run for up to 30 seconds.
+// Bump when the snapshot format changes, so stored snapshots from older code
+// are rebuilt instead of served.
+export const SNAPSHOT_VERSION = 3;
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
   const [opensky, airliners, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies] = await Promise.all([
@@ -352,7 +355,7 @@ export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
     feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies),
   ]);
   return {
-    version: 2, generatedAt: new Date().toISOString(), buildMs: Date.now() - t0,
+    version: SNAPSHOT_VERSION, generatedAt: new Date().toISOString(), buildMs: Date.now() - t0,
     airports: AIRPORTS,
     feeds: { opensky, airliners, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies,
       eurocontrol: { ok: false, fetchedAt: null, sourceTime: null, error: 'not connected', note: 'EUROCONTROL flow data needs an approved B2B account; no free public feed exists.', data: null } },

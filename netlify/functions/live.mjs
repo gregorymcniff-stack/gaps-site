@@ -4,6 +4,7 @@
 // fresh data first. The CDN caches the answer for 60 seconds so all visitors
 // share one copy.
 import { readLatest, refreshSnapshot, useContext } from '../lib/store.mjs';
+import { SNAPSHOT_VERSION } from '../lib/feeds.mjs';
 
 const MAX_AGE_MS = 12 * 60 * 1000;
 
@@ -11,7 +12,7 @@ export default async (req, context) => {
   useContext(context?.deploy?.context);
   let snap = await readLatest();
   const age = snap ? Date.now() - Date.parse(snap.generatedAt) : Infinity;
-  if (!snap || age > MAX_AGE_MS) {
+  if (!snap || age > MAX_AGE_MS || snap.version !== SNAPSHOT_VERSION) {
     try {
       snap = await refreshSnapshot();
     } catch (e) {
