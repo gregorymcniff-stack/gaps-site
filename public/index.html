@@ -43,12 +43,20 @@
 <main class="wrap" id="main">
 
   <section class="card outlook snapshot" id="outlookCard" aria-labelledby="outlookTitle">
-    <div class="cardhead"><h2 id="outlookTitle">Disruption outlook · next 3 hours · 1 to 10, where 5 is average</h2><span class="sub" id="snapTime"></span></div>
+    <div class="ask-top"><h2 class="ask-q" id="outlookTitle">Flying through a major US airport in the next 3 hours?</h2><span class="sub" id="snapTime"></span></div>
+    <p class="ask-sub">GAPS rates the chance of FAA ground stops and delays from 1 to 10, where <b>5 is a normal hour</b>.</p>
     <div class="score-head">
       <div class="big" aria-live="polite"><span id="sfi">--</span><small>/10</small></div>
       <div><span class="pill none" id="level">Loading</span><p class="lede" id="lede">Loading live data…</p><div class="trendtxt" id="trend"></div></div>
     </div>
     <div class="s10 s10-big" id="scaleMain" aria-hidden="true"></div>
+    <form class="ask-form" id="apSearch" role="search" autocomplete="off">
+      <label for="apQ">Check your airport</label>
+      <div class="ask-row"><input id="apQ" list="apNames" placeholder="e.g. JFK or Chicago" aria-describedby="apMsg"><button type="submit">Check</button></div>
+      <datalist id="apNames"></datalist>
+      <div class="ask-try"><span>Try:</span><button type="button" data-ap="JFK">JFK</button><button type="button" data-ap="ORD">ORD</button><button type="button" data-ap="ATL">ATL</button><button type="button" data-ap="LAX">LAX</button><button type="button" data-ap="DEN">DEN</button></div>
+      <div class="ask-msg" id="apMsg" aria-live="polite"></div>
+    </form>
     <h3 class="sgrp">How the score is worked out: 3 readings, each scored 1 to 10</h3>
     <div class="in3" id="inputs10"><span class="sub">Loading live data…</span></div>
     <div class="i3tot" id="calc"></div>
