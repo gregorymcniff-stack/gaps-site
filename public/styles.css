@@ -289,3 +289,5 @@ footer{background:var(--navy);color:#cbd5e1;font-size:12px}
 footer a{color:#e2e8f0}
 .voronoi{display:flex;gap:12px;align-items:center;max-width:520px}
 .voronoi img{width:56px;height:56px;border-radius:50%;object-fit:cover;flex:none}
+.fb-link{color:#cbd5e1;font-size:13px;text-decoration:none;border:1px solid rgba(203,213,225,.45);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.fb-link:hover{color:#fff;border-color:#fff}
