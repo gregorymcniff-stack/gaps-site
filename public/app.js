@@ -623,24 +623,19 @@ function snapRow({ label, def, now, d, fmt = x => String(Math.round(x)), unit = 
     <div class="num"><b>${fmt(now)}<small>${esc(unit)}</small></b> <em style="color:${color}">${neutral ? '' : pos[0]}</em><span>low ${fmt(d.min)} · avg ${fmt(d.mean)} · high ${fmt(d.max)}</span><span>usual ${fmt(d.p25)}–${fmt(d.p75)}${source ? ' · compared with ' + esc(source) : ''}</span></div></div>`;
 }
 function renderSnapshot() {
-  const el = $('ctxRows'); if (!el) return;
-  if (!SNAP) { el.innerHTML = `<span class="sub">${SNAP_ERR ? 'Cannot reach the GAPS data server. Retrying every 2 minutes.' : 'Loading live data…'}</span>`; return; }
-  const sc = SNAP.scores && SNAP.scores.scale && outlookNow() ? SNAP.scores.scale : null, F = outlookNow() && SNAP.scores.outlook.features;
-  const hours = (() => { const h = HIST.filter(r => Number.isFinite(r.faaLoad)); return h.length ? Math.max(1, Math.round((Date.now() - Date.parse(h[0].t)) / 36e5)) : 0; })();
-  const since = hours ? (hours >= 48 ? `last ${Math.round(hours / 24)} days` : `last ${hours} h`) : '';
-  // score distribution from the test weeks
-  const M = TRACK && TRACK.score1to10 && TRACK.score1to10.meaning;
-  const scoreDist = M ? distFromValues(M.flatMap(m => Array(m.hours).fill(m.score))) : null;
-  const Q = MODEL && MODEL.scale && MODEL.scale.quantiles, ST = MODEL && MODEL.stats;
-  const f = fresh('faa') && feed('faa').data, mt = fresh('metar') && feed('metar').data, sg = fresh('sigmet') && feed('sigmet').data;
-  const tk = trafficKey(), ac = tk ? feed(tk).data.airborne : null;
+  if ($('snapTime')) $('snapTime').textContent = SNAP && SNAP.generatedAt ? 'Updated ' + utc(SNAP.generatedAt) + ' (' + localTime(SNAP.generatedAt) + ' your time)' : '';
+  const el = $('predRows'); if (!el || !TRACK || !TRACK.predictors) return;
+  const P = TRACK.predictors, auc = k => P[k] && P[k].y3big && P[k].y3big.aucTest;
   const rows = [
-    { label: 'FAA delays in effect', def: 'Ground stops and delay programs running now', now: f ? f.groundStops.length + f.groundDelays.length : NaN, d: distFromValues(HIST.filter(r => Number.isFinite(r.gs) && Number.isFinite(r.gdp)).map(r => r.gs + r.gdp)), feeds: ['faa'], provider: 'FAA NAS Status', source: since ? 'the ' + since + ' of readings' : '' },
-    { label: 'Airports in low cloud or fog', def: 'Of 26 monitored airports, how many report IFR or LIFR', now: mt ? mt.reports.filter(x => x.fltCat === 'IFR' || x.fltCat === 'LIFR').length : NaN, d: distFromValues(HIST.map(r => r.ifr)), feeds: ['metar'], provider: 'METAR reports, AviationWeather.gov', source: since ? 'the ' + since + ' of readings' : '' },
-    { label: 'Hazard warnings worldwide', def: 'Active SIGMETs: storms, turbulence, icing, ash', now: sg ? sg.total : NaN, d: distFromValues(HIST.map(r => r.sig)), feeds: ['sigmet'], provider: 'SIGMETs, AviationWeather.gov', source: since ? 'the ' + since + ' of readings' : '' },
-    { label: 'Aircraft tracked worldwide', def: tk === 'adsblol' ? 'adsb.lol volunteer receivers; follows the time of day' : 'OpenSky receivers; follows the time of day', now: ac, d: distFromValues(HIST.filter(r => r.src === tk).map(r => r.aircraft)), fmt: x => Math.round(x).toLocaleString(), feeds: ['traffic'], provider: tk === 'adsblol' ? 'adsb.lol' : 'OpenSky Network', source: since ? 'the ' + since + ' of readings' : '', neutral: true },
-    { label: 'Space weather (Kp)', def: 'Geomagnetic activity, 0–9; storm at 5 or more', now: fresh('kp') ? feed('kp').data.kp : NaN, d: { mean: 2, p25: 1, p75: 3, p95: 5, p99: 6, min: 0, max: 9 }, fmt: x => x.toFixed(1), feeds: ['kp'], provider: 'NOAA SWPC', source: 'the NOAA scale (typical 1–3)' },
-  ];
-  el.innerHTML = rows.map(snapRow).join('');
-  $('snapTime').textContent = SNAP.generatedAt ? 'Updated ' + utc(SNAP.generatedAt) + ' (' + localTime(SNAP.generatedAt) + ' your time)' : '';
+    ['The GAPS score (all 3 combined)', TRACK.score1to10 && TRACK.score1to10.aucTest, 'score'],
+    ['Time of day', auc('tod'), 'used'],
+    ['Recent FAA programs', auc('persist'), 'used'],
+    ['Weather forecast at 15 US hubs', auc('usHubStressNext3'), 'used'],
+    ['Upper-air winds (jet stream)', auc('jet'), 'no'],
+    ['Count of hubs with thunderstorms', auc('usStorms'), 'no'],
+    ['Weather at 8 world points', auc('weather'), 'no'],
+  ].filter(r => Number.isFinite(r[1]));
+  const W = v => clamp((v - 0.4) / 0.6 * 100, 0, 100);
+  el.innerHTML = rows.map(([n, v, k]) => `<div class="pr ${k}"><span class="pn">${esc(n)}</span><span class="pb"><i style="width:${W(v)}%"></i><em style="left:${W(0.5)}%"></em></span><span class="pv">${Math.round(v * 100)}%</span><span class="pt">${k === 'score' ? 'the score' : k === 'used' ? 'used' : 'not used: coin flip'}</span></div>`).join('') +
+    `<div class="pr axis"><span></span><span class="pb"><em style="left:${W(0.5)}%"></em><small style="left:${W(0.5)}%">coin flip</small></span><span></span><span></span></div>`;
 }
