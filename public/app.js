@@ -595,15 +595,16 @@ function liveTag(keys, provider) {
   const state = allLive ? `<i class="ld on"></i>live · ${worst < 1 ? 'just now' : Math.round(worst) + ' min ago'}` : ages.some(a => a.age != null) ? '<i class="ld old"></i>out of date' : '<i class="ld off"></i>no data';
   return `<span class="src">${esc(provider)} · ${state}</span>`;
 }
-function snapRow({ label, def, now, d, fmt = x => String(Math.round(x)), unit = '', source, neutral = false, feeds = [], provider = '' }) {
-  const tag = provider ? liveTag(feeds, provider) : '';
-  if (!Number.isFinite(now)) return `<div class="srow"><div class="lbl"><b>${esc(label)}</b><span>${esc(def)}</span>${tag}</div><div class="gauge"><div class="trk"></div></div><div class="num"><b>--</b><span>no live data</span></div></div>`;
-  if (!d) return `<div class="srow"><div class="lbl"><b>${esc(label)}</b><span>${esc(def)}</span>${tag}</div><div class="gauge"><div class="trk"></div></div><div class="num"><b>${fmt(now)}<small>${esc(unit)}</small></b><span>average still being measured</span></div></div>`;
+function snapRow({ label, def, now, d, fmt = x => String(Math.round(x)), unit = '', source, neutral = false, feeds = [], provider = '', weight = null, main = false }) {
+  const tag = provider ? (feeds.length ? liveTag(feeds, provider) : `<span class="src">${esc(provider)}</span>`) : '';
+  const L = `<b>${esc(label)}${weight != null ? ` <em class="wt">${Math.round(weight * 100)}% of score</em>` : ''}</b>`, cls = 'srow' + (main ? ' main' : '');
+  if (!Number.isFinite(now)) return `<div class="${cls}"><div class="lbl">${L}<span>${esc(def)}</span>${tag}</div><div class="gauge"><div class="trk"></div></div><div class="num"><b>--</b><span>no live data</span></div></div>`;
+  if (!d) return `<div class="${cls}"><div class="lbl">${L}<span>${esc(def)}</span>${tag}</div><div class="gauge"><div class="trk"></div></div><div class="num"><b>${fmt(now)}<small>${esc(unit)}</small></b><span>average still being measured</span></div></div>`;
   const lo = Math.min(d.min, now), hi = Math.max(d.p99 > d.p75 ? d.p99 : d.max, now, d.p75 + 1e-9);
   const X = v => clamp((v - lo) / (hi - lo || 1) * 100, 0, 100);
   const pos = now < d.p25 ? ['below usual', '#15803d'] : now <= d.p75 ? ['usual', '#64748b'] : now <= d.p95 ? ['above usual', '#c2410c'] : ['well above usual', '#b91c1c'];
   const color = neutral ? '#1d4ed8' : pos[1];
-  return `<div class="srow${neutral ? '' : ''}"><div class="lbl"><b>${esc(label)}</b><span>${esc(def)}</span>${tag}</div>
+  return `<div class="${cls}"><div class="lbl">${L}<span>${esc(def)}</span>${tag}</div>
     <div class="gauge" role="img" aria-label="${esc(label)}: now ${fmt(now)}, average ${fmt(d.mean)}, usual ${fmt(d.p25)} to ${fmt(d.p75)}, highest ${fmt(d.max)}">
       <div class="trk"></div><div class="band" style="left:${X(d.p25)}%;width:${Math.max(1, X(d.p75) - X(d.p25))}%"></div>
       <div class="avg" style="left:${X(d.mean)}%"></div><div class="now" style="left:${X(now)}%;background:${color}"></div>
@@ -622,16 +623,27 @@ function renderSnapshot() {
   const Q = MODEL && MODEL.scale && MODEL.scale.quantiles, ST = MODEL && MODEL.stats;
   const f = fresh('faa') && feed('faa').data, mt = fresh('metar') && feed('metar').data, sg = fresh('sigmet') && feed('sigmet').data;
   const tk = trafficKey(), ac = tk ? feed(tk).data.airborne : null;
+  const S10 = sc, I = S10 && S10.inputs, W = S10 && S10.weights;
+  const pctOf = (q, x) => { let lo = 0, eq = 0; for (const v of q) { if (v < x) lo++; else if (v === x) eq++; } return (lo + eq / 2) / q.length; };
+  const to10 = (q, x) => Math.min(10, Math.max(1, Math.round(pctOf(q, x) * 10)));
+  const dist10 = q => q ? distFromValues(q.map(v => to10(q, v))) : null;
+  const d = new Date(), hh = String(d.getUTCHours()).padStart(2, '0'), wk = d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday';
+  const f10 = x => String(Math.round(x));
+  const scoreRows = [
+    { label: 'Final score: disruption outlook, next 3 h', def: 'Weighted average of the 3 scores below. 1 = much calmer than usual, 5 = average, 10 = much worse', now: sc ? sc.score : NaN, d: scoreDist, unit: '/10', feeds: ['faaAdvisories', 'usHubWx'], provider: 'GAPS, from the 3 readings below', source: 'Jul–Nov 2026 test weeks', main: true },
+    { label: 'Time of day', weight: W && W.tod, def: I ? `Now ${hh}:00 UTC on a ${wk}. Afternoons and evenings are when FAA programs usually start` : 'How busy this hour usually is for FAA programs', now: I ? I.tod.score : NaN, d: Q && dist10(Q.tod), fmt: f10, unit: '/10', feeds: [], provider: 'Clock, rated with 4 months of FAA records', source: 'Jul–Nov 2026' },
+    { label: 'New FAA programs, last 3 h', weight: W && W.persist, def: F ? `Now ${F.persist} ground stop${F.persist === 1 ? '' : 's'} or delay program${F.persist === 1 ? '' : 's'} just started (typical hour: ${Q ? Q.persist[100] : 1}). Trouble tends to follow trouble` : 'Ground stops and delay programs just started', now: I ? I.persist.score : NaN, d: Q && dist10(Q.persist), fmt: f10, unit: '/10', feeds: ['faaAdvisories'], provider: 'FAA ATCSCC advisories', source: 'Jul–Nov 2026' },
+    { label: 'Weather at 15 US hubs, next 3 h', weight: W && W.usHubStressNext3, def: F ? `Now ${F.usHubStressNext3.toFixed(1)} bad-weather points (typical: ${Q ? Q.usHubStressNext3[100] : ''}): storms, fog, low cloud, gusts` : 'Storms, fog, low cloud and gusts at 15 hubs', now: I ? I.weather.score : NaN, d: Q && dist10(Q.usHubStressNext3), fmt: f10, unit: '/10', feeds: ['usHubWx'], provider: 'Open-Meteo forecast', source: 'Jul–Nov 2026' },
+  ];
   const rows = [
-    { label: 'Disruption outlook, next 3 h', def: 'Score 1–10 (5 = average) from the three items below', now: sc ? sc.score : NaN, d: scoreDist, unit: '/10', feeds: ['faaAdvisories', 'usHubWx'], provider: 'GAPS score from FAA advisories + Open-Meteo forecast', source: 'Jul–Nov 2026 test weeks' },
-    { label: 'New FAA programs, last 3 h', def: 'Ground stops and delay programs just started', now: F ? F.persist : NaN, d: Q && ST ? distFromQuantiles(Q.persist, ST.persist.mean) : null, fmt: x => x < 10 && x % 1 ? x.toFixed(1) : String(Math.round(x)), feeds: ['faaAdvisories'], provider: 'FAA ATCSCC advisories', source: 'Jul–Nov 2026' },
-    { label: 'Weather at US hubs, next 3 h', def: 'Storms, fog, low cloud and gusts at 15 hubs (points)', now: F ? F.usHubStressNext3 : NaN, d: Q && ST ? distFromQuantiles(Q.usHubStressNext3, ST.usHubStressNext3.mean) : null, fmt: x => x.toFixed(1), unit: ' pts', feeds: ['usHubWx'], provider: 'Open-Meteo forecast', source: 'Jul–Nov 2026' },
     { label: 'FAA delays in effect', def: 'Ground stops and delay programs running now', now: f ? f.groundStops.length + f.groundDelays.length : NaN, d: distFromValues(HIST.filter(r => Number.isFinite(r.gs) && Number.isFinite(r.gdp)).map(r => r.gs + r.gdp)), feeds: ['faa'], provider: 'FAA NAS Status', source: since ? 'the ' + since + ' of readings' : '' },
     { label: 'Airports in low cloud or fog', def: 'Of 26 monitored airports, how many report IFR or LIFR', now: mt ? mt.reports.filter(x => x.fltCat === 'IFR' || x.fltCat === 'LIFR').length : NaN, d: distFromValues(HIST.map(r => r.ifr)), feeds: ['metar'], provider: 'METAR reports, AviationWeather.gov', source: since ? 'the ' + since + ' of readings' : '' },
     { label: 'Hazard warnings worldwide', def: 'Active SIGMETs: storms, turbulence, icing, ash', now: sg ? sg.total : NaN, d: distFromValues(HIST.map(r => r.sig)), feeds: ['sigmet'], provider: 'SIGMETs, AviationWeather.gov', source: since ? 'the ' + since + ' of readings' : '' },
     { label: 'Aircraft tracked worldwide', def: tk === 'adsblol' ? 'adsb.lol volunteer receivers; follows the time of day' : 'OpenSky receivers; follows the time of day', now: ac, d: distFromValues(HIST.filter(r => r.src === tk).map(r => r.aircraft)), fmt: x => Math.round(x).toLocaleString(), feeds: ['traffic'], provider: tk === 'adsblol' ? 'adsb.lol' : 'OpenSky Network', source: since ? 'the ' + since + ' of readings' : '', neutral: true },
     { label: 'Space weather (Kp)', def: 'Geomagnetic activity, 0–9; storm at 5 or more', now: fresh('kp') ? feed('kp').data.kp : NaN, d: { mean: 2, p25: 1, p75: 3, p95: 5, p99: 6, min: 0, max: 9 }, fmt: x => x.toFixed(1), feeds: ['kp'], provider: 'NOAA SWPC', source: 'the NOAA scale (typical 1–3)' },
   ];
-  el.innerHTML = rows.map(snapRow).join('');
+  el.innerHTML = '<h3 class="sgrp">The score and the 3 readings it is built from</h3>' + scoreRows.map(snapRow).join('') +
+    (S10 ? `<div class="scalc">${esc(`Final score = ${Math.round(W.tod * 100)}% × ${I.tod.score} + ${Math.round(W.persist * 100)}% × ${I.persist.score} + ${Math.round(W.usHubStressNext3 * 100)}% × ${I.weather.score} = ${S10.final.toFixed(1)} → ${S10.score}`)}</div>` : '') +
+    '<h3 class="sgrp ctx">Other live conditions <span>shown for context only · not used in the score</span></h3>' + rows.map(snapRow).join('');
   $('snapTime').textContent = SNAP.generatedAt ? 'Updated ' + utc(SNAP.generatedAt) + ' (' + localTime(SNAP.generatedAt) + ' your time)' : '';
 }
