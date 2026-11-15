@@ -396,7 +396,28 @@ function hubPointsAt(h, j) { // same scoring as the server's US hub weather
   if (gust >= 40) x += 1.5; else if (gust >= 30) x += 0.7;
   return x;
 }
+function initSearch() {
+  const f = $('apSearch'); if (!f || f.dataset.ready) return;
+  f.dataset.ready = '1';
+  const list = () => (SNAP && SNAP.airports) || [];
+  const fill = () => { const dl = $('apNames'); if (dl && !dl.children.length && list().length) dl.innerHTML = list().map(a => `<option value="${esc(a.iata)} · ${esc(a.name || '')}"></option>`).join(''); };
+  const find = q => {
+    q = q.trim().toLowerCase(); if (!q) return null;
+    const code = q.slice(0, 3).toUpperCase(), L = list();
+    return L.find(a => a.iata === code && (q.length === 3 || q[3] === ' ')) || L.find(a => (a.name || '').toLowerCase().includes(q)) || L.find(a => (a.iata + ' ' + (a.name || '')).toLowerCase().includes(q)) || null;
+  };
+  const go = q => {
+    const a = find(q), m = $('apMsg');
+    if (!a) { m.textContent = q.trim() ? `GAPS doesn't cover "${q.trim()}" yet. It covers: ${list().map(x => x.iata).join(', ')}.` : ''; return; }
+    m.textContent = ''; openAirport(a.iata);
+  };
+  f.addEventListener('submit', e => { e.preventDefault(); go($('apQ').value); });
+  f.addEventListener('click', e => { const b = e.target.closest('[data-ap]'); if (b) { $('apQ').value = b.dataset.ap; go(b.dataset.ap); } });
+  $('apQ').addEventListener('focus', fill);
+  fill();
+}
 function renderAirports() {
+  initSearch();
   const list = ((SNAP && SNAP.airports) || []).map(a => ({ ...a, ...hubStatus(a) }));
   const rank = { high: 3, watch: 2, normal: 1, unknown: 0 };
   const chip = a => `<button type="button" class="ap s-${a.status}" data-ap="${esc(a.iata)}"><b>${esc(a.iata)}</b><span>${esc(a.status === 'high' || a.status === 'watch' ? a.label.slice(a.iata.length + 1) : a.status === 'unknown' ? 'no data' : (a.metar && a.metar.fltCat) ? a.metar.fltCat + ' · normal' : 'normal')}</span><span>${esc(a.name || '')}</span>${airportOutlook(a.iata) && Number.isFinite(airportOutlook(a.iata).score10) ? `<span>Next 3 h: <b class="mono">${airportOutlook(a.iata).score10}/10</b></span>` : ''}</button>`;
