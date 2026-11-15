@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0b2a4a;--text:#334155;--muted:#5b6b7c;--border:#e2e8f0;--panel:#f8fbff}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--text);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.65}
+header{background:var(--navy);color:#fff;padding:22px 16px}header .in,main{max-width:640px;margin:0 auto}header a{color:#93c5fd;text-decoration:none;font-size:13px}
+header h1{margin:6px 0 4px;font-size:26px}header p{margin:0;color:#cbd5e1;font-size:14px}
+main{padding:16px 16px 60px}p,li{font-size:14.5px}a{color:#1d4ed8}
+label{display:block;font-weight:600;color:var(--navy);font-size:14px;margin:18px 0 6px}label span{font-weight:400;color:var(--muted)}
+textarea,input,select{width:100%;font:inherit;font-size:15px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:var(--text)}
+textarea{min-height:160px;resize:vertical}textarea:focus,input:focus,select:focus{outline:2px solid #93c5fd;border-color:#1d4ed8}
+button{margin-top:22px;background:var(--navy);color:#fff;border:0;border-radius:8px;padding:11px 22px;font:inherit;font-weight:600;font-size:15px;cursor:pointer}button:hover{background:#12406f}
+.note{font-size:13px;color:var(--muted);margin-top:16px}.hp{position:absolute;left:-9999px}
+.q{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin:12px 0}.q ul{margin:4px 0;padding-left:20px}
+</style>
+<title>GAPS Feedback</title>
+<meta name="description" content="Tell us what works, what is confusing and what is missing on the GAPS dashboard.">
+</head>
+<body>
+<header><div class="in"><a href="./">← Back to the dashboard</a><h1>Send feedback</h1><p>What works, what is confusing, what is wrong or missing. Every message is read.</p></div></header>
+<main>
+<div class="q">Some things that help most:
+<ul>
+<li>Did you understand the 1–10 score within 10 seconds?</li>
+<li>What did you look for first, and could you find it?</li>
+<li>Does anything look wrong to someone who knows the system?</li>
+</ul></div>
+<form name="feedback" method="POST" action="/feedback-thanks.html" data-netlify="true" netlify-honeypot="bot-field">
+<input type="hidden" name="form-name" value="feedback">
+<p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+<input type="hidden" name="page" id="fromPage" value="">
+<label for="message">Your feedback</label>
+<textarea id="message" name="message" required maxlength="5000"></textarea>
+<label for="role">What best describes you? <span>(optional)</span></label>
+<select id="role" name="role">
+<option value="">Prefer not to say</option>
+<option>Aviation enthusiast</option>
+<option>Aviation professional (pilot, dispatcher, controller, airline or airport)</option>
+<option>Data or software person</option>
+<option>Traveller</option>
+<option>Other</option>
+</select>
+<label for="email">Email <span>(optional, only if you'd like a reply)</span></label>
+<input id="email" name="email" type="email" autocomplete="email">
+<button type="submit">Send feedback</button>
+<p class="note">Your message is stored by our host, Netlify, and read only by the GAPS maintainer. An email address is used only to reply to you and is never shared or added to a mailing list. See <a href="sources.html#privacy">privacy</a>.</p>
+</form>
+<script>try{var r=document.referrer;document.getElementById('fromPage').value=r&&r.indexOf(location.host)>-1?new URL(r).pathname+new URL(r).hash:''}catch(e){}</script>
+</main>
+</body>
+</html>
