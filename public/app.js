@@ -112,7 +112,7 @@ function renderOutlook() {
   if (!S) {
     $('sfi').textContent = '--'; $('level').className = 'pill none'; $('level').textContent = SNAP ? 'Unavailable' : 'Loading';
     $('lede').textContent = SNAP ? 'The score is unavailable right now: it needs live FAA advisories and the US hub forecast. The other panels still show live data.' : (SNAP_ERR ? 'Cannot reach the GAPS data server. Retrying every 2 minutes.' : 'Loading live data…');
-    ['scaleMain', 'inputs10', 'calc', 'trend'].forEach(id => { $(id).innerHTML = ''; });
+    ['scaleMain', 'inputs10', 'calc', 'trend'].forEach(id => { if ($(id)) $(id).innerHTML = ''; });
     renderDelayNow(); return;
   }
   const sc = S.score, W = S.weights, I = S.inputs, L = word10(sc);
@@ -130,8 +130,8 @@ function renderOutlook() {
     ['Recent FAA programs', I.persist.score, W.persist, `${F.persist} new ground stop${F.persist === 1 ? '' : 's'} or delay program${F.persist === 1 ? '' : 's'} in the last ~3 h (average ${I.medians.persist})`],
     ['Weather at US hubs', I.weather.score, W.usHubStressNext3, `${F.usHubStressNext3.toFixed(1)} bad-weather points over the next 3 h at 15 hubs (average ${I.medians.weather})${F.usStorms ? ' · storms at ' + F.stormHubs.join(', ') : ''}`],
   ];
-  $('inputs10').innerHTML = rows.map(([n, s, w, v]) => row10(n, s, Math.round(w * 100) + '%', v)).join('');
-  $('calc').textContent = `Score = ${rows.map(r => r[2].toFixed(2) + ' × ' + r[1]).join(' + ')} = ${S.final.toFixed(1)} → ${sc}`;
+  if ($('inputs10')) $('inputs10').innerHTML = rows.map(([n, s, w, v]) => row10(n, s, Math.round(w * 100) + '%', v)).join('');
+  $('calc').textContent = `Score = ${rows.map(r => Math.round(r[2] * 100) + '% × ' + r[1]).join(' + ')} = ${S.final.toFixed(1)} → ${sc}`;
   const hist = HIST.filter(r => Number.isFinite(r.score10));
   const ago = hist.slice().reverse().find(r => Date.now() - Date.parse(r.t) >= 50 * 60000);
   $('trend').textContent = ago ? (sc > ago.score10 ? '↑ up from ' : sc < ago.score10 ? '↓ down from ' : '→ same as ') + ago.score10 + ' an hour ago' : '';
@@ -630,7 +630,6 @@ function renderSnapshot() {
   const d = new Date(), hh = String(d.getUTCHours()).padStart(2, '0'), wk = d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday';
   const f10 = x => String(Math.round(x));
   const scoreRows = [
-    { label: 'Final score: disruption outlook, next 3 h', def: 'Weighted average of the 3 scores below. 1 = much calmer than usual, 5 = average, 10 = much worse', now: sc ? sc.score : NaN, d: scoreDist, unit: '/10', feeds: ['faaAdvisories', 'usHubWx'], provider: 'GAPS, from the 3 readings below', source: 'Jul–Nov 2026 test weeks', main: true },
     { label: 'Time of day', weight: W && W.tod, def: I ? `Now ${hh}:00 UTC on a ${wk}. Afternoons and evenings are when FAA programs usually start` : 'How busy this hour usually is for FAA programs', now: I ? I.tod.score : NaN, d: Q && dist10(Q.tod), fmt: f10, unit: '/10', feeds: [], provider: 'Clock, rated with 4 months of FAA records', source: 'Jul–Nov 2026' },
     { label: 'New FAA programs, last 3 h', weight: W && W.persist, def: F ? `Now ${F.persist} ground stop${F.persist === 1 ? '' : 's'} or delay program${F.persist === 1 ? '' : 's'} just started (typical hour: ${Q ? Q.persist[100] : 1}). Trouble tends to follow trouble` : 'Ground stops and delay programs just started', now: I ? I.persist.score : NaN, d: Q && dist10(Q.persist), fmt: f10, unit: '/10', feeds: ['faaAdvisories'], provider: 'FAA ATCSCC advisories', source: 'Jul–Nov 2026' },
     { label: 'Weather at 15 US hubs, next 3 h', weight: W && W.usHubStressNext3, def: F ? `Now ${F.usHubStressNext3.toFixed(1)} bad-weather points (typical: ${Q ? Q.usHubStressNext3[100] : ''}): storms, fog, low cloud, gusts` : 'Storms, fog, low cloud and gusts at 15 hubs', now: I ? I.weather.score : NaN, d: Q && dist10(Q.usHubStressNext3), fmt: f10, unit: '/10', feeds: ['usHubWx'], provider: 'Open-Meteo forecast', source: 'Jul–Nov 2026' },
@@ -642,8 +641,7 @@ function renderSnapshot() {
     { label: 'Aircraft tracked worldwide', def: tk === 'adsblol' ? 'adsb.lol volunteer receivers; follows the time of day' : 'OpenSky receivers; follows the time of day', now: ac, d: distFromValues(HIST.filter(r => r.src === tk).map(r => r.aircraft)), fmt: x => Math.round(x).toLocaleString(), feeds: ['traffic'], provider: tk === 'adsblol' ? 'adsb.lol' : 'OpenSky Network', source: since ? 'the ' + since + ' of readings' : '', neutral: true },
     { label: 'Space weather (Kp)', def: 'Geomagnetic activity, 0–9; storm at 5 or more', now: fresh('kp') ? feed('kp').data.kp : NaN, d: { mean: 2, p25: 1, p75: 3, p95: 5, p99: 6, min: 0, max: 9 }, fmt: x => x.toFixed(1), feeds: ['kp'], provider: 'NOAA SWPC', source: 'the NOAA scale (typical 1–3)' },
   ];
-  el.innerHTML = '<h3 class="sgrp">The score and the 3 readings it is built from</h3>' + scoreRows.map(snapRow).join('') +
-    (S10 ? `<div class="scalc">${esc(`Final score = ${Math.round(W.tod * 100)}% × ${I.tod.score} + ${Math.round(W.persist * 100)}% × ${I.persist.score} + ${Math.round(W.usHubStressNext3 * 100)}% × ${I.weather.score} = ${S10.final.toFixed(1)} → ${S10.score}`)}</div>` : '') +
-    '<h3 class="sgrp ctx">Other live conditions <span>shown for context only · not used in the score</span></h3>' + rows.map(snapRow).join('');
+  el.innerHTML = scoreRows.map(snapRow).join('');
+  const cx = $('ctxRows'); if (cx) cx.innerHTML = rows.map(snapRow).join('');
   $('snapTime').textContent = SNAP.generatedAt ? 'Updated ' + utc(SNAP.generatedAt) + ' (' + localTime(SNAP.generatedAt) + ' your time)' : '';
 }

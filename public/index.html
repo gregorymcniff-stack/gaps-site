@@ -42,31 +42,30 @@
 
 <main class="wrap" id="main">
 
-  <section class="card snapshot" aria-labelledby="snapTitle">
-    <div class="cardhead"><h2 id="snapTitle">Global snapshot · where we stand now</h2><span class="sub" id="snapTime"></span></div>
-    <div class="snap-key" aria-hidden="true"><span><i class="k-band"></i>usual range</span><span><i class="k-avg"></i>average</span><span><i class="k-now"></i>now</span><span>bar runs from the lowest to the highest reading on record</span></div>
+  <section class="card outlook snapshot" id="outlookCard" aria-labelledby="outlookTitle">
+    <div class="cardhead"><h2 id="outlookTitle">Disruption outlook · next 3 hours · 1 to 10, where 5 is average</h2><span class="sub" id="snapTime"></span></div>
+    <div class="score-head">
+      <div class="big" aria-live="polite"><span id="sfi">--</span><small>/10</small></div>
+      <div><span class="pill none" id="level">Loading</span><p class="lede" id="lede">Loading live data…</p><div class="trendtxt" id="trend"></div></div>
+    </div>
+    <div class="s10 s10-big" id="scaleMain" aria-hidden="true"></div>
+    <h3 class="sgrp">Built from these 3 readings, and nothing else</h3>
+    <div class="snap-key" aria-hidden="true"><span><i class="k-band"></i>usual range</span><span><i class="k-avg"></i>average</span><span><i class="k-now"></i>now</span></div>
     <div id="snapRows"><span class="sub">Loading live data…</span></div>
+    <div class="scalc" id="calc"></div>
+    <div class="spark-label">Score over the last 24 hours</div>
+    <div class="spark"></div>
+    <div class="foot"><span id="meaningLine"><b>What the score means:</b> loading…</span><a href="method.html#score">How it was built and tested →</a></div>
   </section>
 
 
-  <section class="hero">
-    <article class="card outlook" id="outlookCard" aria-labelledby="outlookTitle">
-      <h2 id="outlookTitle">Sky Friction Index · next 3 hours · 1 to 10, where 5 is average</h2>
-      <div class="score-head">
-        <div class="big" aria-live="polite"><span id="sfi">--</span><small>/10</small></div>
-        <div><span class="pill none" id="level">Loading</span><p class="lede" id="lede">Loading live data…</p><div class="trendtxt" id="trend"></div></div>
-      </div>
-      <div class="s10 s10-big" id="scaleMain" aria-hidden="true"></div>
-      <h3 class="mini">The three inputs <span class="sub">· each 1–10, 5 = average</span></h3>
-      <div class="rows10" id="inputs10"></div>
-      <div class="calc" id="calc"></div>
-      <h3 class="mini">Delays right now <span class="sub">· 1–10, 5 = average · shown for context, not part of the score above</span></h3>
-      <div class="rows10" id="delayNow"></div>
-      <div class="spark-label">Score over the last 24 hours</div>
-      <div class="spark"></div>
-      <div class="foot"><span id="meaningLine"><b>What the score means:</b> loading…</span><a href="method.html#score">How it was built and tested →</a></div>
-    </article>
+  <section class="card apo" aria-labelledby="apoTitle">
+    <div class="cardhead"><h2 id="apoTitle">Airport outlooks · next 3 hours</h2><a class="sub" href="method.html#airports">How they were tested →</a></div>
+    <p class="sub" style="margin:2px 0 10px">How likely the FAA is to start a <b>new</b> ground stop or delay program at each major US hub in the next 3 hours, from 1 to 10, where <b>5 is average for that airport</b>. Select an airport for details.</p>
+    <div class="apo-grid" id="apoList"><span class="sub">Loading…</span></div>
+  </section>
 
+  <section class="hero">
     <article class="card faa" aria-labelledby="faaTitle">
       <h2 id="faaTitle">FAA programs</h2>
       <p class="def" style="margin-top:4px;border:0;padding:0"><b>Ground stop:</b> flights to an airport are held at their departure airports. <b>Ground delay program:</b> departures to an airport are deliberately delayed to space out arrivals.</p>
@@ -77,12 +76,12 @@
       <ul id="faaRecent"></ul>
       <div class="src" id="faaSrc">Source: FAA NAS Status and ATCSCC advisories</div>
     </article>
-  </section>
 
-  <section class="card apo" aria-labelledby="apoTitle">
-    <div class="cardhead"><h2 id="apoTitle">Airport outlooks · next 3 hours</h2><a class="sub" href="method.html#airports">How they were tested →</a></div>
-    <p class="sub" style="margin:2px 0 10px">How likely the FAA is to start a <b>new</b> ground stop or delay program at each major US hub in the next 3 hours, from 1 to 10, where <b>5 is average for that airport</b>. Select an airport for details.</p>
-    <div class="apo-grid" id="apoList"><span class="sub">Loading…</span></div>
+    <article class="card snapshot ctxcard" aria-labelledby="ctxTitle">
+      <h2 id="ctxTitle">Other live conditions</h2>
+      <p class="sub" style="margin:2px 0 8px">Shown for context only. <b>Not used in the score.</b></p>
+      <div id="ctxRows"><span class="sub">Loading live data…</span></div>
+    </article>
   </section>
 
   <section class="card mapcard" aria-labelledby="mapTitle">
