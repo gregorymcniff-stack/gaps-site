@@ -115,31 +115,6 @@
     <div class="mapfoot" id="mapFoot">Hover over an airport for its latest weather report and FAA status.</div>
   </section>
 
-  <section class="card airports" aria-labelledby="apTitle">
-    <div class="cardhead"><h2 id="apTitle">Airports</h2><span class="sub">Select an airport for its status, weather, 12-hour forecast and today's FAA programs</span></div>
-    <h3 class="apgroup">United States</h3><div class="apgrid" id="apUS"></div>
-    <h3 class="apgroup">International</h3><div class="apgrid" id="apIntl"></div>
-  </section>
-
-  <section class="tiles" aria-label="Index inputs">
-    <article class="card tile" id="tHub"><div class="cardhead"><h2>US hub weather</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d">Worst of the next 3 hours at 15 major hubs</div><div class="typ"></div><div class="spark"></div><p class="def"><b>What it means:</b> bad-weather points added up across 15 major US hubs for the worst of the next 3 hours: thunderstorm 3, very low visibility 2, low visibility 1, strong gusts 0.7–1.5, rain 0.7, overcast low cloud 0.6. Forecast from Open-Meteo.</p></article>
-    <article class="card tile" id="tRecent"><div class="cardhead"><h2>New FAA programs</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d">Started in the current and previous two hours</div><div class="typ"></div><div class="spark"></div><p class="def"><b>What it means:</b> new ground stops (flights to an airport held at their origin) and ground delay programs (departures to an airport deliberately delayed) issued by the FAA Command Center in roughly the last 3 hours.</p></article>
-    <article class="card tile" id="tMeaning"><h2>What each score means</h2><div class="d">How often a rough stretch followed each score in the test weeks</div><div class="mtab" id="meaningTable"></div></article>
-    <article class="card tile" id="tTrack"><h2>Track record</h2><div class="v">--</div><div class="d">Held-out test score (0.5 = coin flip)</div><div class="tr"></div><p class="def"><b>What it means:</b> on weeks the model never saw, how often an hour followed by a bad stretch was ranked above a calm hour. 1.00 would be perfect; 0.50 is guessing.</p></article>
-  </section>
-
-  <section class="context" aria-labelledby="ctxTitle">
-    <h2 class="section" id="ctxTitle">Network context <span class="sub" style="text-transform:none;letter-spacing:0">· shown for awareness; not part of the index</span></h2>
-    <div class="ctx">
-      <article class="card" id="cAir"><div class="cardhead"><h2>Aircraft</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="list"></div><div class="typ"></div><p class="def"><b>What it means:</b> aircraft currently broadcasting their position (ADS-B) to volunteer receivers worldwide. Counts follow the time of day and receiver coverage, so this is context, not a measure of congestion.</p></article>
-      <article class="card" id="cWx"><div class="cardhead"><h2>Airport weather</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="list"></div><div class="typ"></div><p class="def"><b>What it means:</b> of 23 major airports worldwide, how many report thunderstorms or instrument conditions in their latest METAR. IFR: cloud base below 1,000 ft or visibility under 3 miles; LIFR: below 500 ft or under 1 mile. Both slow arrivals.</p></article>
-      <article class="card" id="cSig"><div class="cardhead"><h2>Hazard advisories</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="list"></div><div class="typ"></div><p class="def"><b>What it means:</b> SIGMETs are official warnings to aircraft of severe hazards: thunderstorms, severe turbulence, severe icing, volcanic ash. The worldwide count rises and falls with the tropics' daily storms.</p></article>
-      <article class="card" id="cSqk"><div class="cardhead"><h2>Emergency codes</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="list"></div><div class="typ"></div><p class="def"><b>What it means:</b> transponder codes 7700 (general emergency), 7600 (radio failure) and 7500 (unlawful interference). Most 7700s are precautionary, such as a medical diversion; a code alone is not a confirmed incident.</p></article>
-      <article class="card" id="cKp"><div class="cardhead"><h2>Space weather</h2><span class="pill none st">--</span></div><div class="v">--</div><div class="d"></div><div class="typ"></div><p class="def"><b>What it means:</b> NOAA's Kp index (0–9) of geomagnetic disturbance. Below 4 quiet · 4 active · 5 or more is a geomagnetic storm (NOAA G1–G5), which can disrupt HF radio on polar and oceanic routes.</p></article>
-      <article class="card" id="cEu"><div class="cardhead"><h2>Europe</h2><span class="pill none st">Off</span></div><div class="v">Not connected</div><div class="d">EUROCONTROL flow data needs an approved B2B account; there is no free public feed, so no European delay data is shown.</div></article>
-    </div>
-  </section>
-
   <details class="card howread"><summary>How GAPS works, in three steps</summary>
   <div class="explain" aria-labelledby="explainTitle">
     <h2 id="explainTitle" class="sr-only">What GAPS tells you</h2>
