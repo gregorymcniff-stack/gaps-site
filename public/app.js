@@ -658,8 +658,10 @@ function renderSnapshot() {
     ['Upper-air winds (jet stream)', auc('jet'), 'no'],
     ['Count of hubs with thunderstorms', auc('usStorms'), 'no'],
     ['Weather at 8 world points', auc('weather'), 'no'],
+    ['FAA "proposed" delay programs', auc('proposed3'), 'dup'],
+    ['FAA airport delay advisories', auc('delayAdv3'), 'dup'],
   ].filter(r => Number.isFinite(r[1]));
   const W = v => clamp((v - 0.4) / 0.6 * 100, 0, 100);
-  el.innerHTML = rows.map(([n, v, k]) => `<div class="pr ${k}"><span class="pn">${esc(n)}</span><span class="pb"><i style="width:${W(v)}%"></i><em style="left:${W(0.5)}%"></em></span><span class="pv">${Math.round(v * 100)}%</span><span class="pt">${k === 'score' ? 'the score' : k === 'used' ? 'used' : 'not used: coin flip'}</span></div>`).join('') +
+  el.innerHTML = rows.map(([n, v, k]) => `<div class="pr ${k}"><span class="pn">${esc(n)}</span><span class="pb"><i style="width:${W(v)}%"></i><em style="left:${W(0.5)}%"></em></span><span class="pv">${Math.round(v * 100)}%</span><span class="pt">${k === 'score' ? 'the score' : k === 'used' ? 'used' : k === 'dup' ? 'not used: no extra warning' : 'not used: coin flip'}</span></div>`).join('') +
     `<div class="pr axis"><span></span><span class="pb"><em style="left:${W(0.5)}%"></em><small style="left:${W(0.5)}%">coin flip</small></span><span></span><span></span></div>`;
 }

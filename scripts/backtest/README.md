@@ -24,3 +24,16 @@ node analyze-airports.mjs faa-adv.json wx.json ../../public/data   # writes airp
 Target: a new ground stop or ground delay program at the airport in the next
 3 hours. One pooled model for 15 US hubs; same train/test split and 30-day
 re-centring as the national index.
+
+## Leading-signal test (Nov 2026)
+
+```
+node test-leading-signals.mjs faa-adv.json wx.json leading.json
+```
+
+Tests whether FAA "proposed ground delay program" advisories and airport
+delay advisories add warning on top of the current model. Result: proposals
+are followed by the real program 592 times out of 595, but a median of only
+13 minutes later. Added to the model they change the held-out AUC by +0.002
+(95% range −0.001 to +0.004), so they are not used. `faa-adv.json` can be
+rebuilt from `public/data/faa-advisories.csv`.
