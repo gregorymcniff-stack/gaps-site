@@ -472,7 +472,7 @@ function openAirport(iata, focus = true) {
     const h = hw.hourly[iata], start = Math.floor(Date.now() / 3600000) * 3600000;
     const rows = hw.times.map((t, j) => [t, j]).filter(([t]) => Date.parse(t + ':00Z') >= start).slice(0, 4)
       .map(([t, j]) => `<tr><td class="mono">${utc(t + ':00Z')}</td><td>${WMO(h.weather_code[j] || 0)}</td><td>${Math.round(h.wind_gusts_10m[j] || 0)} mph</td><td>${h.visibility[j] != null ? (h.visibility[j] / 1609).toFixed(1) + ' mi' : '?'}</td><td class="mono">${hubPointsAt(h, j).toFixed(1)}</td></tr>`).join('');
-    html += `<div class="dr-sec"><h3>Index input · hub weather forecast (Open-Meteo)</h3><table class="hubhrs"><tr><th>Hour</th><th>Weather</th><th>Gusts</th><th>Visibility</th><th>Points</th></tr>${rows}</table><p class="sub">Points feed the Sky Friction Index (see "US hub weather").</p></div>`;
+    html += `<div class="dr-sec"><h3>Index input · hub weather forecast (Open-Meteo)</h3><table class="hubhrs"><tr><th>Hour</th><th>Weather</th><th>Gusts</th><th>Visibility</th><th>Points</th></tr>${rows}</table><p class="sub">Points feed the weather input of the GAPS score.</p></div>`;
   }
   const adv = feed('faaAdvisories') && feed('faaAdvisories').data;
   if (a.region === 'US') {
