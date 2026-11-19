@@ -343,3 +343,5 @@ footer a{color:#e2e8f0}
 .ask-try button:hover{border-color:var(--navy,#0b2a4a)}
 .ask-msg{font-size:13px;color:#b45309;margin-top:6px}.ask-msg:empty{display:none}
 @media (max-width:640px){.card .ask-q,.ask-q{font-size:23px}}
+.pr.dup .pb i{background:#cbd5e1}.pr.dup .pn,.pr.dup .pv{color:var(--muted)}
+.pr .pt{line-height:1.3}

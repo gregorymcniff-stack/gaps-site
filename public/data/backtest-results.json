@@ -401,6 +401,46 @@
      }
     ]
    }
+  },
+  "proposed3": {
+   "label": "FAA proposed ground delay programs in the last 3 h",
+   "y3big": {
+    "aucTest": 0.648
+   },
+   "y3": {
+    "aucTest": 0.638
+   },
+   "addedToModel": {
+    "y3big": {
+     "aucTest": 0.836,
+     "gainVsCurrent": {
+      "median": 0.002,
+      "lo95": -0.001,
+      "hi95": 0.004
+     }
+    }
+   },
+   "usedInScore": false
+  },
+  "delayAdv3": {
+   "label": "FAA airport delay advisories in the last 3 h",
+   "y3big": {
+    "aucTest": 0.596
+   },
+   "y3": {
+    "aucTest": 0.597
+   },
+   "addedToModel": {
+    "y3big": {
+     "aucTest": 0.836,
+     "gainVsCurrent": {
+      "median": 0.001,
+      "lo95": -0.002,
+      "hi95": 0.005
+     }
+    }
+   },
+   "usedInScore": false
   }
  },
  "daily": [
@@ -1179,5 +1219,16 @@
    "persist": 0.35,
    "usHubStressNext3": 0.15
   }
+ },
+ "leadingSignals": {
+  "testedAt": "2026-11-17",
+  "proposals": {
+   "total": 595,
+   "followedWithin6h": 592,
+   "medianLeadMin": 13,
+   "p25": 9,
+   "p75": 19
+  },
+  "note": "Proposed GDPs are almost always followed by the real program, but only about 13 minutes later, so they add no useful warning to a 3-hour outlook."
  }
 }

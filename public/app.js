@@ -192,6 +192,7 @@ function setTile(id, value, desc, live) {
   return el;
 }
 function renderTiles() {
+  if (!$('tHub')) return;
   const O = outlookNow(), F = O && O.features;
   const S = MODEL && MODEL.stats, SC = O && SNAP.scores.scale;
   const tHub = setTile('tHub', SC ? SC.inputs.weather.score + '<small>/10 · ' + F.usHubStressNext3.toFixed(1) + ' pts</small>' : '--',
@@ -217,6 +218,7 @@ function renderTiles() {
 // ---------------------------------------------------------------- context
 function ctx(id, v, d, list) { const el = $(id); el.querySelector('.v').innerHTML = v; el.querySelector('.d').textContent = d; const l = el.querySelector('.list'); if (l) l.innerHTML = list || ''; }
 function renderContext() {
+  if (!$('cAir')) return;
   const tk = trafficKey();
   if (tk) {
     const a = feed(tk).data, regions = Object.entries(a.regions || {}).filter(([k]) => k !== 'Other').sort((x, y) => y[1] - x[1]).slice(0, 3);
@@ -422,6 +424,7 @@ function renderAirports() {
   const rank = { high: 3, watch: 2, normal: 1, unknown: 0 };
   const chip = a => `<button type="button" class="ap s-${a.status}" data-ap="${esc(a.iata)}"><b>${esc(a.iata)}</b><span>${esc(a.status === 'high' || a.status === 'watch' ? a.label.slice(a.iata.length + 1) : a.status === 'unknown' ? 'no data' : (a.metar && a.metar.fltCat) ? a.metar.fltCat + ' · normal' : 'normal')}</span><span>${esc(a.name || '')}</span>${airportOutlook(a.iata) && Number.isFinite(airportOutlook(a.iata).score10) ? `<span>Next 3 h: <b class="mono">${airportOutlook(a.iata).score10}/10</b></span>` : ''}</button>`;
   const sorted = list.slice().sort((x, y) => rank[y.status] - rank[x.status] || x.iata.localeCompare(y.iata));
+  if (!$('apUS')) { if (OPEN_AP) openAirport(OPEN_AP, false); return; }
   $('apUS').innerHTML = sorted.filter(a => a.region === 'US').map(chip).join('') || '<span class="sub">Loading…</span>';
   $('apIntl').innerHTML = sorted.filter(a => a.region !== 'US').map(chip).join('');
   if (OPEN_AP) openAirport(OPEN_AP, false);
@@ -655,8 +658,10 @@ function renderSnapshot() {
     ['Upper-air winds (jet stream)', auc('jet'), 'no'],
     ['Count of hubs with thunderstorms', auc('usStorms'), 'no'],
     ['Weather at 8 world points', auc('weather'), 'no'],
+    ['FAA "proposed" delay programs', auc('proposed3'), 'dup'],
+    ['FAA airport delay advisories', auc('delayAdv3'), 'dup'],
   ].filter(r => Number.isFinite(r[1]));
   const W = v => clamp((v - 0.4) / 0.6 * 100, 0, 100);
-  el.innerHTML = rows.map(([n, v, k]) => `<div class="pr ${k}"><span class="pn">${esc(n)}</span><span class="pb"><i style="width:${W(v)}%"></i><em style="left:${W(0.5)}%"></em></span><span class="pv">${Math.round(v * 100)}%</span><span class="pt">${k === 'score' ? 'the score' : k === 'used' ? 'used' : 'not used: coin flip'}</span></div>`).join('') +
+  el.innerHTML = rows.map(([n, v, k]) => `<div class="pr ${k}"><span class="pn">${esc(n)}</span><span class="pb"><i style="width:${W(v)}%"></i><em style="left:${W(0.5)}%"></em></span><span class="pv">${Math.round(v * 100)}%</span><span class="pt">${k === 'score' ? 'the score' : k === 'used' ? 'used' : k === 'dup' ? 'not used: no extra warning' : 'not used: coin flip'}</span></div>`).join('') +
     `<div class="pr axis"><span></span><span class="pb"><em style="left:${W(0.5)}%"></em><small style="left:${W(0.5)}%">coin flip</small></span><span></span><span></span></div>`;
 }
