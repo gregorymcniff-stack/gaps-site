@@ -12,7 +12,8 @@ const HUBS = ['JFK', 'LGA', 'EWR', 'BOS', 'ORD', 'ATL', 'DFW', 'DEN', 'LAX', 'SF
 const NEW_PROGRAM = /GROUND STOP|GROUND DELAY PROGRAM/, NOT_NEW = /CNX|CANCEL|PROPOSED|REVIS|EXTEN|COMPRESS|UPDATE|AMEND|MODIF/;
 const isUS = fac => { const ap = fac.split('/')[0].trim(); return /^[A-Z0-9]{3}$/.test(ap) || /^K[A-Z]{3}$/.test(ap); };
 const days = Object.keys(faa).sort();
-const t0 = Date.parse(days[0] + 'T00:00:00Z'), H = days.length * 24;
+const t0 = Date.parse(days[0] + 'T00:00:00Z'), H = Math.round((Date.parse(days[days.length - 1] + 'T00:00:00Z') - t0) / 3600000) + 24;
+const haveDay = new Set(days);
 const hourIndex = ts => Math.floor((ts - t0) / 3600000);
 const events = new Array(H).fill(0), evAp = {};
 for (const rows of Object.values(faa)) for (const r of rows) {
@@ -51,6 +52,8 @@ function metarFeatures(h) {
 const rows = [];
 for (let h = 3; h < H - 4; h++) {
   const t = new Date(t0 + h * 3600000);
+  // skip hours whose window touches a day not downloaded (would look like zero programs)
+  if (![-3, 0, 4].every(o => haveDay.has(new Date(t0 + (h + o) * 3600000).toISOString().slice(0, 10)))) continue;
   const week = Math.floor((h / 24 + 4) / 7); // calendar-ish week index
   rows.push({ h, t: t.toISOString(), hour: t.getUTCHours(), dow: t.getUTCDay(), month: t.getUTCMonth(), week,
     y3big: ahead(h, 3) >= 3 ? 1 : 0, y3: ahead(h, 3) > 0 ? 1 : 0,
