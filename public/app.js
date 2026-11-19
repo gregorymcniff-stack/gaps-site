@@ -37,12 +37,12 @@ function compareToHistory(el, key, now, fmt = x => x) {
 }
 
 // ---------------------------------------------------------------- freshness
-const MAX_AGE = { taf: 120, hubTraffic: 30, faaAdvisories: 30, usHubWx: 90, faa: 25, opensky: 25, adsblol: 25, metar: 90, sigmet: 60, openmeteo: 90, kp: 240, emergencies: 30 };
+const MAX_AGE = { taf: 120, hubTraffic: 30, faaAdvisories: 30, usHubWx: 90, faa: 25, opensky: 25, adsblol: 25, adsbfi: 25, metar: 90, sigmet: 60, openmeteo: 90, kp: 240, emergencies: 30 };
 const LABEL = { faaAdvisories: 'FAA advisories', usHubWx: 'Hub forecast', faa: 'FAA status', traffic: 'Aircraft', metar: 'METARs', sigmet: 'SIGMETs', kp: 'Space weather' };
 const feed = k => (SNAP && SNAP.feeds && SNAP.feeds[k]) || null;
 const ageMin = k => { const f = feed(k); return f && f.data && f.fetchedAt ? (Date.now() - Date.parse(f.fetchedAt)) / 60000 : Infinity; };
 const fresh = k => ageMin(k) <= (MAX_AGE[k] || 30);
-const trafficKey = () => fresh('opensky') ? 'opensky' : fresh('adsblol') ? 'adsblol' : null;
+const trafficKey = () => fresh('opensky') ? 'opensky' : fresh('adsblol') ? 'adsblol' : fresh('adsbfi') ? 'adsbfi' : null;
 const asOf = k => { const f = feed(k); if (!f || !f.data) return 'no data'; return (fresh(k) ? 'as of ' : 'out of date · last ') + utc(f.fetchedAt); };
 
 // ---------------------------------------------------------------- header and status line
@@ -54,7 +54,7 @@ function renderHeader() {
   $('liveText').textContent = !SNAP ? (SNAP_ERR ? 'DATA SERVER UNREACHABLE' : 'CONNECTING') : idx && core === 3 ? 'LIVE DATA' : idx || core ? 'PARTIAL DATA' : 'NO LIVE DATA';
   const tk = trafficKey();
   $('acCount').textContent = tk ? feed(tk).data.airborne.toLocaleString() : '--';
-  $('acLabel').textContent = 'Aircraft tracked' + (tk ? (tk === 'adsblol' ? ' · adsb.lol' : ' · OpenSky') : '');
+  $('acLabel').textContent = tk === 'adsbfi' ? 'Aircraft over the US · adsb.fi backup' : 'Aircraft tracked' + (tk ? (tk === 'adsblol' ? ' · adsb.lol' : ' · OpenSky') : '');
   const keys = ['faaAdvisories', 'usHubWx', 'faa', 'traffic', 'metar', 'sigmet', 'kp'];
   const html = keys.map(k => {
     const kk = k === 'traffic' ? (trafficKey() || 'adsblol') : k;
@@ -333,7 +333,7 @@ function drawMap() {
   });
   if (!SNAP) { ctx.font = "600 13px 'IBM Plex Sans',sans-serif"; ctx.fillStyle = '#5b6b7c'; ctx.fillText(SNAP_ERR ? 'Live data unavailable' : 'Loading live data…', 16, 24); }
   const parts = [];
-  if (tk) parts.push('Aircraft: ' + (tk === 'adsblol' ? 'positions of the 8 most common airliner types (adsb.lol)' : 'all aircraft seen by OpenSky') + ', ' + asOf(tk));
+  if (tk) parts.push('Aircraft: ' + (tk === 'adsblol' ? 'positions of the 8 most common airliner types (adsb.lol)' : tk === 'adsbfi' ? 'all aircraft over the continental US (adsb.fi backup; adsb.lol is down)' : 'all aircraft seen by OpenSky') + ', ' + asOf(tk));
   if (fresh('sigmet')) parts.push('SIGMETs ' + asOf('sigmet'));
   $('mapFoot').textContent = (parts.join(' · ') || 'Live map data unavailable.') + ' · Hover for a summary; click an airport for full details.';
 }
