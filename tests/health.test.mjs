@@ -33,3 +33,13 @@ test('carried-over data counts by its original age', () => {
 test('previews skip the collector check', () => {
   assert.equal(evaluateHealth({ snapshot: snap(), heartbeat: null, requireCollector: false, now: NOW }).ok, true);
 });
+
+test('the adsb.fi backup keeps the aircraft check green when the main sources are down', async () => {
+  const { evaluateHealth } = await import('../netlify/lib/health.mjs');
+  const now = Date.parse('2026-11-19T20:00:00Z'), at = new Date(now - 5 * 60000).toISOString();
+  const feedOk = { ok: true, fetchedAt: at, data: { airborne: 4000 } }, down = { ok: false, fetchedAt: at, data: null };
+  const snapshot = { generatedAt: at, feeds: { opensky: down, adsblol: down, adsbfi: feedOk } };
+  const h = evaluateHealth({ snapshot, heartbeat: null, requireCollector: false, now });
+  assert.equal(h.checks.aircraft.ok, true);
+  assert.equal(h.checks.aircraft.source, 'adsbfi');
+});

@@ -350,6 +350,31 @@ async function fetchAdsbLol() {
   } };
 }
 
+// Backup aircraft count from adsb.fi, used only when adsb.lol and OpenSky both
+// fail. adsb.fi answers area queries (up to 250 NM) and asks for at most one
+// request per second, so this counts aircraft over the continental US with 9
+// overlapping circles, one request at a time. It is not a worldwide count.
+const US_CIRCLES = [[47.5, -121], [38, -121], [34, -113], [41, -106], [32, -98], [42, -96], [41, -86], [33, -86], [41, -76], [34, -79], [28, -82], [44, -70]];
+export async function fetchAdsbFi(deadline = Date.now() + 20000) {
+  const seen = new Map();
+  let answered = 0;
+  for (const [i, [la, lo]] of US_CIRCLES.entries()) {
+    if (i) await new Promise(r => setTimeout(r, 1100));
+    if (Date.now() > deadline) break; // stay inside the scheduled job's 30-second limit
+    try {
+      const j = await (await get(`https://opendata.adsb.fi/api/v3/lat/${la}/lon/${lo}/dist/250`, { timeout: 5000 })).json();
+      answered++;
+      for (const a of j.ac || []) if (a.hex && a.lat != null && a.lon != null) seen.set(a.hex, a);
+    } catch { /* one circle missing only lowers the count; reported below */ }
+  }
+  if (answered < US_CIRCLES.length - 2) throw new Error(`only ${answered} of ${US_CIRCLES.length} areas answered`);
+  const states = [...seen.values()].map(a => { const altM = typeof a.alt_baro === 'number' ? a.alt_baro * 0.3048 : null;
+    return [a.hex, a.flight || '', null, 0, 0, a.lon, a.lat, altM, a.alt_baro === 'ground', a.gs != null ? a.gs * 0.5144 : null, a.track ?? null, a.baro_rate != null ? a.baro_rate * 0.00508 : null, null, altM, a.squawk || '']; });
+  const s = summarizeStates(states);
+  return { data: { source: 'adsb.fi', coverage: 'continental US', airborne: s.airborne, total: states.length, areas: US_CIRCLES.length, areasAnswered: answered,
+    cruise: s.cruise, regions: null, density: s.density, densityCellDeg: s.densityCellDeg, squawks: [] } };
+}
+
 // ---------------------------------------------------------------- Disruption outlook inputs
 // The same 15 US hubs and the same weather variables as the backtest
 // (scripts/backtest), so the live outlook uses exactly what was tested.
@@ -490,17 +515,21 @@ async function fetchEmergencies() {
 // scheduled job, which can run for up to 30 seconds.
 // Bump when the snapshot format changes, so stored snapshots from older code
 // are rebuilt instead of served.
-export const SNAPSHOT_VERSION = 13;
+export const SNAPSHOT_VERSION = 14;
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
   const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories, taf] = await Promise.all([
     feed('opensky', () => fetchOpenSky(openskyTimeout)), feed('adsblol', fetchAdsbLol), feed('faa', fetchFaa), feed('metar', fetchMetar), feed('sigmet', fetchSigmets),
     feed('openmeteo', fetchOpenMeteo), feed('kp', fetchKp), feed('hubTraffic', fetchHubTraffic), feed('emergencies', fetchEmergencies), feed('usHubWx', fetchUsHubWeather), feed('faaAdvisories', fetchFaaAdvisories), feed('taf', fetchTaf),
   ]);
+  // Backup aircraft source only when both main sources failed, and only in the
+  // scheduled job (it takes ~15 s, too long to keep a visitor waiting).
+  const adsbfi = !opensky.ok && !adsblol.ok && openskyTimeout > 5000 ? await feed('adsbfi', () => fetchAdsbFi(t0 + 25000))
+    : { ok: false, fetchedAt: new Date().toISOString(), sourceTime: null, note: null, error: 'standby: not needed', data: null, standby: true };
   return {
     version: SNAPSHOT_VERSION, generatedAt: new Date().toISOString(), buildMs: Date.now() - t0,
     airports: AIRPORTS,
-    feeds: { opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories, taf,
+    feeds: { opensky, adsblol, adsbfi, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories, taf,
       eurocontrol: { ok: false, fetchedAt: null, sourceTime: null, error: 'not connected', note: 'EUROCONTROL flow data needs an approved B2B account; no free public feed exists.', data: null } },
   };
 }

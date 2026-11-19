@@ -24,8 +24,8 @@ export function evaluateHealth({ snapshot, heartbeat, requireCollector = true, n
     if (snapshot && !checks[k].ok) problems.push(`${k} feed is down${feeds[k]?.error ? ' (' + feeds[k].error + ')' : ''}`);
   }
   // aircraft: either source is fine
-  checks.aircraft = { ok: fresh('opensky', 25) || fresh('adsblol', 25), source: fresh('opensky', 25) ? 'opensky' : fresh('adsblol', 25) ? 'adsblol' : null };
-  if (snapshot && !checks.aircraft.ok) problems.push('aircraft feeds are down (OpenSky and adsb.lol)');
+  checks.aircraft = { ok: fresh('opensky', 25) || fresh('adsblol', 25) || fresh('adsbfi', 25), source: fresh('opensky', 25) ? 'opensky' : fresh('adsblol', 25) ? 'adsblol' : fresh('adsbfi', 25) ? 'adsbfi' : null };
+  if (snapshot && !checks.aircraft.ok) problems.push('aircraft feeds are down (OpenSky, adsb.lol and the adsb.fi backup)');
   // The outlooks keep working on the backup, but the advisory page needs fixing.
   if (feeds.faaAdvisories?.source === 'nas-status-backup') {
     checks.faaAdvisories = { ok: false, backup: true, error: feeds.faaAdvisories.error || null };
