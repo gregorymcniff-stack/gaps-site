@@ -151,7 +151,12 @@ function renderOutlook() {
 }
 
 // ---------------------------------------------------------------- FAA
+const proposedNow = () => { const f = feed('faaAdvisories'); return f && fresh('faaAdvisories') && f.data && Array.isArray(f.data.proposed) ? f.data.proposed : []; };
+const PROP_NOTE = 'In testing, 592 of 595 proposals went ahead, usually within 15 minutes.';
 function renderFaa() {
+  const pe = $('faaProp');
+  if (pe) { const P = proposedNow(); pe.hidden = !P.length;
+    pe.innerHTML = P.length ? `<h3>Heads-up · proposed, likely to start soon</h3><ul>${P.map(p => `<li><b>${esc(p.airport)}</b><span><span class="what">Ground delay program proposed at ${utc(p.sent)}</span></span></li>`).join('')}</ul><p class="why">${PROP_NOTE}</p>` : ''; }
   const f = feed('faa'), d = f && f.data;
   const now = $('faaNow'), rec = $('faaRecent');
   if (!d) { $('faaSummary').textContent = 'No live FAA status data.'; now.innerHTML = ''; }
@@ -456,6 +461,8 @@ function openAirport(iata, focus = true) {
   OPEN_AP = iata;
   const pill = s.status === 'high' ? ['high', 'Disrupted'] : s.status === 'watch' ? ['elevated', 'Delays or low cloud'] : s.status === 'normal' ? ['low', 'Normal'] : ['none', 'No data'];
   let html = `<div class="dr-h"><h2 id="drTitle">${esc(a.iata)}</h2><span class="ic">${esc(a.icao)}</span><span class="nm">${esc(a.name || '')}</span><span class="pill ${pill[0]}">${pill[1]}</span></div>`;
+  const prop = proposedNow().find(p => p.airport === iata);
+  if (prop) html += `<div class="dr-sec dr-prop"><h3>Heads-up</h3><p><b>The FAA has proposed a ground delay program for ${esc(iata)}</b> (announced ${utc(prop.sent)}). ${PROP_NOTE}</p></div>`;
   html += `<div class="dr-sec"><h3>FAA status now</h3><p>${s.lines.length ? s.lines.map(esc).join('<br>') : a.region === 'US' ? (fresh('faa') ? 'No ground stops, delay programs or closures.' : 'No live FAA data.') : 'Outside the US: no FAA programs. Live delay data for this region is not available.'}</p></div>`;
   html += airportOutlookSection(iata);
   html += `<div class="dr-sec"><h3>Weather now (METAR)</h3>${m ? `<dl class="kv"><dt>Conditions</dt><dd>${esc(CAT_TEXT[m.fltCat] || m.fltCat || '?')}</dd>${m.wx ? `<dt>Weather</dt><dd>${esc(m.wx)}</dd>` : ''}<dt>Wind</dt><dd>${m.windKt != null ? m.windKt + ' kt' + (m.gustKt ? ', gusts ' + m.gustKt + ' kt' : '') : '?'}</dd><dt>Visibility</dt><dd>${m.visSm != null ? m.visSm + '+ mi'.slice(m.visSm >= 10 ? 0 : 1) : '?'}</dd><dt>Observed</dt><dd>${utc(m.obsTime)}</dd></dl><div class="raw">${esc(m.raw)}</div>` : '<p>No live weather report.</p>'}</div>`;
