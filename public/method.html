@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GAPS Method</title>
-<meta name="description" content="How the GAPS Sky Friction Index is built and how it was tested against FAA records.">
+<meta name="description" content="How the GAPS score is built and how it was tested against FAA records.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -42,13 +42,13 @@ a{color:#1d4ed8}
 <body>
 <header><div class="in">
   <a href="./">← Back to the dashboard</a>
-  <h1>How the Sky Friction Index works</h1>
+  <h1>How the GAPS score works</h1>
   <p>What goes into it, how it was tested against real FAA records, and where it falls short.</p>
 </div></header>
 <main>
 
 <h2>What the number means</h2>
-<p>The Sky Friction Index is the <b>estimated chance that 3 or more new FAA ground stops or ground delay programs start at US airports in the next 3 hours</b>. We call that a "bad stretch". It happened in about <span id="baseRate">20%</span> of hours in the test period.</p>
+<p>Behind the GAPS score is the <b>estimated chance that 3 or more new FAA ground stops or ground delay programs start at US airports in the next 3 hours</b>. We call that a "bad stretch". It happened in about <span id="baseRate">20%</span> of hours in the test period.</p>
 <p>Levels: below 10% low · 10–25% moderate · 25–50% elevated · 50% or more high. The dashboard also shows what is typical for the same hour, so you can see whether today is unusual.</p>
 
 <h2>What goes into it</h2>
@@ -165,7 +165,7 @@ a{color:#1d4ed8}
   set('eventCount', R.events.total.toLocaleString());
   set('testRange', fmtD(R.testStart) + ' to ' + fmtD(R.period.end + 'Z'));
   set('fitted', 'Results generated ' + fmtD(R.generatedAt) + '. Live model re-centred on the last ' + M.models.y3big.recentring.days + ' days (observed rate ' + Math.round(M.models.y3big.recentring.observedRate * 100) + '%).');
-  const rows = [['model', 'Sky Friction Index (combined model)', 'main'], ['tod', 'Time of day and weekday only'], ['persist', 'Recent FAA programs only'], ['usHubStress', 'US hub weather only'], ['usHubStressNext3', 'US hub weather, next 3 h'], ['usWeatherNow', 'Old weather formula at US hubs'], ['jet', 'Old upper-air input (jet stream)', 'old'], ['weather', 'Old weather input (8 world airports)', 'old'], ['sfi2', 'Old index (weather + upper-air)', 'old']];
+  const rows = [['model', 'GAPS model (combined)', 'main'], ['tod', 'Time of day and weekday only'], ['persist', 'Recent FAA programs only'], ['usHubStress', 'US hub weather only'], ['usHubStressNext3', 'US hub weather, next 3 h'], ['usWeatherNow', 'Old weather formula at US hubs'], ['jet', 'Old upper-air input (jet stream)', 'old'], ['weather', 'Old weather input (8 world airports)', 'old'], ['sfi2', 'Old index (weather + upper-air)', 'old']];
   const t = document.getElementById('results');
   rows.forEach(([k, label, cls]) => { const p = R.predictors[k]; if (!p) return; const a = p.y3big.aucTest;
     t.insertAdjacentHTML('beforeend', `<tr class="${cls || ''}"><td>${label}</td><td style="width:40%"><span class="bar" style="width:${Math.max(2, (a - 0.4) / 0.6 * 100)}%"></span></td><td class="num">${a.toFixed(2)}</td></tr>`); });
