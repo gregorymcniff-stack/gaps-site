@@ -1,0 +1,187 @@
+{
+ "period": {
+  "start": "2024-11-15T03:00:00.000Z",
+  "end": "2026-11-18T19:00:00.000Z"
+ },
+ "hours": {
+  "train": 10885,
+  "test": 5826
+ },
+ "events": 12661,
+ "hubsWithMetar": [
+  "JFK",
+  "LGA",
+  "EWR",
+  "BOS",
+  "ORD",
+  "ATL",
+  "DFW",
+  "DEN",
+  "LAX",
+  "SFO",
+  "SEA",
+  "MIA",
+  "IAH",
+  "PHL",
+  "CLT"
+ ],
+ "baseRate": 0.255,
+ "alone": {
+  "tod": 0.795,
+  "persist": 0.754,
+  "today": 0.662,
+  "forecast": 0.573,
+  "metarPts": 0.607,
+  "ifr": 0.525,
+  "lowCeil": 0.559,
+  "ts": 0.566,
+  "snow": 0.5,
+  "wind": 0.542
+ },
+ "models": {
+  "todPersist": {
+   "aucTest": 0.839,
+   "aucTrain": 0.833,
+   "weights": {
+    "tod": 1.114,
+    "persist": 0.81
+   }
+  },
+  "current_forecast": {
+   "aucTest": 0.846,
+   "aucTrain": 0.838,
+   "weights": {
+    "tod": 1.135,
+    "persist": 0.818,
+    "forecast": 0.258
+   }
+  },
+  "metarOnly": {
+   "aucTest": 0.846,
+   "aucTrain": 0.839,
+   "weights": {
+    "tod": 1.136,
+    "persist": 0.787,
+    "metarPts": 0.28
+   },
+   "gainVs_current_forecast": {
+    "median": 0,
+    "lo95": -0.002,
+    "hi95": 0.002
+   }
+  },
+  "forecastPlusMetar": {
+   "aucTest": 0.847,
+   "aucTrain": 0.839,
+   "weights": {
+    "tod": 1.139,
+    "persist": 0.796,
+    "forecast": 0.103,
+    "metarPts": 0.203
+   },
+   "gainVs_current_forecast": {
+    "median": 0.001,
+    "lo95": -0.001,
+    "hi95": 0.003
+   }
+  },
+  "forecastPlusMetar_today": {
+   "aucTest": 0.851,
+   "aucTrain": 0.846,
+   "weights": {
+    "tod": 1.215,
+    "persist": 0.628,
+    "today": 0.377,
+    "forecast": 0.101,
+    "metarPts": 0.214
+   },
+   "gainVs_current_forecast": {
+    "median": 0.005,
+    "lo95": 0,
+    "hi95": 0.009
+   }
+  },
+  "forecastPlusMetarParts_today": {
+   "aucTest": 0.852,
+   "aucTrain": 0.85,
+   "weights": {
+    "tod": 1.227,
+    "persist": 0.609,
+    "today": 0.346,
+    "forecast": 0.127,
+    "lowCeil": 0.218,
+    "ts": 0.235,
+    "wind": -0.019
+   },
+   "gainVs_current_forecast": {
+    "median": 0.006,
+    "lo95": 0,
+    "hi95": 0.01
+   }
+  }
+ },
+ "bySeason": {
+  "winter (Dec-Feb)": {
+   "hours": 1341,
+   "baseRate": 0.178,
+   "todPersist": 0.825,
+   "current_forecast": 0.846,
+   "metarOnly": 0.849,
+   "forecastPlusMetar": 0.85,
+   "forecastPlusMetar_today": 0.858,
+   "forecastPlusMetarParts_today": 0.848
+  },
+  "spring (Mar-May)": {
+   "hours": 1512,
+   "baseRate": 0.264,
+   "todPersist": 0.8,
+   "current_forecast": 0.812,
+   "metarOnly": 0.814,
+   "forecastPlusMetar": 0.815,
+   "forecastPlusMetar_today": 0.814,
+   "forecastPlusMetarParts_today": 0.815
+  },
+  "summer (Jun-Aug)": {
+   "hours": 1485,
+   "baseRate": 0.356,
+   "todPersist": 0.881,
+   "current_forecast": 0.885,
+   "metarOnly": 0.885,
+   "forecastPlusMetar": 0.886,
+   "forecastPlusMetar_today": 0.875,
+   "forecastPlusMetarParts_today": 0.876
+  },
+  "autumn (Sep-Nov)": {
+   "hours": 1488,
+   "baseRate": 0.213,
+   "todPersist": 0.834,
+   "current_forecast": 0.841,
+   "metarOnly": 0.84,
+   "forecastPlusMetar": 0.841,
+   "forecastPlusMetar_today": 0.849,
+   "forecastPlusMetarParts_today": 0.849
+  }
+ },
+ "siteToday": {
+  "model": 0.843,
+  "score1to10": 0.841,
+  "bySeason": {
+   "winter (Dec-Feb)": {
+    "model": 0.851,
+    "score1to10": 0.841
+   },
+   "spring (Mar-May)": {
+    "model": 0.814,
+    "score1to10": 0.808
+   },
+   "summer (Jun-Aug)": {
+    "model": 0.891,
+    "score1to10": 0.889
+   },
+   "autumn (Sep-Nov)": {
+    "model": 0.838,
+    "score1to10": 0.831
+   }
+  }
+ }
+}

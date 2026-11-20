@@ -130,4 +130,16 @@ let seed = 5; const rnd = () => (seed = (seed * 16807) % 2147483647) / 214748364
 for (const name of Object.keys(sets).filter(n => n !== BASE && n !== 'todPersist')) { const d = [];
   for (let b = 0; b < 300; b++) { const s2 = []; for (let i = 0; i < wk.length; i++) s2.push(...byWeek[wk[Math.floor(rnd() * wk.length)]]); d.push(auc(s2, 'm_' + name, y) - auc(s2, 'm_' + BASE, y)); }
   d.sort((a, b) => a - b); res.models[name]['gainVs_' + BASE] = { median: +d[150].toFixed(3), lo95: +d[7].toFixed(3), hi95: +d[292].toFixed(3) }; }
+// The model and 1-10 score live on the site today (fitted on Jul-Nov 2026 only), scored on the same held-out weeks
+if (wx && process.env.SITE_MODEL) {
+  const M = JSON.parse(fs.readFileSync(process.env.SITE_MODEL, 'utf8')), P = M.models.y3big, S = M.scale;
+  const todOf = r => P.todTable[r.hour + '-' + (r.dow === 0 || r.dow === 6 ? 'we' : 'wd')] ?? 0;
+  const feat = r => ({ usHubStressNext3: r.forecast, persist: r.persist, tod: todOf(r) });
+  const pctOf = (q, x) => { let lo = 0, eq = 0; for (const v2 of q) { if (v2 < x) lo++; else if (v2 === x) eq++; } return (lo + eq / 2) / q.length; };
+  const to10 = (q, x) => Math.min(10, Math.max(1, Math.round(pctOf(q, x) * 10)));
+  for (const r of rows) { const f = feat(r); r.site_p = 1 / (1 + Math.exp(-(P.intercept + P.keys.map((k, i) => P.w[i] * (f[k] - P.mu[i]) / P.sd[i]).reduce((a2, b2) => a2 + b2, 0))));
+    r.site_s10 = S.weights.tod * to10(S.quantiles.tod, f.tod) + S.weights.persist * to10(S.quantiles.persist, f.persist) + S.weights.usHubStressNext3 * to10(S.quantiles.usHubStressNext3, f.usHubStressNext3); }
+  res.siteToday = { model: auc(test, 'site_p', y), score1to10: auc(test, 'site_s10', y), bySeason: {} };
+  for (const s2 of Object.keys(res.bySeason)) { const d = test.filter(r => season(r) === s2); res.siteToday.bySeason[s2] = { model: auc(d, 'site_p', y), score1to10: auc(d, 'site_s10', y) }; }
+}
 fs.writeFileSync(outPath, JSON.stringify(res, null, 1)); console.log(JSON.stringify(res, null, 1));
