@@ -12,16 +12,19 @@ const GRID = {};
 for (const la of [32, 36, 40, 44]) for (const lo of [-98, -93, -88, -83, -78, -74]) GRID[`G${la}_${-lo}`] = [la, lo];
 const HUB_VARS = 'weather_code,wind_speed_10m,wind_gusts_10m,precipitation,snowfall,visibility,cloud_cover_low,temperature_2m,dew_point_2m,cape';
 const GRID_VARS = 'weather_code,precipitation,cape';
-// split into ~6-month chunks to keep each request small
-const chunks = []; for (let d = new Date(start + 'T00:00:00Z'); d <= new Date(end + 'T00:00:00Z');) { const e = new Date(Math.min(d.getTime() + 181 * 86400000, Date.parse(end + 'T00:00:00Z'))); chunks.push([d.toISOString().slice(0, 10), e.toISOString().slice(0, 10)]); d = new Date(e.getTime() + 86400000); }
+// split into ~2-month chunks to keep each request small
+const chunks = []; for (let d = new Date(start + 'T00:00:00Z'); d <= new Date(end + 'T00:00:00Z');) { const e = new Date(Math.min(d.getTime() + 60 * 86400000, Date.parse(end + 'T00:00:00Z'))); chunks.push([d.toISOString().slice(0, 10), e.toISOString().slice(0, 10)]); d = new Date(e.getTime() + 86400000); }
 async function pull(points, vars, a, b) {
   const codes = Object.keys(points);
   const url = 'https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=' + codes.map(c => points[c][0]).join(',') + '&longitude=' + codes.map(c => points[c][1]).join(',') +
     `&start_date=${a}&end_date=${b}&hourly=${vars}&wind_speed_unit=mph&timezone=UTC`;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const r = await fetch(url, { signal: AbortSignal.timeout(180000) });
-    if (r.ok) { const arr = await r.json(); return { times: arr[0].hourly.time, data: Object.fromEntries(codes.map((c, i) => [c, arr[i].hourly])) }; }
-    console.error('HTTP', r.status, (await r.text()).slice(0, 200)); await new Promise(x => setTimeout(x, 60000));
+  for (let attempt = 0; attempt < 8; attempt++) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(240000) });
+      if (r.ok) { const arr = await r.json(); return { times: arr[0].hourly.time, data: Object.fromEntries(codes.map((c, i) => [c, arr[i].hourly])) }; }
+      console.error('HTTP', r.status, (await r.text()).slice(0, 200));
+    } catch (e) { console.error('network', e.cause?.code || e.name || e.message); }
+    await new Promise(x => setTimeout(x, 30000));
   }
   throw new Error('failed ' + a);
 }

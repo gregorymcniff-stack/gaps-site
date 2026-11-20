@@ -1,19 +1,22 @@
 // Two-year test: FAA advisories + observed airport weather (METAR, from the
 // Iowa Environmental Mesonet) at 15 US hubs.
-// Usage: node test-2y.mjs faa-2y.json metar-dir out.json
+// Usage: node test-2y.mjs faa-2y.json metar-dir out.json [wx-2y.json]
+// With wx-2y.json it also builds the Open-Meteo hub forecast input the live site uses today.
 // Honest-test rules: every input uses only information available at hour h;
 // fitting uses training weeks only; scores are on held-out weeks.
 // Split: every third calendar week is held out (so tests cover all seasons),
 // with the 24 h before each test week dropped from training to avoid leakage.
 import fs from 'node:fs';
-const [faaPath, metarDir, outPath] = process.argv.slice(2);
+const [faaPath, metarDir, outPath, wxPath] = process.argv.slice(2);
 const faa = JSON.parse(fs.readFileSync(faaPath, 'utf8'));
 const HUBS = ['JFK', 'LGA', 'EWR', 'BOS', 'ORD', 'ATL', 'DFW', 'DEN', 'LAX', 'SFO', 'SEA', 'MIA', 'IAH', 'PHL', 'CLT'];
 const NEW_PROGRAM = /GROUND STOP|GROUND DELAY PROGRAM/, NOT_NEW = /CNX|CANCEL|PROPOSED|REVIS|EXTEN|COMPRESS|UPDATE|AMEND|MODIF/;
 const isUS = fac => { const ap = fac.split('/')[0].trim(); return /^[A-Z0-9]{3}$/.test(ap) || /^K[A-Z]{3}$/.test(ap); };
 const days = Object.keys(faa).sort();
 const t0 = Date.parse(days[0] + 'T00:00:00Z'), H = Math.round((Date.parse(days[days.length - 1] + 'T00:00:00Z') - t0) / 3600000) + 24;
-const haveDay = new Set(days);
+// Days the FAA archive returns empty (e.g. 2025-08-24, 2025-08-25, 2026-02-09: "no advisories match")
+// are archive gaps, not calm days, so they are treated as missing.
+const haveDay = new Set(days.filter(d => faa[d].length));
 const hourIndex = ts => Math.floor((ts - t0) / 3600000);
 const events = new Array(H).fill(0), evAp = {};
 for (const rows of Object.values(faa)) for (const r of rows) {
@@ -49,6 +52,26 @@ function metarFeatures(h) {
   }
   return { ifr, lowCeil, ts, snow, wind, metarPts: pts };
 }
+// ---- Open-Meteo forecast input, same formula as analyze.mjs / the live site
+const wx = wxPath ? JSON.parse(fs.readFileSync(wxPath, 'utf8')) : null;
+const wxIdx = wx ? Object.fromEntries(wx.times.map((t, i) => [hourIndex(Date.parse(t + ':00Z')), i])) : null;
+const wv = (c, k, h) => { if (!wx) return null; const i = wxIdx[h]; const x = i == null ? null : wx.data[c]?.[k]?.[i]; return x == null ? null : Number(x); };
+function usHubStress(h) {
+  if (!wx || wxIdx[h] == null) return null;
+  let total = 0;
+  for (const c of HUBS) {
+    const wc = wv(c, 'weather_code', h) || 0, vis = wv(c, 'visibility', h), low = wv(c, 'cloud_cover_low', h), gust = wv(c, 'wind_gusts_10m', h) || 0;
+    let s2 = 0;
+    if (wc >= 95) s2 += 3; else if (wc >= 61 && wc <= 82) s2 += 0.7; else if (wc >= 71 && wc <= 77) s2 += 1.5;
+    if (vis != null && vis < 1600) s2 += 2; else if (vis != null && vis < 4800) s2 += 1;
+    if (low != null && low >= 95) s2 += 0.6;
+    if (gust >= 40) s2 += 1.5; else if (gust >= 30) s2 += 0.7;
+    total += s2;
+  }
+  return total;
+}
+const stressCache = new Map(); const stress = h => { if (!stressCache.has(h)) stressCache.set(h, usHubStress(h)); return stressCache.get(h); };
+const next3 = h => { let m = null; for (let j = h; j <= h + 3; j++) { const v2 = stress(j); if (v2 != null) m = m == null ? v2 : Math.max(m, v2); } return m; };
 const rows = [];
 for (let h = 3; h < H - 4; h++) {
   const t = new Date(t0 + h * 3600000);
@@ -59,8 +82,10 @@ for (let h = 3; h < H - 4; h++) {
     y3big: ahead(h, 3) >= 3 ? 1 : 0, y3: ahead(h, 3) > 0 ? 1 : 0,
     persist: events[h] + events[h - 1] + events[h - 2],
     today: (() => { let s = 0; for (let k = h; k > h - 24 && k >= 0; k--) s += events[k]; return s; })(),
+    forecast: next3(h),
     ...metarFeatures(h) });
 }
+if (wx) { const before = rows.length; for (let i = rows.length - 1; i >= 0; i--) if (rows[i].forecast == null) rows.splice(i, 1); console.error('rows without forecast dropped:', before - rows.length); }
 const isTest = r => r.week % 3 === 2;
 const test = rows.filter(isTest);
 const train = rows.filter(r => !isTest(r) && !isTest({ week: Math.floor(((r.h + 24) / 24 + 4) / 7) }));
@@ -86,8 +111,13 @@ const res = { period: { start: rows[0].t, end: rows[rows.length - 1].t }, hours:
 const y = 'y3big', T = 'tod';
 const tod = fitTod(y, train); for (const r of rows) r[T] = tod(r);
 res.baseRate = +(test.reduce((a, r) => a + r[y], 0) / test.length).toFixed(3);
-res.alone = Object.fromEntries(['tod', 'persist', 'today', 'metarPts', 'ifr', 'lowCeil', 'ts', 'snow', 'wind'].map(k => [k, auc(test, k, y)]));
-const sets = { todPersist: [T, 'persist'], plusMetarPts: [T, 'persist', 'metarPts'], plusMetarParts: [T, 'persist', 'ifr', 'lowCeil', 'ts', 'snow', 'wind'], plusParts_today: [T, 'persist', 'today', 'ifr', 'lowCeil', 'ts', 'snow', 'wind'] };
+res.alone = Object.fromEntries(['tod', 'persist', 'today', 'forecast', 'metarPts', 'ifr', 'lowCeil', 'ts', 'snow', 'wind'].filter(k => wx || k !== 'forecast').map(k => [k, auc(test, k, y)]));
+const sets = wx ? {
+    todPersist: [T, 'persist'], current_forecast: [T, 'persist', 'forecast'], metarOnly: [T, 'persist', 'metarPts'],
+    forecastPlusMetar: [T, 'persist', 'forecast', 'metarPts'], forecastPlusMetar_today: [T, 'persist', 'today', 'forecast', 'metarPts'],
+    forecastPlusMetarParts_today: [T, 'persist', 'today', 'forecast', 'lowCeil', 'ts', 'wind'] }
+  : { todPersist: [T, 'persist'], plusMetarPts: [T, 'persist', 'metarPts'], plusMetarParts: [T, 'persist', 'ifr', 'lowCeil', 'ts', 'snow', 'wind'], plusParts_today: [T, 'persist', 'today', 'ifr', 'lowCeil', 'ts', 'snow', 'wind'] };
+const BASE = wx ? 'current_forecast' : 'todPersist';
 res.models = {};
 for (const [name, keys] of Object.entries(sets)) { const m = fitLogit(keys, y, train); for (const r of rows) r['m_' + name] = m.predict(r); res.models[name] = { aucTest: auc(test, 'm_' + name, y), aucTrain: auc(train, 'm_' + name, y), weights: m.weights }; }
 // by season (test hours only)
@@ -97,7 +127,7 @@ for (const s of ['winter (Dec-Feb)', 'spring (Mar-May)', 'summer (Jun-Aug)', 'au
 // bootstrap gain of the best weather set over tod+persist, by test week
 const byWeek = {}; for (const r of test) (byWeek[r.week] ||= []).push(r); const wk = Object.keys(byWeek);
 let seed = 5; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-for (const name of ['plusMetarPts', 'plusMetarParts', 'plusParts_today']) { const d = [];
-  for (let b = 0; b < 300; b++) { const s2 = []; for (let i = 0; i < wk.length; i++) s2.push(...byWeek[wk[Math.floor(rnd() * wk.length)]]); d.push(auc(s2, 'm_' + name, y) - auc(s2, 'm_todPersist', y)); }
-  d.sort((a, b) => a - b); res.models[name].gainVsTodPersist = { median: +d[150].toFixed(3), lo95: +d[7].toFixed(3), hi95: +d[292].toFixed(3) }; }
+for (const name of Object.keys(sets).filter(n => n !== BASE && n !== 'todPersist')) { const d = [];
+  for (let b = 0; b < 300; b++) { const s2 = []; for (let i = 0; i < wk.length; i++) s2.push(...byWeek[wk[Math.floor(rnd() * wk.length)]]); d.push(auc(s2, 'm_' + name, y) - auc(s2, 'm_' + BASE, y)); }
+  d.sort((a, b) => a - b); res.models[name]['gainVs_' + BASE] = { median: +d[150].toFixed(3), lo95: +d[7].toFixed(3), hi95: +d[292].toFixed(3) }; }
 fs.writeFileSync(outPath, JSON.stringify(res, null, 1)); console.log(JSON.stringify(res, null, 1));
