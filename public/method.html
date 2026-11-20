@@ -114,7 +114,7 @@ a{color:#1d4ed8}
 <div class="table-wrap" id="apByAirport"></div>
 <h3 style="color:var(--navy);font-size:15px;margin:18px 0 4px">Does "20%" mean 20%?</h3>
 <div class="table-wrap" id="apCalib"></div>
-<div class="callout warn"><b>Not yet refitted on two years.</b> The per-airport models were fitted on July–November 2026 only, so their higher estimates ran too high on the autumn test weeks. They are re-centred on the most recent 30 days; a two-year refit like the index's is next. Airports with very few programs in the test weeks are marked n/a.</div>
+<div class="callout"><b>Fitted on two years.</b> Like the national score, the airport models are fitted on November 2024–November 2026 and tested on every third week, so winter is included. The lower and middle estimates are well calibrated; the highest (above 50%) still run high (about 70% said, 53% happened), so the live model is re-centred on the most recent 30 days and the dashboard shows the 1–10 score rather than the percentage. Every airport now has at least 40 test hours with a new program, so each can be judged on its own.</div>
 
 <h2>Limits</h2>
 <ul>
@@ -153,7 +153,7 @@ a{color:#1d4ed8}
     document.getElementById('apByAirport').innerHTML = '<table><tr><th>Airport</th><th>New programs in test weeks</th><th>Model score</th><th>Usual-rate-only score</th></tr>' +
       A.hubs.slice().sort((x, y) => A.byAirport[y].eventsTest - A.byAirport[x].eventsTest).map(h => { const b = A.byAirport[h], few = b.eventsTest < 15;
         return `<tr><td><b>${h}</b></td><td class="num">${b.eventsTest}</td><td class="num">${few ? '<span title="too few programs to judge">n/a*</span>' : b.aucModel.toFixed(2)}</td><td class="num">${few ? 'n/a*' : b.aucTod.toFixed(2)}</td></tr>`; }).join('') +
-      '</table><p style="font-size:12.5px;color:var(--muted)">* Fewer than 15 hours with a new program in the test weeks: too few to judge this airport on its own.</p>';
+      '</table>' + (A.hubs.some(h => A.byAirport[h].eventsTest < 15) ? '<p style="font-size:12.5px;color:var(--muted)">* Fewer than 15 hours with a new program in the test weeks: too few to judge this airport on its own.</p>' : '');
     if (A.score1to10) {
       document.getElementById('ap10auc').textContent = A.score1to10.aucTestWithinAirport.toFixed(2);
       document.getElementById('ap10table').innerHTML = '<table><tr><th>Airport score</th><th>Airport-hours</th><th>Followed by a new program there</th></tr>' + A.score1to10.meaning.map(m => `<tr><td><b>${m.score}/10</b></td><td class="num">${m.hours.toLocaleString()}</td><td class="num">${(m.eventRate * 100).toFixed(m.eventRate < 0.01 ? 1 : 0)}%</td></tr>`).join('') + '</table>';

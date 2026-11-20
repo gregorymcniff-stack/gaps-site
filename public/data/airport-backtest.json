@@ -1,10 +1,11 @@
 {
- "generatedAt": "2026-11-14T07:40:19.531Z",
+ "generatedAt": "2026-11-20T17:11:06.716Z",
  "period": {
-  "start": "2026-07-16T00:00",
-  "end": "2026-11-12T23:00"
+  "start": "2024-11-15T00:00",
+  "end": "2026-11-18T23:00"
  },
- "testStart": "2026-10-04T06:00:00.000Z",
+ "split": "every third week held out",
+ "testStart": "2024-11-25T00:00:00.000Z",
  "target": "new ground stop or ground delay program at the airport in the next 3 hours",
  "hubs": [
   "JFK",
@@ -23,235 +24,235 @@
   "SEA",
   "LAX"
  ],
- "baseRate": 0.035,
+ "baseRate": 0.051,
  "pooled": {
   "model": {
    "label": "Per-airport model (all inputs)",
-   "aucTest": 0.846,
-   "aucTrain": 0.889
+   "aucTest": 0.859,
+   "aucTrain": 0.876
   },
   "tod": {
    "label": "Airport's usual rate at this hour",
-   "aucTest": 0.772,
-   "aucTrain": 0.842
+   "aucTest": 0.786,
+   "aucTrain": 0.806
   },
   "own3": {
    "label": "Programs at this airport, last 3 h",
-   "aucTest": 0.608,
-   "aucTrain": 0.663
+   "aucTest": 0.634,
+   "aucTrain": 0.65
   },
   "own24": {
    "label": "Programs at this airport, last 24 h",
-   "aucTest": 0.718,
-   "aucTrain": 0.743
+   "aucTest": 0.731,
+   "aucTrain": 0.746
   },
   "wxNext3": {
    "label": "This airport's weather, next 3 h",
-   "aucTest": 0.699,
-   "aucTrain": 0.659
+   "aucTest": 0.671,
+   "aucTrain": 0.645
   },
   "others3": {
    "label": "Programs at other airports, last 3 h",
-   "aucTest": 0.618,
-   "aucTrain": 0.646
+   "aucTest": 0.636,
+   "aucTrain": 0.657
   }
  },
  "byAirport": {
   "JFK": {
-   "baseRate": 0.038,
-   "aucModel": 0.879,
-   "aucTod": 0.725,
-   "eventsTest": 36
+   "baseRate": 0.06,
+   "aucModel": 0.885,
+   "aucTod": 0.758,
+   "eventsTest": 346
   },
   "LGA": {
-   "baseRate": 0.07,
-   "aucModel": 0.839,
-   "aucTod": 0.759,
-   "eventsTest": 67
+   "baseRate": 0.093,
+   "aucModel": 0.825,
+   "aucTod": 0.742,
+   "eventsTest": 538
   },
   "EWR": {
-   "baseRate": 0.049,
-   "aucModel": 0.884,
-   "aucTod": 0.777,
-   "eventsTest": 47
+   "baseRate": 0.102,
+   "aucModel": 0.83,
+   "aucTod": 0.733,
+   "eventsTest": 591
   },
   "BOS": {
-   "baseRate": 0.114,
-   "aucModel": 0.769,
-   "aucTod": 0.743,
-   "eventsTest": 108
+   "baseRate": 0.07,
+   "aucModel": 0.798,
+   "aucTod": 0.749,
+   "eventsTest": 406
   },
   "PHL": {
-   "baseRate": 0.019,
-   "aucModel": 0.912,
-   "aucTod": 0.732,
-   "eventsTest": 18
+   "baseRate": 0.04,
+   "aucModel": 0.88,
+   "aucTod": 0.741,
+   "eventsTest": 231
   },
   "ATL": {
-   "baseRate": 0.012,
-   "aucModel": 0.911,
-   "aucTod": 0.684,
-   "eventsTest": 11
+   "baseRate": 0.031,
+   "aucModel": 0.887,
+   "aucTod": 0.687,
+   "eventsTest": 178
   },
   "CLT": {
-   "baseRate": 0.006,
-   "aucModel": 0.831,
-   "aucTod": 0.769,
-   "eventsTest": 6
+   "baseRate": 0.022,
+   "aucModel": 0.857,
+   "aucTod": 0.714,
+   "eventsTest": 125
   },
   "MIA": {
-   "baseRate": 0.017,
-   "aucModel": 0.907,
-   "aucTod": 0.727,
-   "eventsTest": 16
+   "baseRate": 0.025,
+   "aucModel": 0.832,
+   "aucTod": 0.682,
+   "eventsTest": 145
   },
   "ORD": {
-   "baseRate": 0.019,
-   "aucModel": 0.805,
-   "aucTod": 0.673,
-   "eventsTest": 18
+   "baseRate": 0.053,
+   "aucModel": 0.828,
+   "aucTod": 0.648,
+   "eventsTest": 305
   },
   "DFW": {
-   "baseRate": 0.014,
-   "aucModel": 0.908,
-   "aucTod": 0.573,
-   "eventsTest": 13
+   "baseRate": 0.05,
+   "aucModel": 0.87,
+   "aucTod": 0.693,
+   "eventsTest": 290
   },
   "IAH": {
-   "baseRate": 0.007,
-   "aucModel": 0.846,
-   "aucTod": 0.822,
-   "eventsTest": 7
+   "baseRate": 0.025,
+   "aucModel": 0.799,
+   "aucTod": 0.692,
+   "eventsTest": 147
   },
   "DEN": {
-   "baseRate": 0.054,
-   "aucModel": 0.673,
-   "aucTod": 0.505,
-   "eventsTest": 51
+   "baseRate": 0.066,
+   "aucModel": 0.857,
+   "aucTod": 0.789,
+   "eventsTest": 381
   },
   "SFO": {
-   "baseRate": 0.072,
-   "aucModel": 0.779,
-   "aucTod": 0.701,
-   "eventsTest": 68
+   "baseRate": 0.099,
+   "aucModel": 0.796,
+   "aucTod": 0.753,
+   "eventsTest": 571
   },
   "SEA": {
-   "baseRate": 0.036,
-   "aucModel": 0.727,
-   "aucTod": 0.74,
-   "eventsTest": 34
+   "baseRate": 0.017,
+   "aucModel": 0.762,
+   "aucTod": 0.766,
+   "eventsTest": 96
   },
   "LAX": {
-   "baseRate": 0.006,
-   "aucModel": 0.222,
-   "aucTod": 0.455,
-   "eventsTest": 6
+   "baseRate": 0.007,
+   "aucModel": 0.737,
+   "aucTod": 0.448,
+   "eventsTest": 40
   }
  },
  "calibration": [
   {
    "from": 0,
    "to": 0.05,
-   "hours": 10157,
-   "predicted": 0.022,
-   "observed": 0.009
+   "hours": 67856,
+   "predicted": 0.019,
+   "observed": 0.017
   },
   {
    "from": 0.05,
    "to": 0.1,
-   "hours": 2178,
-   "predicted": 0.07,
-   "observed": 0.051
+   "hours": 9268,
+   "predicted": 0.069,
+   "observed": 0.091
   },
   {
    "from": 0.1,
    "to": 0.2,
-   "hours": 1035,
-   "predicted": 0.136,
-   "observed": 0.106
+   "hours": 5505,
+   "predicted": 0.139,
+   "observed": 0.164
   },
   {
    "from": 0.2,
    "to": 0.35,
-   "hours": 506,
-   "predicted": 0.252,
-   "observed": 0.172
+   "hours": 2174,
+   "predicted": 0.258,
+   "observed": 0.268
   },
   {
    "from": 0.35,
    "to": 0.5,
-   "hours": 177,
-   "predicted": 0.406,
-   "observed": 0.124
+   "hours": 816,
+   "predicted": 0.416,
+   "observed": 0.363
   },
   {
    "from": 0.5,
    "to": 1,
-   "hours": 212,
-   "predicted": 0.769,
-   "observed": 0.392
+   "hours": 1141,
+   "predicted": 0.699,
+   "observed": 0.525
   }
  ],
  "weightsTrain": {
-  "wxNext3": 0.347,
-  "own3": 0.393,
-  "own24": 0.238,
-  "others3": 0.192,
-  "tod": 0.936
+  "wxNext3": 0.38,
+  "own3": 0.304,
+  "own24": 0.288,
+  "others3": 0.215,
+  "tod": 0.77
  },
  "score1to10": {
-  "aucTestPooled": 0.79,
-  "aucTestWithinAirport": 0.813,
+  "aucTestPooled": 0.82,
+  "aucTestWithinAirport": 0.823,
   "meaning": [
    {
     "score": 1,
-    "hours": 3206,
-    "eventRate": 0.003
+    "hours": 13233,
+    "eventRate": 0.001
    },
    {
     "score": 2,
-    "hours": 1278,
+    "hours": 8256,
     "eventRate": 0.006
    },
    {
     "score": 3,
-    "hours": 1526,
+    "hours": 8878,
     "eventRate": 0.01
    },
    {
     "score": 4,
-    "hours": 1416,
-    "eventRate": 0.02
+    "hours": 8751,
+    "eventRate": 0.015
    },
    {
     "score": 5,
-    "hours": 1521,
-    "eventRate": 0.037
+    "hours": 9040,
+    "eventRate": 0.028
    },
    {
     "score": 6,
-    "hours": 1425,
-    "eventRate": 0.036
+    "hours": 8490,
+    "eventRate": 0.039
    },
    {
     "score": 7,
-    "hours": 1421,
-    "eventRate": 0.044
+    "hours": 8472,
+    "eventRate": 0.052
    },
    {
     "score": 8,
-    "hours": 1180,
-    "eventRate": 0.075
+    "hours": 8692,
+    "eventRate": 0.079
    },
    {
     "score": 9,
-    "hours": 959,
-    "eventRate": 0.1
+    "hours": 8818,
+    "eventRate": 0.132
    },
    {
     "score": 10,
-    "hours": 333,
-    "eventRate": 0.27
+    "hours": 4130,
+    "eventRate": 0.3
    }
   ]
  }

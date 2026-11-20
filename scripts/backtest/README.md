@@ -56,3 +56,9 @@ backtest-results.json also carries the 4-month results for inputs that were
 not re-tested (world weather, jet stream, FAA proposals), marked `testedOn`.
 The per-airport models (`analyze-airports.mjs`) are still fitted on the
 4-month data.
+
+Per-airport refit on the same two years:
+
+```
+SPLIT=weeks node analyze-airports.mjs faa-2y.json wx-2y.json ../../public/data
+```
