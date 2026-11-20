@@ -15,13 +15,18 @@ for (let d = new Date(start + 'T00:00:00Z'); d <= new Date(end + 'T00:00:00Z'); 
     catch { await new Promise(r2 => setTimeout(r2, 5000)); }
   }
   if (!html) { console.log(day, 'FAILED'); continue; }
-  const rows = [];
-  for (const tr of html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || []) {
+  const parse = h => { const out = []; for (const tr of h.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || []) {
     const cells = (tr.match(/<td[^>]*>[\s\S]*?<\/td>/gi) || []).map(strip);
-    if (cells.length >= 5 && /^\d{3}$/.test(cells[0])) rows.push({ n: cells[0], facility: cells[1], title: cells[3], sent: cells[4] });
+    if (cells.length >= 5 && /^\d{3}$/.test(cells[0])) out.push({ n: cells[0], facility: cells[1], title: cells[3], sent: cells[4] }); } return out; };
+  let rows = parse(html);
+  // The site sometimes answers a busy moment with an empty list: retry before
+  // accepting a day with no advisories at all.
+  for (let retry = 0; retry < 3 && !rows.length; retry++) {
+    await new Promise(r2 => setTimeout(r2, 20000));
+    try { const r = await fetch(url, { signal: AbortSignal.timeout(20000) }); if (r.ok) rows = parse(await r.text()); } catch {}
   }
   cache[day] = rows;
   fs.writeFileSync(out, JSON.stringify(cache));
   console.log(day, rows.length);
-  await new Promise(r => setTimeout(r, 1500));
+  await new Promise(r => setTimeout(r, 2500));
 }

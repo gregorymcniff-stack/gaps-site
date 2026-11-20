@@ -50,7 +50,7 @@ td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
 <tr><th>Target events</th><td>New US ground stops and ground delay programs from the FAA ATCSCC Advisory Database (cancellations, proposals, revisions, extensions and non-US facilities excluded): <b id="events">2,788</b> programs. <a href="data/faa-advisories.csv">Download</a>.</td></tr>
 <tr><th>Weather</th><td>Open-Meteo historical forecasts (hourly weather code, gusts, visibility, low cloud) at 15 US hubs. The live model uses the same Open-Meteo forecast product.</td></tr>
 <tr><th>Period</th><td id="period">Loading…</td></tr>
-<tr><th>Split</th><td>Time-ordered: fitted on the first two-thirds, scored on the final third (<span id="testRange">six weeks</span>), never seen during fitting. The production models are then refitted on the whole period.</td></tr>
+<tr><th>Split</th><td>GAPS score: every third week of two years held back (<span id="testRange">about 5,800 hours</span>), never seen during fitting, so all four seasons are tested. Per-airport outlooks: time-ordered, fitted on the first two-thirds of July–November 2026 and scored on the final third. The production models are then refitted on the whole period.</td></tr>
 <tr><th>Not used</th><td>Aircraft counts (no free historical archive), weather at 8 world airports and jet-stream winds (no predictive value in testing), airport forecasts (TAFs; no free historical archive was available).</td></tr>
 </table></div>
 
@@ -63,7 +63,7 @@ td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
 <h2 id="limits">Limitations and risks</h2>
 <ul>
   <li><b>Seasonal drift.</b> Trained mostly on summer storm season; on the autumn test weeks the higher estimates ran too high (for example, the index said about 61% when the rate was about 41%). Mitigation: re-centring on the last 30 days. The re-centred model has not yet been tested on new data.</li>
-  <li><b>No winter.</b> Four months of data (July–November). Snow, de-icing and winter storms are not represented.</li>
+  <li><b>Per-airport outlooks still use four months.</b> The GAPS score is fitted on two years (November 2024–November 2026, two winters); the per-airport models are still fitted on July–November 2026 and have not seen winter yet.</li>
   <li><b>Leans on persistence.</b> Recent programs are a strong input, so the outlooks are better at recognising a bad stretch under way than at warning before the first program.</li>
   <li><b>Small airports in the test.</b> DFW, ATL, IAH, CLT and LAX had fewer than 15 programs in the test weeks and cannot be judged on their own.</li>
   <li><b>Coarse target.</b> A short ground stop and an all-day delay program count the same.</li>
@@ -81,6 +81,9 @@ td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
 <h2 id="changes">Change history</h2>
 <div class="table-wrap"><table>
 <tr><th>Date (UTC)</th><td><b>Change</b></td></tr>
+<tr><th>2026-11-20</th><td>GAPS score refitted on two years of FAA records (November 2024–November 2026, 12,661 programs) and tested on every third week across all seasons: 0.84 for the 1–10 score, 0.85 for the model, with calibrated percentages. Same three inputs and weights. Tested and not adopted: real airport weather reports (no gain over the forecast), programs so far today (+0.005, not clearly real), airport-weighted weather.</td></tr>
+<tr><th>2026-11-19</th><td>Sky Friction Index renamed the GAPS score. Heads-up added for FAA proposed ground delay programs that have not started yet.</td></tr>
+<tr><th>2026-11-17</th><td>Tested FAA proposed ground delay programs and airport delay advisories as extra inputs: proposals almost always go ahead, but only about 13 minutes later, so they add no warning to a 3-hour outlook (+0.002). Not adopted.</td></tr>
 <tr><th>2026-11-14</th><td>Dashboard shows the index as a 1–10 score (5 = average) with each input on the same scale; tested at 0.82 on the held-out weeks.</td></tr>
 <tr><th>2026-11-14 06:24</th><td>Per-airport outlooks published (pooled model, 15 hubs). PHL, CLT and IAH added to monitored airports.</td></tr>
 <tr><th>2026-11-14 04:53</th><td>Index: removed the separate "thunderstorms at hubs" input. It had almost no training examples, so a single storm would have pushed the chance to about 100%. Storms still count inside hub weather. Held-out score unchanged (0.835).</td></tr>
@@ -103,7 +106,7 @@ td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
   set('fitted', `Index ${d(M.fittedAt)} · airports ${d(AM.fittedAt)} · re-centred on the last ${M.models.y3big.recentring.days} days`);
   set('events', R.events.total.toLocaleString());
   set('period', `${d(R.period.start + 'Z')} to ${d(R.period.end + 'Z')} (hourly)`);
-  set('testRange', `${d(R.testStart)} to ${d(R.period.end + 'Z')}`);
+  set('testRange', R.hours ? `${R.hours.test.toLocaleString()} hours` : `${d(R.testStart)} to ${d(R.period.end + 'Z')}`);
   const P = R.predictors;
   set('idxMetrics', '<table><tr><th>Model</th><td><b>AUC (held-out)</b></td></tr>' + [['model', 'GAPS model (combined)'], ['tod', 'Time of day only'], ['persist', 'Recent programs only'], ['usHubStress', 'US hub weather only'], ['sfi2', 'Previous index (retired)']]
     .map(([k, l]) => `<tr><th>${l}</th><td class="num">${P[k].y3big.aucTest.toFixed(3)}</td></tr>`).join('') + `<tr><th>Event rate (test)</th><td class="num">${Math.round(R.baseRate.y3big * 100)}% of hours</td></tr></table>`);

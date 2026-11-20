@@ -131,7 +131,7 @@ function renderOutlook() {
     ['Weather at US hubs', I.weather.score, W.usHubStressNext3, `${F.usHubStressNext3.toFixed(1)} bad-weather points over the next 3 h at 15 hubs (average ${I.medians.weather})${F.usStorms ? ' · storms at ' + F.stormHubs.join(', ') : ''}`],
   ];
   const n2 = x => String(Math.round(x * 100) / 100);
-  const src = [['Clock, rated with 4 months of FAA records', []], ['FAA advisories', ['faaAdvisories']], ['Open-Meteo forecast', ['usHubWx']]];
+  const src = [['Clock, rated with 2 years of FAA records', []], ['FAA advisories', ['faaAdvisories']], ['Open-Meteo forecast', ['usHubWx']]];
   const why = [`${hh}:00 UTC on a ${d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday'}, ${I.tod.score >= 6 ? 'usually a busy time' : I.tod.score <= 4 ? 'usually a quiet time' : 'an ordinary time'} for FAA programs`,
     `${F.persist} new ground stop${F.persist === 1 ? '' : 's'} or delay program${F.persist === 1 ? '' : 's'} in the last 3 hours (a typical hour has ${I.medians.persist})`,
     `forecast storms, fog, low cloud and gusts at 15 hubs: ${F.usHubStressNext3.toFixed(1)} points (typical ${I.medians.weather})`];
@@ -662,11 +662,13 @@ function renderSnapshot() {
     ['Time of day', auc('tod'), 'used'],
     ['Recent FAA programs', auc('persist'), 'used'],
     ['Weather forecast at 15 US hubs', auc('usHubStressNext3'), 'used'],
-    ['Upper-air winds (jet stream)', auc('jet'), 'no'],
+    ['Upper-air winds (jet stream) *', auc('jet'), 'no'],
     ['Count of hubs with thunderstorms', auc('usStorms'), 'no'],
-    ['Weather at 8 world points', auc('weather'), 'no'],
-    ['FAA "proposed" delay programs', auc('proposed3'), 'dup'],
-    ['FAA airport delay advisories', auc('delayAdv3'), 'dup'],
+    ['Weather at 8 world points *', auc('weather'), 'no'],
+    ['Real airport weather reports', auc('metar'), 'dup'],
+    ['FAA programs so far today', auc('today'), 'dup'],
+    ['FAA "proposed" delay programs *', auc('proposed3'), 'dup'],
+    ['FAA airport delay advisories *', auc('delayAdv3'), 'dup'],
   ].filter(r => Number.isFinite(r[1]));
   const W = v => clamp((v - 0.4) / 0.6 * 100, 0, 100);
   el.innerHTML = rows.map(([n, v, k]) => `<div class="pr ${k}"><span class="pn">${esc(n)}</span><span class="pb"><i style="width:${W(v)}%"></i><em style="left:${W(0.5)}%"></em></span><span class="pv">${Math.round(v * 100)}%</span><span class="pt">${k === 'score' ? 'the score' : k === 'used' ? 'used' : k === 'dup' ? 'not used: no extra warning' : 'not used: coin flip'}</span></div>`).join('') +

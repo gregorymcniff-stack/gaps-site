@@ -3,6 +3,9 @@
 // 3 and 6 hours?
 //
 // Usage: node analyze.mjs faa-adv.json wx.json results.json
+// SPLIT=weeks: hold out every third calendar week (tests cover all seasons;
+// the 24 h before each test week are left out of training). Default: the
+// first 2/3 of the period trains, the last 1/3 tests.
 //
 // Honest-test rules:
 //  - Every predictor uses only information available at hour h.
@@ -23,6 +26,11 @@ const NOT_NEW = /CNX|CANCEL|PROPOSED|REVIS|EXTEN|COMPRESS|UPDATE|AMEND|MODIF/;
 const isUS = fac => { const ap = fac.split('/')[0].trim(); return /^[A-Z0-9]{3}$/.test(ap) || /^K[A-Z]{3}$/.test(ap); };
 const t0 = Date.parse(wx.times[0] + ':00Z');
 const H = wx.times.length;
+// Days the FAA archive returns empty are archive gaps, not calm days: hours that
+// touch them are left out.
+const haveDay = new Set(Object.keys(faa).filter(d => faa[d].length));
+const SPLIT = process.env.SPLIT || 'chrono';
+const hasWorld = ['LHR', 'SIN', 'DXB', 'SCL', 'NRT'].every(c => wx.data[c]);
 const hourIndex = ts => Math.floor((ts - t0) / 3600000);
 const events = new Array(H).fill(0), gsEvents = new Array(H).fill(0);
 const eventList = [];
@@ -76,6 +84,7 @@ const nextMax = (f, h, k) => { let m = -Infinity; for (let j = h; j <= h + k && 
 const rows = [];
 for (let h = 3; h < H - 6; h++) {
   const t = new Date(t0 + h * 3600000);
+  if (![-3, 0, 6].every(o => haveDay.has(new Date(t0 + (h + o) * 3600000).toISOString().slice(0, 10)))) continue;
   const weather = blend(GAPS8, h), j = jet(h);
   rows.push({
     h, t: t.toISOString(), hour: t.getUTCHours(), dow: t.getUTCDay(),
@@ -91,8 +100,13 @@ for (let h = 3; h < H - 6; h++) {
 }
 
 // ---------------------------------------------------------------- evaluation
-const split = Math.floor(rows.length * 2 / 3);
-const train = rows.slice(0, split), test = rows.slice(split);
+const weekOf = h => Math.floor((h / 24 + 4) / 7);
+let train, test;
+if (SPLIT === 'weeks') {
+  const isTestH = h => weekOf(h) % 3 === 2;
+  test = rows.filter(r => isTestH(r.h));
+  train = rows.filter(r => !isTestH(r.h) && !isTestH(r.h + 24));
+} else { const split = Math.floor(rows.length * 2 / 3); train = rows.slice(0, split); test = rows.slice(split); }
 
 function auc(data, key, y) {
   const d = data.filter(r => Number.isFinite(r[key]));
@@ -146,7 +160,7 @@ function hitFalse(key, y) {
   return { threshold: +(+thr).toFixed(3), hitRate: +(pos.filter(r => flag(r[key])).length / pos.length).toFixed(3), falseAlarmRate: +(neg.filter(r => flag(r[key])).length / neg.length).toFixed(3) };
 }
 
-const results = { generatedAt: new Date().toISOString(), period: { start: wx.times[0], end: wx.times[H - 1] }, trainEnd: train[train.length - 1].t, testStart: test[0].t,
+const results = { generatedAt: new Date().toISOString(), period: { start: wx.times[0], end: wx.times[H - 1] }, split: SPLIT === 'weeks' ? 'every third week held out' : 'last third held out', hours: { train: train.length, test: test.length }, trainEnd: train[train.length - 1].t, testStart: test[0].t,
   events: { total: eventList.length, groundStops: eventList.filter(e => e.type === 'GS').length, gdps: eventList.filter(e => e.type === 'GDP').length,
     topAirports: Object.entries(eventList.reduce((o, e) => ((o[e.airport] = (o[e.airport] || 0) + 1), o), {})).sort((a, b) => b[1] - a[1]).slice(0, 10) },
   baseRate: Object.fromEntries(['y3', 'y6', 'y3big'].map(y => [y, +(test.reduce((a, r) => a + r[y], 0) / test.length).toFixed(3)])),
@@ -166,7 +180,7 @@ for (const y of ['y3', 'y6', 'y3big']) {
   // storm would push the chance to ~100%). Storms still count inside usHubStress.
   const model = fitLogit(['usHubStressNext3', 'persist', 'tod_' + y], y);
   for (const r of rows) r['model_' + y] = model.predict(r);
-  for (const key of [...Object.keys(LABELS).filter(k => k !== 'tod'), 'tod_' + y, 'model_' + y]) {
+  for (const key of [...Object.keys(LABELS).filter(k => k !== 'tod' && (hasWorld || !['weather', 'jet', 'sfi2'].includes(k))), 'tod_' + y, 'model_' + y]) {
     const name = key.startsWith('tod_') ? 'tod' : key.startsWith('model_') ? 'model' : key;
     results.predictors[name] ||= { label: name === 'model' ? 'Combined model (US hub weather forecast + persistence + time of day)' : LABELS[name] };
     results.predictors[name][y] = { aucTest: auc(test, key, y), aucTrain: auc(train, key, y), ...hitFalse(key, y) };
