@@ -29,8 +29,13 @@ async function pull(points, vars, a, b) {
   throw new Error('failed ' + a);
 }
 const res = { times: [], data: {} };
+// each block is saved as it arrives, so an interrupted run resumes where it stopped
+const partsDir = out + '.parts'; fs.mkdirSync(partsDir, { recursive: true });
 for (const [a, b] of chunks) {
-  const h = await pull(HUBS, HUB_VARS, a, b), g = await pull(GRID, GRID_VARS, a, b);
+  const pf = `${partsDir}/${a}.json`;
+  let h, g;
+  if (fs.existsSync(pf)) ({ h, g } = JSON.parse(fs.readFileSync(pf, 'utf8')));
+  else { h = await pull(HUBS, HUB_VARS, a, b); g = await pull(GRID, GRID_VARS, a, b); fs.writeFileSync(pf, JSON.stringify({ h, g })); }
   res.times.push(...h.times);
   for (const src of [h.data, g.data]) for (const [c, v] of Object.entries(src)) { res.data[c] ||= {}; for (const [k, arr] of Object.entries(v)) if (k !== 'time') (res.data[c][k] ||= []).push(...arr); }
   console.log(a, b, h.times.length);
