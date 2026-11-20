@@ -1,64 +1,340 @@
 {
- "generatedAt": "2026-11-14T07:25:57.079Z",
+ "generatedAt": "2026-11-20T17:01:32.315Z",
  "period": {
-  "start": "2026-07-16T00:00",
-  "end": "2026-11-12T23:00"
+  "start": "2024-11-15T00:00",
+  "end": "2026-11-18T23:00"
  },
- "trainEnd": "2026-10-03T20:00:00.000Z",
- "testStart": "2026-10-03T21:00:00.000Z",
+ "split": "every third week held out",
+ "hours": {
+  "train": 10881,
+  "test": 5826
+ },
+ "trainEnd": "2026-11-18T17:00:00.000Z",
+ "testStart": "2024-11-25T00:00:00.000Z",
  "events": {
-  "total": 2788,
-  "groundStops": 1995,
-  "gdps": 793,
+  "total": 12661,
+  "groundStops": 8783,
+  "gdps": 3878,
   "topAirports": [
    [
-    "LGA",
-    242
-   ],
-   [
     "EWR",
-    234
+    1064
    ],
    [
-    "BOS",
-    183
-   ],
-   [
-    "JFK",
-    162
-   ],
-   [
-    "SFO",
-    157
-   ],
-   [
-    "ORD",
-    146
-   ],
-   [
-    "TEB",
-    142
-   ],
-   [
-    "SAN",
-    128
+    "LGA",
+    998
    ],
    [
     "DCA",
-    126
+    936
+   ],
+   [
+    "ORD",
+    674
+   ],
+   [
+    "SFO",
+    659
    ],
    [
     "DEN",
-    126
+    635
+   ],
+   [
+    "JFK",
+    589
+   ],
+   [
+    "DFW",
+    565
+   ],
+   [
+    "BOS",
+    543
+   ],
+   [
+    "TEB",
+    474
    ]
   ]
  },
  "baseRate": {
-  "y3": 0.506,
-  "y6": 0.69,
-  "y3big": 0.205
+  "y3": 0.545,
+  "y6": 0.718,
+  "y3big": 0.255
  },
  "predictors": {
+  "usWeatherNow": {
+   "label": "Same weather formula at 15 US hubs",
+   "y3": {
+    "aucTest": 0.522,
+    "aucTrain": 0.506,
+    "threshold": 54,
+    "hitRate": 0.295,
+    "falseAlarmRate": 0.226
+   },
+   "y6": {
+    "aucTest": 0.507,
+    "aucTrain": 0.498,
+    "threshold": 54,
+    "hitRate": 0.275,
+    "falseAlarmRate": 0.234
+   },
+   "y3big": {
+    "aucTest": 0.525,
+    "aucTrain": 0.499,
+    "threshold": 54,
+    "hitRate": 0.321,
+    "falseAlarmRate": 0.244
+   }
+  },
+  "usHubStress": {
+   "label": "US hub capacity weather now (storms, visibility, low cloud, gusts)",
+   "y3": {
+    "aucTest": 0.572,
+    "aucTrain": 0.563,
+    "threshold": 5,
+    "hitRate": 0.301,
+    "falseAlarmRate": 0.239
+   },
+   "y6": {
+    "aucTest": 0.58,
+    "aucTrain": 0.589,
+    "threshold": 5,
+    "hitRate": 0.292,
+    "falseAlarmRate": 0.224
+   },
+   "y3big": {
+    "aucTest": 0.593,
+    "aucTrain": 0.556,
+    "threshold": 5,
+    "hitRate": 0.348,
+    "falseAlarmRate": 0.247
+   }
+  },
+  "usHubStressNext3": {
+   "label": "US hub capacity weather, worst of next 3 h (forecast)",
+   "y3": {
+    "aucTest": 0.555,
+    "aucTrain": 0.555,
+    "threshold": 6.3,
+    "hitRate": 0.306,
+    "falseAlarmRate": 0.272
+   },
+   "y6": {
+    "aucTest": 0.572,
+    "aucTrain": 0.587,
+    "threshold": 6.3,
+    "hitRate": 0.304,
+    "falseAlarmRate": 0.256
+   },
+   "y3big": {
+    "aucTest": 0.573,
+    "aucTrain": 0.55,
+    "threshold": 6.3,
+    "hitRate": 0.348,
+    "falseAlarmRate": 0.271
+   }
+  },
+  "usStorms": {
+   "label": "US hubs with thunderstorms now",
+   "y3": {
+    "aucTest": 0.501,
+    "aucTrain": 0.501,
+    "threshold": 0,
+    "hitRate": 0.003,
+    "falseAlarmRate": 0.001
+   },
+   "y6": {
+    "aucTest": 0.501,
+    "aucTrain": 0.501,
+    "threshold": 0,
+    "hitRate": 0.003,
+    "falseAlarmRate": 0
+   },
+   "y3big": {
+    "aucTest": 0.502,
+    "aucTrain": 0.502,
+    "threshold": 0,
+    "hitRate": 0.005,
+    "falseAlarmRate": 0.001
+   }
+  },
+  "persist": {
+   "label": "Programs started in the last 3 h (persistence)",
+   "y3": {
+    "aucTest": 0.697,
+    "aucTrain": 0.707,
+    "threshold": 3,
+    "hitRate": 0.376,
+    "falseAlarmRate": 0.106
+   },
+   "y6": {
+    "aucTest": 0.614,
+    "aucTrain": 0.633,
+    "threshold": 3,
+    "hitRate": 0.303,
+    "falseAlarmRate": 0.128
+   },
+   "y3big": {
+    "aucTest": 0.754,
+    "aucTrain": 0.749,
+    "threshold": 3,
+    "hitRate": 0.534,
+    "falseAlarmRate": 0.158
+   }
+  },
+  "tod": {
+   "label": "Time of day and weekday only",
+   "y3": {
+    "aucTest": 0.817,
+    "aucTrain": 0.817,
+    "threshold": 0.799,
+    "hitRate": 0.369,
+    "falseAlarmRate": 0.094
+   },
+   "y6": {
+    "aucTest": 0.839,
+    "aucTrain": 0.824,
+    "threshold": 0.914,
+    "hitRate": 0.339,
+    "falseAlarmRate": 0.065
+   },
+   "y3big": {
+    "aucTest": 0.795,
+    "aucTrain": 0.792,
+    "threshold": 0.473,
+    "hitRate": 0.52,
+    "falseAlarmRate": 0.166
+   }
+  },
+  "model": {
+   "label": "Combined model (US hub weather forecast + persistence + time of day)",
+   "y3": {
+    "aucTest": 0.846,
+    "aucTrain": 0.848,
+    "threshold": 0.796,
+    "hitRate": 0.396,
+    "falseAlarmRate": 0.058,
+    "weights": {
+     "usHubStressNext3": 0.249,
+     "persist": 0.847,
+     "tod_y3": 1.329
+    },
+    "calibration": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "hours": 698,
+      "predicted": 0.076,
+      "observed": 0.052
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "hours": 676,
+      "predicted": 0.146,
+      "observed": 0.148
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "hours": 321,
+      "predicted": 0.243,
+      "observed": 0.243
+     },
+     {
+      "from": 0.3,
+      "to": 0.5,
+      "hours": 528,
+      "predicted": 0.406,
+      "observed": 0.405
+     },
+     {
+      "from": 0.5,
+      "to": 0.7,
+      "hours": 1010,
+      "predicted": 0.623,
+      "observed": 0.636
+     },
+     {
+      "from": 0.7,
+      "to": 1,
+      "hours": 2593,
+      "predicted": 0.819,
+      "observed": 0.813
+     }
+    ]
+   },
+   "y6": {
+    "aucTest": 0.856,
+    "aucTrain": 0.849,
+    "threshold": 0.901,
+    "hitRate": 0.325,
+    "falseAlarmRate": 0.035,
+    "weights": {
+     "usHubStressNext3": 0.281,
+     "persist": 0.763,
+     "tod_y6": 1.277
+    }
+   },
+   "y3big": {
+    "aucTest": 0.846,
+    "aucTrain": 0.838,
+    "threshold": 0.435,
+    "hitRate": 0.578,
+    "falseAlarmRate": 0.126,
+    "weights": {
+     "usHubStressNext3": 0.257,
+     "persist": 0.818,
+     "tod_y3big": 1.135
+    },
+    "calibration": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "hours": 2072,
+      "predicted": 0.05,
+      "observed": 0.028
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "hours": 929,
+      "predicted": 0.149,
+      "observed": 0.157
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "hours": 653,
+      "predicted": 0.248,
+      "observed": 0.245
+     },
+     {
+      "from": 0.3,
+      "to": 0.5,
+      "hours": 1136,
+      "predicted": 0.402,
+      "observed": 0.371
+     },
+     {
+      "from": 0.5,
+      "to": 0.7,
+      "hours": 670,
+      "predicted": 0.586,
+      "observed": 0.593
+     },
+     {
+      "from": 0.7,
+      "to": 1,
+      "hours": 366,
+      "predicted": 0.83,
+      "observed": 0.82
+     }
+    ]
+   }
+  },
   "weather": {
    "label": "GAPS Weather input (8 world points)",
    "y3": {
@@ -81,7 +357,8 @@
     "threshold": 49,
     "hitRate": 0.219,
     "falseAlarmRate": 0.313
-   }
+   },
+   "testedOn": "6 held-out weeks, Oct-Nov 2026 (4-month test)"
   },
   "jet": {
    "label": "GAPS Upper-Air input (250 hPa wind)",
@@ -105,7 +382,8 @@
     "threshold": 91,
     "hitRate": 0.49,
     "falseAlarmRate": 0.447
-   }
+   },
+   "testedOn": "6 held-out weeks, Oct-Nov 2026 (4-month test)"
   },
   "sfi2": {
    "label": "GAPS index (weather + upper-air)",
@@ -129,278 +407,8 @@
     "threshold": 63,
     "hitRate": 0.332,
     "falseAlarmRate": 0.418
-   }
-  },
-  "usWeatherNow": {
-   "label": "Same weather formula at 15 US hubs",
-   "y3": {
-    "aucTest": 0.544,
-    "aucTrain": 0.477,
-    "threshold": 48,
-    "hitRate": 0.386,
-    "falseAlarmRate": 0.288
    },
-   "y6": {
-    "aucTest": 0.548,
-    "aucTrain": 0.45,
-    "threshold": 48,
-    "hitRate": 0.376,
-    "falseAlarmRate": 0.253
-   },
-   "y3big": {
-    "aucTest": 0.571,
-    "aucTrain": 0.504,
-    "threshold": 48,
-    "hitRate": 0.413,
-    "falseAlarmRate": 0.318
-   }
-  },
-  "usHubStress": {
-   "label": "US hub capacity weather now (storms, visibility, low cloud, gusts)",
-   "y3": {
-    "aucTest": 0.627,
-    "aucTrain": 0.593,
-    "threshold": 3.2,
-    "hitRate": 0.38,
-    "falseAlarmRate": 0.233
-   },
-   "y6": {
-    "aucTest": 0.656,
-    "aucTrain": 0.62,
-    "threshold": 3.2,
-    "hitRate": 0.362,
-    "falseAlarmRate": 0.185
-   },
-   "y3big": {
-    "aucTest": 0.663,
-    "aucTrain": 0.602,
-    "threshold": 3.2,
-    "hitRate": 0.49,
-    "falseAlarmRate": 0.26
-   }
-  },
-  "usHubStressNext3": {
-   "label": "US hub capacity weather, worst of next 3 h (forecast)",
-   "y3": {
-    "aucTest": 0.638,
-    "aucTrain": 0.573,
-    "threshold": 4.4,
-    "hitRate": 0.345,
-    "falseAlarmRate": 0.199
-   },
-   "y6": {
-    "aucTest": 0.666,
-    "aucTrain": 0.601,
-    "threshold": 4.4,
-    "hitRate": 0.318,
-    "falseAlarmRate": 0.172
-   },
-   "y3big": {
-    "aucTest": 0.652,
-    "aucTrain": 0.592,
-    "threshold": 4.4,
-    "hitRate": 0.444,
-    "falseAlarmRate": 0.229
-   }
-  },
-  "usStorms": {
-   "label": "US hubs with thunderstorms now",
-   "y3": {
-    "aucTest": 0.5,
-    "aucTrain": 0.502,
-    "threshold": 0,
-    "hitRate": 0,
-    "falseAlarmRate": 0
-   },
-   "y6": {
-    "aucTest": 0.5,
-    "aucTrain": 0.501,
-    "threshold": 0,
-    "hitRate": 0,
-    "falseAlarmRate": 0
-   },
-   "y3big": {
-    "aucTest": 0.5,
-    "aucTrain": 0.503,
-    "threshold": 0,
-    "hitRate": 0,
-    "falseAlarmRate": 0
-   }
-  },
-  "persist": {
-   "label": "Programs started in the last 3 h (persistence)",
-   "y3": {
-    "aucTest": 0.67,
-    "aucTrain": 0.709,
-    "threshold": 4,
-    "hitRate": 0.221,
-    "falseAlarmRate": 0.051
-   },
-   "y6": {
-    "aucTest": 0.615,
-    "aucTrain": 0.591,
-    "threshold": 4,
-    "hitRate": 0.173,
-    "falseAlarmRate": 0.057
-   },
-   "y3big": {
-    "aucTest": 0.71,
-    "aucTrain": 0.747,
-    "threshold": 4,
-    "hitRate": 0.352,
-    "falseAlarmRate": 0.081
-   }
-  },
-  "tod": {
-   "label": "Time of day and weekday only",
-   "y3": {
-    "aucTest": 0.83,
-    "aucTrain": 0.905,
-    "threshold": 0.93,
-    "hitRate": 0.407,
-    "falseAlarmRate": 0.11
-   },
-   "y6": {
-    "aucTest": 0.854,
-    "aucTrain": 0.92,
-    "threshold": 0.982,
-    "hitRate": 0.63,
-    "falseAlarmRate": 0.111
-   },
-   "y3big": {
-    "aucTest": 0.786,
-    "aucTrain": 0.834,
-    "threshold": 0.652,
-    "hitRate": 0.515,
-    "falseAlarmRate": 0.179
-   }
-  },
-  "model": {
-   "label": "Combined model (US hub weather forecast + persistence + time of day)",
-   "y3": {
-    "aucTest": 0.851,
-    "aucTrain": 0.916,
-    "threshold": 0.918,
-    "hitRate": 0.267,
-    "falseAlarmRate": 0.03,
-    "weights": {
-     "usHubStressNext3": 0.124,
-     "persist": 0.61,
-     "tod_y3": 1.823
-    },
-    "calibration": [
-     {
-      "from": 0,
-      "to": 0.1,
-      "hours": 122,
-      "predicted": 0.068,
-      "observed": 0.041
-     },
-     {
-      "from": 0.1,
-      "to": 0.2,
-      "hours": 90,
-      "predicted": 0.139,
-      "observed": 0.089
-     },
-     {
-      "from": 0.2,
-      "to": 0.3,
-      "hours": 31,
-      "predicted": 0.262,
-      "observed": 0.097
-     },
-     {
-      "from": 0.3,
-      "to": 0.5,
-      "hours": 85,
-      "predicted": 0.356,
-      "observed": 0.282
-     },
-     {
-      "from": 0.5,
-      "to": 0.7,
-      "hours": 24,
-      "predicted": 0.632,
-      "observed": 0.333
-     },
-     {
-      "from": 0.7,
-      "to": 1,
-      "hours": 605,
-      "predicted": 0.885,
-      "observed": 0.721
-     }
-    ]
-   },
-   "y6": {
-    "aucTest": 0.872,
-    "aucTrain": 0.927,
-    "threshold": 0.964,
-    "hitRate": 0.179,
-    "falseAlarmRate": 0.02,
-    "weights": {
-     "usHubStressNext3": 0.136,
-     "persist": 0.426,
-     "tod_y6": 1.606
-    }
-   },
-   "y3big": {
-    "aucTest": 0.835,
-    "aucTrain": 0.87,
-    "threshold": 0.657,
-    "hitRate": 0.439,
-    "falseAlarmRate": 0.104,
-    "weights": {
-     "usHubStressNext3": 0.345,
-     "persist": 0.878,
-     "tod_y3big": 1.468
-    },
-    "calibration": [
-     {
-      "from": 0,
-      "to": 0.1,
-      "hours": 332,
-      "predicted": 0.047,
-      "observed": 0.012
-     },
-     {
-      "from": 0.1,
-      "to": 0.2,
-      "hours": 70,
-      "predicted": 0.143,
-      "observed": 0.071
-     },
-     {
-      "from": 0.2,
-      "to": 0.3,
-      "hours": 81,
-      "predicted": 0.248,
-      "observed": 0.111
-     },
-     {
-      "from": 0.3,
-      "to": 0.5,
-      "hours": 171,
-      "predicted": 0.398,
-      "observed": 0.205
-     },
-     {
-      "from": 0.5,
-      "to": 0.7,
-      "hours": 187,
-      "predicted": 0.611,
-      "observed": 0.412
-     },
-     {
-      "from": 0.7,
-      "to": 1,
-      "hours": 116,
-      "predicted": 0.789,
-      "observed": 0.569
-     }
-    ]
-   }
+   "testedOn": "6 held-out weeks, Oct-Nov 2026 (4-month test)"
   },
   "proposed3": {
    "label": "FAA proposed ground delay programs in the last 3 h",
@@ -420,7 +428,8 @@
      }
     }
    },
-   "usedInScore": false
+   "usedInScore": false,
+   "testedOn": "6 held-out weeks, Oct-Nov 2026 (4-month test)"
   },
   "delayAdv3": {
    "label": "FAA airport delay advisories in the last 3 h",
@@ -440,778 +449,4477 @@
      }
     }
    },
-   "usedInScore": false
+   "usedInScore": false,
+   "testedOn": "6 held-out weeks, Oct-Nov 2026 (4-month test)"
+  },
+  "metar": {
+   "label": "Real airport weather reports (METAR) at 15 hubs: low cloud, fog, storms, snow, wind",
+   "y3big": {
+    "aucTest": 0.607
+   },
+   "addedToModel": {
+    "y3big": {
+     "aucTest": 0.847,
+     "gainVsCurrent": {
+      "median": 0.001,
+      "lo95": -0.001,
+      "hi95": 0.003
+     }
+    }
+   },
+   "usedInScore": false,
+   "testedOn": "2 years, every third week held out"
+  },
+  "today": {
+   "label": "New FAA programs so far today (last 24 h)",
+   "y3big": {
+    "aucTest": 0.662
+   },
+   "usedInScore": false,
+   "testedOn": "2 years, every third week held out",
+   "note": "Adds about half a point on top of the score, with a likely range from zero to one point, so it is not used."
   }
  },
  "daily": [
   {
+   "d": "2024-11-15",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 2
+  },
+  {
+   "d": "2024-11-16",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2024-11-17",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2024-11-18",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 3.8
+  },
+  {
+   "d": "2024-11-19",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2024-11-20",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 5.2
+  },
+  {
+   "d": "2024-11-21",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 7.5
+  },
+  {
+   "d": "2024-11-22",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 7.2
+  },
+  {
+   "d": "2024-11-23",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 4.7
+  },
+  {
+   "d": "2024-11-24",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2024-11-25",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2024-11-26",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2024-11-27",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 3.8
+  },
+  {
+   "d": "2024-11-28",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 7.2
+  },
+  {
+   "d": "2024-11-29",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2024-11-30",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2024-12-01",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2024-12-02",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2024-12-03",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2024-12-04",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 5.2
+  },
+  {
+   "d": "2024-12-05",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 8.6
+  },
+  {
+   "d": "2024-12-06",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2024-12-07",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2024-12-08",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2024-12-09",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2024-12-10",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 11.5
+  },
+  {
+   "d": "2024-12-11",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 11
+  },
+  {
+   "d": "2024-12-12",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 4.8
+  },
+  {
+   "d": "2024-12-13",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2024-12-14",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2024-12-15",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 5.8
+  },
+  {
+   "d": "2024-12-16",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 11
+  },
+  {
+   "d": "2024-12-17",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 9.3
+  },
+  {
+   "d": "2024-12-18",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 5.8
+  },
+  {
+   "d": "2024-12-19",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2024-12-20",
+   "events": 32,
+   "sfi2": null,
+   "usHubStress": 7
+  },
+  {
+   "d": "2024-12-21",
+   "events": 25,
+   "sfi2": null,
+   "usHubStress": 5.6
+  },
+  {
+   "d": "2024-12-22",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2024-12-23",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2024-12-24",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 5.6
+  },
+  {
+   "d": "2024-12-25",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 4.1
+  },
+  {
+   "d": "2024-12-26",
+   "events": 46,
+   "sfi2": null,
+   "usHubStress": 6.5
+  },
+  {
+   "d": "2024-12-27",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 6
+  },
+  {
+   "d": "2024-12-28",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 11.1
+  },
+  {
+   "d": "2024-12-29",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 13.3
+  },
+  {
+   "d": "2024-12-30",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 7.8
+  },
+  {
+   "d": "2024-12-31",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2025-01-01",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 6.2
+  },
+  {
+   "d": "2025-01-02",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 4.6
+  },
+  {
+   "d": "2025-01-03",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 5.2
+  },
+  {
+   "d": "2025-01-04",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 4.5
+  },
+  {
+   "d": "2025-01-05",
+   "events": 31,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2025-01-06",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 7.8
+  },
+  {
+   "d": "2025-01-07",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 6.3
+  },
+  {
+   "d": "2025-01-08",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-01-09",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 7.2
+  },
+  {
+   "d": "2025-01-10",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 7.1
+  },
+  {
+   "d": "2025-01-11",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 6.4
+  },
+  {
+   "d": "2025-01-12",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2025-01-13",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-01-14",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2025-01-15",
+   "events": 0,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2025-01-16",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2025-01-17",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2025-01-18",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 5.4
+  },
+  {
+   "d": "2025-01-19",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 7
+  },
+  {
+   "d": "2025-01-20",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 5.8
+  },
+  {
+   "d": "2025-01-21",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2025-01-22",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2025-01-23",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2025-01-24",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2025-01-25",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-01-26",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 4.1
+  },
+  {
+   "d": "2025-01-27",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2025-01-28",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 5.1
+  },
+  {
+   "d": "2025-01-29",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 6.9
+  },
+  {
+   "d": "2025-01-30",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 5.9
+  },
+  {
+   "d": "2025-01-31",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 6.1
+  },
+  {
+   "d": "2025-02-01",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 5.6
+  },
+  {
+   "d": "2025-02-02",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-02-03",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 7
+  },
+  {
+   "d": "2025-02-04",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2025-02-05",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 5.3
+  },
+  {
+   "d": "2025-02-06",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 9
+  },
+  {
+   "d": "2025-02-07",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 8.7
+  },
+  {
+   "d": "2025-02-08",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-02-09",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 7.9
+  },
+  {
+   "d": "2025-02-10",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2025-02-11",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2025-02-12",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 10
+  },
+  {
+   "d": "2025-02-13",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 11.9
+  },
+  {
+   "d": "2025-02-14",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-02-15",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 8.5
+  },
+  {
+   "d": "2025-02-16",
+   "events": 36,
+   "sfi2": null,
+   "usHubStress": 14.2
+  },
+  {
+   "d": "2025-02-17",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 9.3
+  },
+  {
+   "d": "2025-02-18",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 5.1
+  },
+  {
+   "d": "2025-02-19",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-02-20",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2025-02-21",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-02-22",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-02-23",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-02-24",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2025-02-25",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 5
+  },
+  {
+   "d": "2025-02-26",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-02-27",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2025-02-28",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2025-03-01",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2025-03-02",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-03-03",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2025-03-04",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 6.2
+  },
+  {
+   "d": "2025-03-05",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 8.6
+  },
+  {
+   "d": "2025-03-06",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 7.6
+  },
+  {
+   "d": "2025-03-07",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 8
+  },
+  {
+   "d": "2025-03-08",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-03-09",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-03-10",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2025-03-11",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 0.7
+  },
+  {
+   "d": "2025-03-12",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 2
+  },
+  {
+   "d": "2025-03-13",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 2
+  },
+  {
+   "d": "2025-03-14",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-03-15",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 8.3
+  },
+  {
+   "d": "2025-03-16",
+   "events": 28,
+   "sfi2": null,
+   "usHubStress": 12.9
+  },
+  {
+   "d": "2025-03-17",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 6.5
+  },
+  {
+   "d": "2025-03-18",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2025-03-19",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2025-03-20",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 9.3
+  },
+  {
+   "d": "2025-03-21",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 6.7
+  },
+  {
+   "d": "2025-03-22",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2025-03-23",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2025-03-24",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 5.7
+  },
+  {
+   "d": "2025-03-25",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2025-03-26",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2025-03-27",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2025-03-28",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2025-03-29",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-03-30",
+   "events": 29,
+   "sfi2": null,
+   "usHubStress": 7.6
+  },
+  {
+   "d": "2025-03-31",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 9.4
+  },
+  {
+   "d": "2025-04-01",
+   "events": 22,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-04-02",
+   "events": 25,
+   "sfi2": null,
+   "usHubStress": 5.3
+  },
+  {
+   "d": "2025-04-03",
+   "events": 31,
+   "sfi2": null,
+   "usHubStress": 7.3
+  },
+  {
+   "d": "2025-04-04",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 4.7
+  },
+  {
+   "d": "2025-04-05",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 5.6
+  },
+  {
+   "d": "2025-04-06",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 5.9
+  },
+  {
+   "d": "2025-04-07",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 5.4
+  },
+  {
+   "d": "2025-04-08",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 3.8
+  },
+  {
+   "d": "2025-04-09",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2025-04-10",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-04-11",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-04-12",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 7.1
+  },
+  {
+   "d": "2025-04-13",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2025-04-14",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2025-04-15",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2025-04-16",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2025-04-17",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2025-04-18",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2025-04-19",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2025-04-20",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-04-21",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 3.8
+  },
+  {
+   "d": "2025-04-22",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 4.7
+  },
+  {
+   "d": "2025-04-23",
+   "events": 20,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-04-24",
+   "events": 25,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2025-04-25",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2025-04-26",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 6.3
+  },
+  {
+   "d": "2025-04-27",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 4.1
+  },
+  {
+   "d": "2025-04-28",
+   "events": 27,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2025-04-29",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-04-30",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-05-01",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2025-05-02",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2025-05-03",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-05-04",
+   "events": 30,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2025-05-05",
+   "events": 54,
+   "sfi2": null,
+   "usHubStress": 10.2
+  },
+  {
+   "d": "2025-05-06",
+   "events": 52,
+   "sfi2": null,
+   "usHubStress": 10.5
+  },
+  {
+   "d": "2025-05-07",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-05-08",
+   "events": 27,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2025-05-09",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 5.1
+  },
+  {
+   "d": "2025-05-10",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-05-11",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-05-12",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2025-05-13",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-05-14",
+   "events": 40,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-05-15",
+   "events": 28,
+   "sfi2": null,
+   "usHubStress": 7.5
+  },
+  {
+   "d": "2025-05-16",
+   "events": 68,
+   "sfi2": null,
+   "usHubStress": 7.3
+  },
+  {
+   "d": "2025-05-17",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 4.1
+  },
+  {
+   "d": "2025-05-18",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2025-05-19",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2025-05-20",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2025-05-21",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-05-22",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 6
+  },
+  {
+   "d": "2025-05-23",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 5
+  },
+  {
+   "d": "2025-05-24",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2025-05-25",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2025-05-26",
+   "events": 32,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-05-27",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2025-05-28",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 5.3
+  },
+  {
+   "d": "2025-05-29",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 6
+  },
+  {
+   "d": "2025-05-30",
+   "events": 25,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2025-05-31",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 5.6
+  },
+  {
+   "d": "2025-06-01",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2025-06-02",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2025-06-03",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2025-06-04",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-06-05",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2025-06-06",
+   "events": 34,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-06-07",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-06-08",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2025-06-09",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 6.4
+  },
+  {
+   "d": "2025-06-10",
+   "events": 30,
+   "sfi2": null,
+   "usHubStress": 8.3
+  },
+  {
+   "d": "2025-06-11",
+   "events": 25,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-06-12",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 4.5
+  },
+  {
+   "d": "2025-06-13",
+   "events": 28,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-06-14",
+   "events": 37,
+   "sfi2": null,
+   "usHubStress": 5.1
+  },
+  {
+   "d": "2025-06-15",
+   "events": 50,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-06-16",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2025-06-17",
+   "events": 32,
+   "sfi2": null,
+   "usHubStress": 6.3
+  },
+  {
+   "d": "2025-06-18",
+   "events": 36,
+   "sfi2": null,
+   "usHubStress": 6.9
+  },
+  {
+   "d": "2025-06-19",
+   "events": 67,
+   "sfi2": null,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2025-06-20",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2025-06-21",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2025-06-22",
+   "events": 30,
+   "sfi2": null,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2025-06-23",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2025-06-24",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2025-06-25",
+   "events": 35,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2025-06-26",
+   "events": 49,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2025-06-27",
+   "events": 46,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-06-28",
+   "events": 38,
+   "sfi2": null,
+   "usHubStress": 4.6
+  },
+  {
+   "d": "2025-06-29",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-06-30",
+   "events": 47,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2025-07-01",
+   "events": 80,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2025-07-02",
+   "events": 48,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-07-03",
+   "events": 43,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2025-07-04",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2025-07-05",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 2
+  },
+  {
+   "d": "2025-07-06",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-07-07",
+   "events": 40,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-07-08",
+   "events": 69,
+   "sfi2": null,
+   "usHubStress": 1
+  },
+  {
+   "d": "2025-07-09",
+   "events": 66,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-07-10",
+   "events": 41,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2025-07-11",
+   "events": 31,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2025-07-12",
+   "events": 66,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2025-07-13",
+   "events": 71,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-07-14",
+   "events": 98,
+   "sfi2": null,
+   "usHubStress": 4.8
+  },
+  {
+   "d": "2025-07-15",
+   "events": 28,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2025-07-16",
+   "events": 39,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2025-07-17",
+   "events": 44,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2025-07-18",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-07-19",
+   "events": 25,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2025-07-20",
+   "events": 27,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-07-21",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2025-07-22",
+   "events": 29,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2025-07-23",
+   "events": 28,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2025-07-24",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2025-07-25",
+   "events": 57,
+   "sfi2": null,
+   "usHubStress": 2
+  },
+  {
+   "d": "2025-07-26",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2025-07-27",
+   "events": 82,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-07-28",
+   "events": 26,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2025-07-29",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-07-30",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2025-07-31",
+   "events": 64,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-08-01",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 5
+  },
+  {
+   "d": "2025-08-02",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 4.6
+  },
+  {
+   "d": "2025-08-03",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2025-08-04",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2025-08-05",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-08-06",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2025-08-07",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2025-08-08",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2025-08-09",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2025-08-10",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-08-11",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2025-08-12",
+   "events": 29,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2025-08-13",
+   "events": 55,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-08-14",
+   "events": 34,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2025-08-15",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2025-08-16",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-08-17",
+   "events": 40,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-08-18",
+   "events": 26,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2025-08-19",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2025-08-20",
+   "events": 26,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-08-21",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2025-08-22",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2025-08-23",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2025-08-26",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2025-08-27",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2025-08-28",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 0.4
+  },
+  {
+   "d": "2025-08-29",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-08-30",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2025-08-31",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 1
+  },
+  {
+   "d": "2025-09-01",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2025-09-02",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-09-03",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 0.7
+  },
+  {
+   "d": "2025-09-04",
+   "events": 27,
+   "sfi2": null,
+   "usHubStress": 0.9
+  },
+  {
+   "d": "2025-09-05",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-09-06",
+   "events": 72,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-09-07",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-09-08",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 2
+  },
+  {
+   "d": "2025-09-09",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 0.8
+  },
+  {
+   "d": "2025-09-10",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-09-11",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2025-09-12",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2025-09-13",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2025-09-14",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-09-15",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2025-09-16",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2025-09-17",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-09-18",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2025-09-19",
+   "events": 26,
+   "sfi2": null,
+   "usHubStress": 0.6
+  },
+  {
+   "d": "2025-09-20",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 0.9
+  },
+  {
+   "d": "2025-09-21",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-09-22",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2025-09-23",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 2
+  },
+  {
+   "d": "2025-09-24",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2025-09-25",
+   "events": 22,
+   "sfi2": null,
+   "usHubStress": 6.1
+  },
+  {
+   "d": "2025-09-26",
+   "events": 20,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2025-09-27",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2025-09-28",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2025-09-29",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2025-09-30",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-10-01",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2025-10-02",
+   "events": 0,
+   "sfi2": null,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2025-10-03",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-10-04",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 1
+  },
+  {
+   "d": "2025-10-05",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2025-10-06",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2025-10-07",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2025-10-08",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-10-09",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2025-10-10",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2025-10-11",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-10-12",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 5.3
+  },
+  {
+   "d": "2025-10-13",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 9.9
+  },
+  {
+   "d": "2025-10-14",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 6.4
+  },
+  {
+   "d": "2025-10-15",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2025-10-16",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 1
+  },
+  {
+   "d": "2025-10-17",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 0.9
+  },
+  {
+   "d": "2025-10-18",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 1
+  },
+  {
+   "d": "2025-10-19",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-10-20",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2025-10-21",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2025-10-22",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-10-23",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2025-10-24",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2025-10-25",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-10-26",
+   "events": 22,
+   "sfi2": null,
+   "usHubStress": 5.2
+  },
+  {
+   "d": "2025-10-27",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2025-10-28",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2025-10-29",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 5.2
+  },
+  {
+   "d": "2025-10-30",
+   "events": 54,
+   "sfi2": null,
+   "usHubStress": 7.5
+  },
+  {
+   "d": "2025-10-31",
+   "events": 28,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2025-11-01",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 5.6
+  },
+  {
+   "d": "2025-11-02",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-11-03",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2025-11-04",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2025-11-05",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-11-06",
+   "events": 22,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-11-07",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-11-08",
+   "events": 45,
+   "sfi2": null,
+   "usHubStress": 4.7
+  },
+  {
+   "d": "2025-11-09",
+   "events": 34,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2025-11-10",
+   "events": 34,
+   "sfi2": null,
+   "usHubStress": 6.7
+  },
+  {
+   "d": "2025-11-11",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2025-11-12",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-11-13",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-11-14",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2025-11-15",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2025-11-16",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 5.6
+  },
+  {
+   "d": "2025-11-17",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2025-11-18",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-11-19",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 4.1
+  },
+  {
+   "d": "2025-11-20",
+   "events": 28,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2025-11-21",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 5.6
+  },
+  {
+   "d": "2025-11-22",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2025-11-23",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2025-11-24",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2025-11-25",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2025-11-26",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 6.8
+  },
+  {
+   "d": "2025-11-27",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2025-11-28",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2025-11-29",
+   "events": 27,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2025-11-30",
+   "events": 31,
+   "sfi2": null,
+   "usHubStress": 7.6
+  },
+  {
+   "d": "2025-12-01",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2025-12-02",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 7.5
+  },
+  {
+   "d": "2025-12-03",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 6.3
+  },
+  {
+   "d": "2025-12-04",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2025-12-05",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 5.4
+  },
+  {
+   "d": "2025-12-06",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 7.3
+  },
+  {
+   "d": "2025-12-07",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 8.1
+  },
+  {
+   "d": "2025-12-08",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 5.5
+  },
+  {
+   "d": "2025-12-09",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2025-12-10",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 5.3
+  },
+  {
+   "d": "2025-12-11",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-12-12",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2025-12-13",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 5.4
+  },
+  {
+   "d": "2025-12-14",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 10.9
+  },
+  {
+   "d": "2025-12-15",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2025-12-16",
+   "events": 0,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2025-12-17",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 6.4
+  },
+  {
+   "d": "2025-12-18",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 7.2
+  },
+  {
+   "d": "2025-12-19",
+   "events": 36,
+   "sfi2": null,
+   "usHubStress": 8.4
+  },
+  {
+   "d": "2025-12-20",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2025-12-21",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 4.4
+  },
+  {
+   "d": "2025-12-22",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2025-12-23",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 6.3
+  },
+  {
+   "d": "2025-12-24",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 6.3
+  },
+  {
+   "d": "2025-12-25",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 4.5
+  },
+  {
+   "d": "2025-12-26",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2025-12-27",
+   "events": 20,
+   "sfi2": null,
+   "usHubStress": 9.4
+  },
+  {
+   "d": "2025-12-28",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 6.2
+  },
+  {
+   "d": "2025-12-29",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 10.5
+  },
+  {
+   "d": "2025-12-30",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 6
+  },
+  {
+   "d": "2025-12-31",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2026-01-01",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 6.2
+  },
+  {
+   "d": "2026-01-02",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-01-03",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 4.6
+  },
+  {
+   "d": "2026-01-04",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-01-05",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 4.8
+  },
+  {
+   "d": "2026-01-06",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 5.1
+  },
+  {
+   "d": "2026-01-07",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 10.8
+  },
+  {
+   "d": "2026-01-08",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2026-01-09",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 5
+  },
+  {
+   "d": "2026-01-10",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 5.2
+  },
+  {
+   "d": "2026-01-11",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 5
+  },
+  {
+   "d": "2026-01-12",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2026-01-13",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2026-01-14",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2026-01-15",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-01-16",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-01-17",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2026-01-18",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 5
+  },
+  {
+   "d": "2026-01-19",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2026-01-20",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2026-01-21",
+   "events": 0,
+   "sfi2": null,
+   "usHubStress": 2.6
+  },
+  {
+   "d": "2026-01-22",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 6.4
+  },
+  {
+   "d": "2026-01-23",
+   "events": 0,
+   "sfi2": null,
+   "usHubStress": 5.7
+  },
+  {
+   "d": "2026-01-24",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2026-01-25",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 13.2
+  },
+  {
+   "d": "2026-01-26",
+   "events": 30,
+   "sfi2": null,
+   "usHubStress": 10.2
+  },
+  {
+   "d": "2026-01-27",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-01-28",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2026-01-29",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2026-01-30",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-01-31",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 4.8
+  },
+  {
+   "d": "2026-02-01",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2026-02-02",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-02-03",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2026-02-04",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-02-05",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2026-02-06",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-02-07",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 5.2
+  },
+  {
+   "d": "2026-02-08",
+   "events": 0,
+   "sfi2": null,
+   "usHubStress": 5.2
+  },
+  {
+   "d": "2026-02-10",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2026-02-11",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2026-02-12",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2026-02-13",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2026-02-14",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2026-02-15",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-02-16",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 7.7
+  },
+  {
+   "d": "2026-02-17",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 5.8
+  },
+  {
+   "d": "2026-02-18",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 9.6
+  },
+  {
+   "d": "2026-02-19",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 6.6
+  },
+  {
+   "d": "2026-02-20",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 6.8
+  },
+  {
+   "d": "2026-02-21",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 6.1
+  },
+  {
+   "d": "2026-02-22",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 6.6
+  },
+  {
+   "d": "2026-02-23",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 18.1
+  },
+  {
+   "d": "2026-02-24",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-02-25",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 4.1
+  },
+  {
+   "d": "2026-02-26",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 3.8
+  },
+  {
+   "d": "2026-02-27",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2026-02-28",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2026-03-01",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2026-03-02",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 2
+  },
+  {
+   "d": "2026-03-03",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 6.9
+  },
+  {
+   "d": "2026-03-04",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 7.9
+  },
+  {
+   "d": "2026-03-05",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 7.3
+  },
+  {
+   "d": "2026-03-06",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 10.8
+  },
+  {
+   "d": "2026-03-07",
+   "events": 36,
+   "sfi2": null,
+   "usHubStress": 10.4
+  },
+  {
+   "d": "2026-03-08",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 9
+  },
+  {
+   "d": "2026-03-09",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-03-10",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2026-03-11",
+   "events": 37,
+   "sfi2": null,
+   "usHubStress": 4.1
+  },
+  {
+   "d": "2026-03-12",
+   "events": 33,
+   "sfi2": null,
+   "usHubStress": 6.9
+  },
+  {
+   "d": "2026-03-13",
+   "events": 40,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2026-03-14",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2026-03-15",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 5.1
+  },
+  {
+   "d": "2026-03-16",
+   "events": 56,
+   "sfi2": null,
+   "usHubStress": 14
+  },
+  {
+   "d": "2026-03-17",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 5.9
+  },
+  {
+   "d": "2026-03-18",
+   "events": 4,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2026-03-19",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2026-03-20",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2026-03-21",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2026-03-22",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 4.2
+  },
+  {
+   "d": "2026-03-23",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 4.7
+  },
+  {
+   "d": "2026-03-24",
+   "events": 1,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2026-03-25",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-03-26",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-03-27",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 4.5
+  },
+  {
+   "d": "2026-03-28",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2026-03-29",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-03-30",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2026-03-31",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-04-01",
+   "events": 22,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2026-04-02",
+   "events": 44,
+   "sfi2": null,
+   "usHubStress": 7
+  },
+  {
+   "d": "2026-04-03",
+   "events": 20,
+   "sfi2": null,
+   "usHubStress": 6.6
+  },
+  {
+   "d": "2026-04-04",
+   "events": 20,
+   "sfi2": null,
+   "usHubStress": 4
+  },
+  {
+   "d": "2026-04-05",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 7.9
+  },
+  {
+   "d": "2026-04-06",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2026-04-07",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-04-08",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 0.8
+  },
+  {
+   "d": "2026-04-09",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-04-10",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 4.3
+  },
+  {
+   "d": "2026-04-11",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2026-04-12",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2026-04-13",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2026-04-14",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-04-15",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2026-04-16",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2026-04-17",
+   "events": 22,
+   "sfi2": null,
+   "usHubStress": 4.7
+  },
+  {
+   "d": "2026-04-18",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 5
+  },
+  {
+   "d": "2026-04-19",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 5.6
+  },
+  {
+   "d": "2026-04-20",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2026-04-21",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-04-22",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 4.5
+  },
+  {
+   "d": "2026-04-23",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2026-04-24",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2026-04-25",
+   "events": 2,
+   "sfi2": null,
+   "usHubStress": 3.8
+  },
+  {
+   "d": "2026-04-26",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 5.5
+  },
+  {
+   "d": "2026-04-27",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-04-28",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-04-29",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2026-04-30",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 5.7
+  },
+  {
+   "d": "2026-05-01",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 3.5
+  },
+  {
+   "d": "2026-05-02",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2026-05-03",
+   "events": 13,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-05-04",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 1.1
+  },
+  {
+   "d": "2026-05-05",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2026-05-06",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 6.5
+  },
+  {
+   "d": "2026-05-07",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 5.3
+  },
+  {
+   "d": "2026-05-08",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 3.7
+  },
+  {
+   "d": "2026-05-09",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 5.3
+  },
+  {
+   "d": "2026-05-10",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 7.8
+  },
+  {
+   "d": "2026-05-11",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-05-12",
+   "events": 14,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-05-13",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-05-14",
+   "events": 23,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-05-15",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-05-16",
+   "events": 3,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-05-17",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2026-05-18",
+   "events": 33,
+   "sfi2": null,
+   "usHubStress": 4.1
+  },
+  {
+   "d": "2026-05-19",
+   "events": 48,
+   "sfi2": null,
+   "usHubStress": 2.9
+  },
+  {
+   "d": "2026-05-20",
+   "events": 51,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-05-21",
+   "events": 17,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2026-05-22",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2026-05-23",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 6.2
+  },
+  {
+   "d": "2026-05-24",
+   "events": 27,
+   "sfi2": null,
+   "usHubStress": 8
+  },
+  {
+   "d": "2026-05-25",
+   "events": 30,
+   "sfi2": null,
+   "usHubStress": 7
+  },
+  {
+   "d": "2026-05-26",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-05-27",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-05-28",
+   "events": 6,
+   "sfi2": null,
+   "usHubStress": 1.4
+  },
+  {
+   "d": "2026-05-29",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 1.3
+  },
+  {
+   "d": "2026-05-30",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2026-05-31",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 1.2
+  },
+  {
+   "d": "2026-06-01",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-06-02",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 1.6
+  },
+  {
+   "d": "2026-06-03",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-06-04",
+   "events": 8,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-06-05",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-06-06",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-06-07",
+   "events": 34,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2026-06-08",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-06-09",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 2.7
+  },
+  {
+   "d": "2026-06-10",
+   "events": 45,
+   "sfi2": null,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2026-06-11",
+   "events": 40,
+   "sfi2": null,
+   "usHubStress": 2
+  },
+  {
+   "d": "2026-06-12",
+   "events": 78,
+   "sfi2": null,
+   "usHubStress": 1
+  },
+  {
+   "d": "2026-06-13",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2026-06-14",
+   "events": 43,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-06-15",
+   "events": 37,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2026-06-16",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-06-17",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 3.9
+  },
+  {
+   "d": "2026-06-18",
+   "events": 21,
+   "sfi2": null,
+   "usHubStress": 5.1
+  },
+  {
+   "d": "2026-06-19",
+   "events": 32,
+   "sfi2": null,
+   "usHubStress": 2.8
+  },
+  {
+   "d": "2026-06-20",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-06-21",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 2.4
+  },
+  {
+   "d": "2026-06-22",
+   "events": 56,
+   "sfi2": null,
+   "usHubStress": 3.3
+  },
+  {
+   "d": "2026-06-23",
+   "events": 46,
+   "sfi2": null,
+   "usHubStress": 6.4
+  },
+  {
+   "d": "2026-06-24",
+   "events": 15,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-06-25",
+   "events": 11,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2026-06-26",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-06-27",
+   "events": 24,
+   "sfi2": null,
+   "usHubStress": 3.2
+  },
+  {
+   "d": "2026-06-28",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2026-06-29",
+   "events": 5,
+   "sfi2": null,
+   "usHubStress": 1.8
+  },
+  {
+   "d": "2026-06-30",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 1.7
+  },
+  {
+   "d": "2026-07-01",
+   "events": 12,
+   "sfi2": null,
+   "usHubStress": 1.5
+  },
+  {
+   "d": "2026-07-02",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 2.2
+  },
+  {
+   "d": "2026-07-03",
+   "events": 36,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2026-07-04",
+   "events": 49,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-07-05",
+   "events": 45,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-07-06",
+   "events": 84,
+   "sfi2": null,
+   "usHubStress": 5
+  },
+  {
+   "d": "2026-07-07",
+   "events": 29,
+   "sfi2": null,
+   "usHubStress": 4.9
+  },
+  {
+   "d": "2026-07-08",
+   "events": 7,
+   "sfi2": null,
+   "usHubStress": 2.5
+  },
+  {
+   "d": "2026-07-09",
+   "events": 82,
+   "sfi2": null,
+   "usHubStress": 3.6
+  },
+  {
+   "d": "2026-07-10",
+   "events": 41,
+   "sfi2": null,
+   "usHubStress": 3.1
+  },
+  {
+   "d": "2026-07-11",
+   "events": 27,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-07-12",
+   "events": 19,
+   "sfi2": null,
+   "usHubStress": 0.5
+  },
+  {
+   "d": "2026-07-13",
+   "events": 25,
+   "sfi2": null,
+   "usHubStress": 1.9
+  },
+  {
+   "d": "2026-07-14",
+   "events": 18,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2026-07-15",
+   "events": 25,
+   "sfi2": null,
+   "usHubStress": 1
+  },
+  {
    "d": "2026-07-16",
    "events": 33,
-   "sfi2": 61.6,
-   "usHubStress": 1.5
+   "sfi2": null,
+   "usHubStress": 1.3
   },
   {
    "d": "2026-07-17",
    "events": 33,
-   "sfi2": 69.9,
+   "sfi2": null,
    "usHubStress": 1.6
   },
   {
    "d": "2026-07-18",
    "events": 121,
-   "sfi2": 62.9,
+   "sfi2": null,
    "usHubStress": 2.7
   },
   {
    "d": "2026-07-19",
    "events": 58,
-   "sfi2": 54.9,
+   "sfi2": null,
    "usHubStress": 2.5
   },
   {
    "d": "2026-07-20",
    "events": 14,
-   "sfi2": 58,
+   "sfi2": null,
    "usHubStress": 0.5
   },
   {
    "d": "2026-07-21",
    "events": 95,
-   "sfi2": 64,
+   "sfi2": null,
    "usHubStress": 1.7
   },
   {
    "d": "2026-07-22",
    "events": 35,
-   "sfi2": 60,
+   "sfi2": null,
    "usHubStress": 3
   },
   {
    "d": "2026-07-23",
    "events": 9,
-   "sfi2": 58.4,
+   "sfi2": null,
    "usHubStress": 2.6
   },
   {
    "d": "2026-07-24",
    "events": 9,
-   "sfi2": 60.7,
+   "sfi2": null,
    "usHubStress": 2.1
   },
   {
    "d": "2026-07-25",
    "events": 6,
-   "sfi2": 59.7,
+   "sfi2": null,
    "usHubStress": 1.2
   },
   {
    "d": "2026-07-26",
    "events": 9,
-   "sfi2": 59.6,
+   "sfi2": null,
    "usHubStress": 1.5
   },
   {
    "d": "2026-07-27",
    "events": 61,
-   "sfi2": 60.1,
+   "sfi2": null,
    "usHubStress": 1.6
   },
   {
    "d": "2026-07-28",
    "events": 75,
-   "sfi2": 59.6,
+   "sfi2": null,
    "usHubStress": 2.4
   },
   {
    "d": "2026-07-29",
    "events": 40,
-   "sfi2": 55.5,
+   "sfi2": null,
    "usHubStress": 3.2
   },
   {
    "d": "2026-07-30",
    "events": 36,
-   "sfi2": 57.9,
+   "sfi2": null,
    "usHubStress": 3
   },
   {
    "d": "2026-07-31",
    "events": 10,
-   "sfi2": 62.4,
+   "sfi2": null,
    "usHubStress": 1.2
   },
   {
    "d": "2026-08-01",
    "events": 14,
-   "sfi2": 62.4,
+   "sfi2": null,
    "usHubStress": 2
   },
   {
    "d": "2026-08-02",
    "events": 37,
-   "sfi2": 59.8,
+   "sfi2": null,
    "usHubStress": 2.1
   },
   {
    "d": "2026-08-03",
    "events": 64,
-   "sfi2": 61.6,
+   "sfi2": null,
    "usHubStress": 5.4
   },
   {
    "d": "2026-08-04",
    "events": 13,
-   "sfi2": 53.9,
+   "sfi2": null,
    "usHubStress": 1
   },
   {
    "d": "2026-08-05",
    "events": 25,
-   "sfi2": 57.5,
+   "sfi2": null,
    "usHubStress": 2.5
   },
   {
    "d": "2026-08-06",
    "events": 74,
-   "sfi2": 64.3,
+   "sfi2": null,
    "usHubStress": 3.5
   },
   {
    "d": "2026-08-07",
    "events": 60,
-   "sfi2": 61.6,
+   "sfi2": null,
    "usHubStress": 2.3
   },
   {
    "d": "2026-08-08",
    "events": 33,
-   "sfi2": 61.8,
+   "sfi2": null,
    "usHubStress": 1.4
   },
   {
    "d": "2026-08-09",
    "events": 28,
-   "sfi2": 60.5,
+   "sfi2": null,
    "usHubStress": 1.2
   },
   {
    "d": "2026-08-10",
    "events": 57,
-   "sfi2": 62.1,
+   "sfi2": null,
    "usHubStress": 1.6
   },
   {
    "d": "2026-08-11",
    "events": 21,
-   "sfi2": 74.5,
+   "sfi2": null,
    "usHubStress": 1.1
   },
   {
    "d": "2026-08-12",
    "events": 21,
-   "sfi2": 56.2,
+   "sfi2": null,
    "usHubStress": 1.2
   },
   {
    "d": "2026-08-13",
    "events": 31,
-   "sfi2": 68,
+   "sfi2": null,
    "usHubStress": 1.9
   },
   {
    "d": "2026-08-14",
    "events": 29,
-   "sfi2": 58.5,
+   "sfi2": null,
    "usHubStress": 2.3
   },
   {
    "d": "2026-08-15",
    "events": 17,
-   "sfi2": 62.9,
+   "sfi2": null,
    "usHubStress": 2
   },
   {
    "d": "2026-08-16",
    "events": 29,
-   "sfi2": 58.3,
+   "sfi2": null,
    "usHubStress": 3.2
   },
   {
    "d": "2026-08-17",
    "events": 24,
-   "sfi2": 59.2,
+   "sfi2": null,
    "usHubStress": 3.5
   },
   {
    "d": "2026-08-18",
    "events": 14,
-   "sfi2": 57,
+   "sfi2": null,
    "usHubStress": 4
   },
   {
    "d": "2026-08-19",
    "events": 7,
-   "sfi2": 58.6,
+   "sfi2": null,
    "usHubStress": 2.4
   },
   {
    "d": "2026-08-20",
    "events": 41,
-   "sfi2": 53.1,
+   "sfi2": null,
    "usHubStress": 1.4
   },
   {
    "d": "2026-08-21",
    "events": 30,
-   "sfi2": 54,
+   "sfi2": null,
    "usHubStress": 3.4
   },
   {
    "d": "2026-08-22",
    "events": 20,
-   "sfi2": 54.7,
+   "sfi2": null,
    "usHubStress": 2.7
   },
   {
    "d": "2026-08-23",
    "events": 23,
-   "sfi2": 58.7,
+   "sfi2": null,
    "usHubStress": 2.4
   },
   {
    "d": "2026-08-24",
    "events": 15,
-   "sfi2": 56.4,
+   "sfi2": null,
    "usHubStress": 0.7
   },
   {
    "d": "2026-08-25",
    "events": 7,
-   "sfi2": 53.7,
+   "sfi2": null,
    "usHubStress": 1.6
   },
   {
    "d": "2026-08-26",
    "events": 11,
-   "sfi2": 61.1,
+   "sfi2": null,
    "usHubStress": 1.1
   },
   {
    "d": "2026-08-27",
    "events": 64,
-   "sfi2": 64.9,
+   "sfi2": null,
    "usHubStress": 1.9
   },
   {
    "d": "2026-08-28",
    "events": 35,
-   "sfi2": 62.3,
+   "sfi2": null,
    "usHubStress": 1.4
   },
   {
    "d": "2026-08-29",
    "events": 15,
-   "sfi2": 64.7,
+   "sfi2": null,
    "usHubStress": 1.6
   },
   {
    "d": "2026-08-30",
    "events": 26,
-   "sfi2": 57.8,
+   "sfi2": null,
    "usHubStress": 1.7
   },
   {
    "d": "2026-08-31",
    "events": 26,
-   "sfi2": 61.4,
+   "sfi2": null,
    "usHubStress": 1.5
   },
   {
    "d": "2026-09-01",
    "events": 22,
-   "sfi2": 60.9,
+   "sfi2": null,
    "usHubStress": 2.9
   },
   {
    "d": "2026-09-02",
    "events": 59,
-   "sfi2": 62.8,
+   "sfi2": null,
    "usHubStress": 3.1
   },
   {
    "d": "2026-09-03",
    "events": 44,
-   "sfi2": 62.1,
+   "sfi2": null,
    "usHubStress": 2.8
   },
   {
    "d": "2026-09-04",
    "events": 45,
-   "sfi2": 68.1,
+   "sfi2": null,
    "usHubStress": 1.8
   },
   {
    "d": "2026-09-05",
    "events": 11,
-   "sfi2": 57,
+   "sfi2": null,
    "usHubStress": 1
   },
   {
    "d": "2026-09-06",
    "events": 15,
-   "sfi2": 68.8,
+   "sfi2": null,
    "usHubStress": 1.6
   },
   {
    "d": "2026-09-07",
    "events": 20,
-   "sfi2": 58.8,
+   "sfi2": null,
    "usHubStress": 0.8
   },
   {
    "d": "2026-09-08",
    "events": 10,
-   "sfi2": 60.5,
+   "sfi2": null,
    "usHubStress": 0.1
   },
   {
    "d": "2026-09-09",
    "events": 4,
-   "sfi2": 58.9,
+   "sfi2": null,
    "usHubStress": 0.6
   },
   {
    "d": "2026-09-10",
    "events": 12,
-   "sfi2": 60.9,
+   "sfi2": null,
    "usHubStress": 1
   },
   {
    "d": "2026-09-11",
    "events": 34,
-   "sfi2": 62.4,
+   "sfi2": null,
    "usHubStress": 1.7
   },
   {
    "d": "2026-09-12",
    "events": 7,
-   "sfi2": 49.1,
+   "sfi2": null,
    "usHubStress": 1.1
   },
   {
    "d": "2026-09-13",
    "events": 40,
-   "sfi2": 54.6,
+   "sfi2": null,
    "usHubStress": 4
   },
   {
    "d": "2026-09-14",
    "events": 13,
-   "sfi2": 56.2,
+   "sfi2": null,
    "usHubStress": 1.5
   },
   {
    "d": "2026-09-15",
    "events": 7,
-   "sfi2": 57.8,
+   "sfi2": null,
    "usHubStress": 1.6
   },
   {
    "d": "2026-09-16",
    "events": 11,
-   "sfi2": 56.7,
+   "sfi2": null,
    "usHubStress": 1.9
   },
   {
    "d": "2026-09-17",
    "events": 24,
-   "sfi2": 56.8,
+   "sfi2": null,
    "usHubStress": 2
   },
   {
    "d": "2026-09-18",
    "events": 22,
-   "sfi2": 56,
+   "sfi2": null,
    "usHubStress": 2.5
   },
   {
    "d": "2026-09-19",
    "events": 21,
-   "sfi2": 59.5,
+   "sfi2": null,
    "usHubStress": 2.9
   },
   {
    "d": "2026-09-20",
    "events": 25,
-   "sfi2": 77.8,
+   "sfi2": null,
    "usHubStress": 4.7
   },
   {
    "d": "2026-09-21",
    "events": 70,
-   "sfi2": 70.8,
+   "sfi2": null,
    "usHubStress": 3.6
   },
   {
    "d": "2026-09-22",
    "events": 13,
-   "sfi2": 62.5,
+   "sfi2": null,
    "usHubStress": 2.9
   },
   {
    "d": "2026-09-23",
    "events": 14,
-   "sfi2": 62.5,
+   "sfi2": null,
    "usHubStress": 3.1
   },
   {
    "d": "2026-09-24",
    "events": 14,
-   "sfi2": 61.9,
+   "sfi2": null,
    "usHubStress": 3.1
   },
   {
    "d": "2026-09-25",
    "events": 13,
-   "sfi2": 69.3,
+   "sfi2": null,
    "usHubStress": 5.1
   },
   {
    "d": "2026-09-26",
    "events": 16,
-   "sfi2": 74.4,
+   "sfi2": null,
    "usHubStress": 9.1
   },
   {
    "d": "2026-09-27",
    "events": 32,
-   "sfi2": 75.3,
+   "sfi2": null,
    "usHubStress": 10.6
   },
   {
    "d": "2026-09-28",
    "events": 21,
-   "sfi2": 67.8,
+   "sfi2": null,
    "usHubStress": 5.2
   },
   {
    "d": "2026-09-29",
    "events": 7,
-   "sfi2": 63,
+   "sfi2": null,
    "usHubStress": 3.3
   },
   {
    "d": "2026-09-30",
    "events": 12,
-   "sfi2": 59.9,
+   "sfi2": null,
    "usHubStress": 3.3
   },
   {
    "d": "2026-10-01",
    "events": 43,
-   "sfi2": 56.7,
+   "sfi2": null,
    "usHubStress": 2.5
   },
   {
    "d": "2026-10-02",
    "events": 14,
-   "sfi2": 59.4,
+   "sfi2": null,
    "usHubStress": 2.6
   },
   {
    "d": "2026-10-03",
    "events": 7,
-   "sfi2": 55.8,
+   "sfi2": null,
    "usHubStress": 2.8
   },
   {
    "d": "2026-10-04",
    "events": 10,
-   "sfi2": 56.1,
+   "sfi2": null,
    "usHubStress": 3.6
   },
   {
    "d": "2026-10-05",
    "events": 11,
-   "sfi2": 59.3,
+   "sfi2": null,
    "usHubStress": 4.9
   },
   {
    "d": "2026-10-06",
    "events": 7,
-   "sfi2": 59.3,
+   "sfi2": null,
    "usHubStress": 0.8
   },
   {
    "d": "2026-10-07",
    "events": 6,
-   "sfi2": 66,
+   "sfi2": null,
    "usHubStress": 1.6
   },
   {
    "d": "2026-10-08",
    "events": 10,
-   "sfi2": 63.2,
+   "sfi2": null,
    "usHubStress": 1.4
   },
   {
    "d": "2026-10-09",
    "events": 10,
-   "sfi2": 63.1,
+   "sfi2": null,
    "usHubStress": 1.1
   },
   {
    "d": "2026-10-10",
    "events": 9,
-   "sfi2": 61.9,
+   "sfi2": null,
    "usHubStress": 2.9
   },
   {
    "d": "2026-10-11",
    "events": 26,
-   "sfi2": 63,
+   "sfi2": null,
    "usHubStress": 4.1
   },
   {
    "d": "2026-10-12",
    "events": 29,
-   "sfi2": 57.9,
+   "sfi2": null,
    "usHubStress": 3.9
   },
   {
    "d": "2026-10-13",
    "events": 11,
-   "sfi2": 58.3,
+   "sfi2": null,
    "usHubStress": 1.5
   },
   {
    "d": "2026-10-14",
    "events": 13,
-   "sfi2": 59.6,
+   "sfi2": null,
    "usHubStress": 2.4
   },
   {
    "d": "2026-10-15",
    "events": 10,
-   "sfi2": 63.9,
+   "sfi2": null,
    "usHubStress": 3.3
   },
   {
    "d": "2026-10-16",
    "events": 42,
-   "sfi2": 63,
+   "sfi2": null,
    "usHubStress": 3.6
   },
   {
    "d": "2026-10-17",
    "events": 17,
-   "sfi2": 60.9,
+   "sfi2": null,
    "usHubStress": 2.4
   },
   {
    "d": "2026-10-18",
    "events": 5,
-   "sfi2": 50.4,
+   "sfi2": null,
    "usHubStress": 2.3
   },
   {
    "d": "2026-10-19",
    "events": 6,
-   "sfi2": 52.3,
+   "sfi2": null,
    "usHubStress": 1.1
   },
   {
    "d": "2026-10-20",
    "events": 3,
-   "sfi2": 62.6,
+   "sfi2": null,
    "usHubStress": 1.5
   },
   {
    "d": "2026-10-21",
    "events": 6,
-   "sfi2": 66.4,
+   "sfi2": null,
    "usHubStress": 1
   },
   {
    "d": "2026-10-22",
    "events": 13,
-   "sfi2": 64.5,
+   "sfi2": null,
    "usHubStress": 1.1
   },
   {
    "d": "2026-10-23",
    "events": 10,
-   "sfi2": 71.3,
+   "sfi2": null,
    "usHubStress": 1.8
   },
   {
    "d": "2026-10-24",
    "events": 4,
-   "sfi2": 69.2,
+   "sfi2": null,
    "usHubStress": 0.4
   },
   {
    "d": "2026-10-25",
    "events": 4,
-   "sfi2": 69.1,
+   "sfi2": null,
    "usHubStress": 0.8
   },
   {
    "d": "2026-10-26",
    "events": 6,
-   "sfi2": 69.1,
+   "sfi2": null,
    "usHubStress": 2.2
   },
   {
    "d": "2026-10-27",
    "events": 8,
-   "sfi2": 64.7,
+   "sfi2": null,
    "usHubStress": 2.3
   },
   {
    "d": "2026-10-28",
    "events": 11,
-   "sfi2": 62.1,
+   "sfi2": null,
    "usHubStress": 1.1
   },
   {
    "d": "2026-10-29",
    "events": 8,
-   "sfi2": 61,
+   "sfi2": null,
    "usHubStress": 1.2
   },
   {
    "d": "2026-10-30",
    "events": 13,
-   "sfi2": 60.1,
+   "sfi2": null,
    "usHubStress": 2.4
   },
   {
    "d": "2026-10-31",
    "events": 3,
-   "sfi2": 59.7,
+   "sfi2": null,
    "usHubStress": 2.8
   },
   {
    "d": "2026-11-01",
    "events": 19,
-   "sfi2": 58.1,
+   "sfi2": null,
    "usHubStress": 3
   },
   {
    "d": "2026-11-02",
    "events": 30,
-   "sfi2": 63.9,
+   "sfi2": null,
    "usHubStress": 2.6
   },
   {
    "d": "2026-11-03",
    "events": 7,
-   "sfi2": 69.5,
+   "sfi2": null,
    "usHubStress": 3.8
   },
   {
    "d": "2026-11-04",
    "events": 5,
-   "sfi2": 66.3,
+   "sfi2": null,
    "usHubStress": 2.8
   },
   {
    "d": "2026-11-05",
    "events": 7,
-   "sfi2": 64.3,
+   "sfi2": null,
    "usHubStress": 4.2
   },
   {
    "d": "2026-11-06",
    "events": 34,
-   "sfi2": 64.2,
+   "sfi2": null,
    "usHubStress": 4.6
   },
   {
    "d": "2026-11-07",
    "events": 8,
-   "sfi2": 60.5,
+   "sfi2": null,
    "usHubStress": 2
   },
   {
    "d": "2026-11-08",
    "events": 7,
-   "sfi2": 66.6,
+   "sfi2": null,
    "usHubStress": 2.5
   },
   {
    "d": "2026-11-09",
    "events": 12,
-   "sfi2": 69.6,
+   "sfi2": null,
    "usHubStress": 1.6
   },
   {
    "d": "2026-11-10",
    "events": 5,
-   "sfi2": 64.7,
+   "sfi2": null,
    "usHubStress": 1
   },
   {
    "d": "2026-11-11",
    "events": 8,
-   "sfi2": 60.4,
+   "sfi2": null,
    "usHubStress": 2
   },
   {
    "d": "2026-11-12",
    "events": 58,
-   "sfi2": 58.1,
-   "usHubStress": 1.3
+   "sfi2": null,
+   "usHubStress": 2.3
+  },
+  {
+   "d": "2026-11-13",
+   "events": 26,
+   "sfi2": null,
+   "usHubStress": 5.5
+  },
+  {
+   "d": "2026-11-14",
+   "events": 22,
+   "sfi2": null,
+   "usHubStress": 3
+  },
+  {
+   "d": "2026-11-15",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 3.4
+  },
+  {
+   "d": "2026-11-16",
+   "events": 16,
+   "sfi2": null,
+   "usHubStress": 2.1
+  },
+  {
+   "d": "2026-11-17",
+   "events": 9,
+   "sfi2": null,
+   "usHubStress": 0.7
+  },
+  {
+   "d": "2026-11-18",
+   "events": 10,
+   "sfi2": null,
+   "usHubStress": 2.4
   }
  ],
  "score1to10": {
-  "aucTest": 0.818,
+  "aucTest": 0.84,
   "meaning": [
    {
     "score": 1,
-    "hours": 11,
+    "hours": 139,
     "roughRate": 0
    },
    {
     "score": 2,
-    "hours": 143,
-    "roughRate": 0.014
+    "hours": 755,
+    "roughRate": 0.008
    },
    {
     "score": 3,
-    "hours": 175,
+    "hours": 772,
     "roughRate": 0.034
    },
    {
     "score": 4,
-    "hours": 148,
-    "roughRate": 0.108
+    "hours": 792,
+    "roughRate": 0.116
    },
    {
     "score": 5,
-    "hours": 135,
-    "roughRate": 0.17
+    "hours": 845,
+    "roughRate": 0.185
    },
    {
     "score": 6,
-    "hours": 132,
-    "roughRate": 0.364
+    "hours": 911,
+    "roughRate": 0.283
    },
    {
     "score": 7,
-    "hours": 119,
-    "roughRate": 0.387
+    "hours": 811,
+    "roughRate": 0.478
    },
    {
     "score": 8,
-    "hours": 73,
-    "roughRate": 0.575
+    "hours": 577,
+    "roughRate": 0.662
    },
    {
     "score": 9,
-    "hours": 21,
-    "roughRate": 0.619
+    "hours": 204,
+    "roughRate": 0.765
+   },
+   {
+    "score": 10,
+    "hours": 20,
+    "roughRate": 0.95
    }
   ],
   "weights": {
@@ -1230,5 +4938,36 @@
    "p75": 19
   },
   "note": "Proposed GDPs are almost always followed by the real program, but only about 13 minutes later, so they add no useful warning to a 3-hour outlook."
+ },
+ "bySeason": {
+  "winter (Dec-Feb)": {
+   "hours": 1341,
+   "baseRate": 0.178,
+   "model": 0.846
+  },
+  "spring (Mar-May)": {
+   "hours": 1512,
+   "baseRate": 0.264,
+   "model": 0.812
+  },
+  "summer (Jun-Aug)": {
+   "hours": 1485,
+   "baseRate": 0.356,
+   "model": 0.885
+  },
+  "autumn (Sep-Nov)": {
+   "hours": 1488,
+   "baseRate": 0.213,
+   "model": 0.841
+  }
+ },
+ "previousTest": {
+  "period": {
+   "start": "2026-07-16T00:00",
+   "end": "2026-11-12T23:00"
+  },
+  "testStart": "2026-10-03T21:00:00.000Z",
+  "model": 0.835,
+  "score1to10": 0.818
  }
 }

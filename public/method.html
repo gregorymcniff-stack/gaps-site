@@ -74,24 +74,28 @@ a{color:#1d4ed8}
 
 <h2>How it was tested</h2>
 <ul>
-  <li><b>Yardstick:</b> every US ground stop and ground delay program in the FAA's public advisory archive from <span id="period">mid-July to mid-November 2026</span>: <b id="eventCount">2,788</b> programs.</li>
-  <li><b>Honest split:</b> the model was fitted on the first two-thirds of the period and scored only on the last third (<span id="testRange">six weeks</span>), which it never saw.</li>
+  <li><b>Yardstick:</b> every US ground stop and ground delay program in the FAA's public advisory archive from <span id="period">mid-November 2024 to mid-November 2026</span>: <b id="eventCount">12,661</b> programs, two full years including two winters.</li>
+  <li><b>Honest split:</b> every third week was held back. The model was fitted on the other weeks and scored only on the held-back ones (<span id="testRange">about 5,800 hours</span>), which it never saw. Because the held-back weeks are spread over two years, the test covers winter, spring, summer and autumn.</li>
   <li><b>Score:</b> how often an hour that was followed by a bad stretch is ranked above one that wasn't. 0.5 is a coin flip; 1.0 is perfect. (Statisticians call this AUC.)</li>
   <li><b>Rivals:</b> the index has to beat simpler alternatives, including time of day alone.</li>
 </ul>
 
 <h2>Results</h2>
 <div class="table-wrap"><table id="results"><tr><th>Predictor</th><th></th><th>Score</th></tr></table></div>
+<p style="font-size:12.5px;color:var(--muted)">* The old index and its world-weather and jet-stream inputs were tested on the earlier 4-month data (held-out weeks October–November 2026); the world data they need was not re-downloaded for two years. Everything else is from the two-year test.</p>
 <div class="callout"><b>What this shows.</b> The combined model beats every single input, including time of day alone. Recent FAA programs and US hub weather add real information. The old index, built from world traffic, weather at 8 world airports and jet-stream winds, scored no better than chance on this test, which is why it was replaced.</div>
+
+<h2>By season</h2>
+<div class="table-wrap" id="seasons"></div>
 
 <h2>Does "30%" mean 30%?</h2>
 <p>On the held-out weeks we grouped hours by the model's estimate and checked how often a bad stretch really followed:</p>
 <div class="table-wrap"><table id="calib"><tr><th>Model said</th><th>Hours</th><th>Average estimate</th><th>Actually happened</th></tr></table></div>
-<div class="callout warn"><b>Known weakness: the season.</b> The model learned mostly from the summer thunderstorm season, so on the calmer autumn test weeks its percentages ran too high, even though its ranking of risky versus calm hours held up. To correct for this, the live model is re-centred on the most recent 30 days so its average matches what is actually happening now. It will be refitted monthly as GAPS's own stored history grows.</div>
+<div class="callout"><b>Calibrated across the seasons.</b> On the held-back weeks, when the model said about 25% a bad stretch followed 25% of the time, and at about 60% it followed 59% of the time. The earlier 4-month version ran too high in autumn because it had learned from summer storms; fitting on two years fixed that. The live model is still re-centred on the most recent 30 days to follow the season.</div>
 
 <h2>Bad stretches by day</h2>
 <svg id="daily" class="chart" viewBox="0 0 860 220" role="img" aria-label="FAA programs per day over the test period"></svg>
-<div class="legend"><span style="background:#b91c1c"></span>New US ground stops and delay programs per day (FAA) <span style="background:#b45309"></span>US hub weather (daily average, model data)</div>
+<div class="legend"><span style="background:#b91c1c"></span>New US ground stops and delay programs per week (FAA) <span style="background:#b45309"></span>US hub weather (weekly average, forecast data)</div>
 
 <h2 id="airports">Per-airport outlooks</h2>
 <p>For each of 15 major US hubs, GAPS also estimates the chance that the FAA starts a <b>new</b> ground stop or ground delay program at that airport in the next 3 hours. One model covers all 15 airports, so each weight is learned from far more examples than any single airport could provide. Its inputs:</p>
@@ -110,15 +114,15 @@ a{color:#1d4ed8}
 <div class="table-wrap" id="apByAirport"></div>
 <h3 style="color:var(--navy);font-size:15px;margin:18px 0 4px">Does "20%" mean 20%?</h3>
 <div class="table-wrap" id="apCalib"></div>
-<div class="callout warn"><b>Same seasonal weakness as the index.</b> On the autumn test weeks the higher estimates ran too high (the model learned mostly from summer storms). The live model is re-centred on the most recent 30 days. Airports with very few programs in the test weeks, such as LAX, cannot be judged on their own; their outlooks lean on the pooled model.</div>
+<div class="callout warn"><b>Not yet refitted on two years.</b> The per-airport models were fitted on July–November 2026 only, so their higher estimates ran too high on the autumn test weeks. They are re-centred on the most recent 30 days; a two-year refit like the index's is next. Airports with very few programs in the test weeks are marked n/a.</div>
 
 <h2>Limits</h2>
 <ul>
   <li><b>US only.</b> The FAA publishes free disruption records; Europe's EUROCONTROL data needs an organisation agreement.</li>
   <li><b>Not individual flights.</b> It estimates network-level disruption, not whether your flight will be late.</li>
   <li><b>Traffic is not in the index.</b> No free archive of past aircraft counts exists, so traffic could not be tested. The dashboard shows it as context.</li>
-  <li><b>Test weather is model data.</b> The archive of airport weather reports (METARs) throttled our requests, so the test used Open-Meteo's archived forecasts. The live index uses the same Open-Meteo forecasts, so the two match.</li>
-  <li><b>Four months of data.</b> That includes one summer storm season and part of autumn. Winter (snow, de-icing) is not represented yet.</li>
+  <li><b>Weather is forecast data.</b> The score uses Open-Meteo forecasts for the 15 hubs, the same in the test and live. Two years of real airport weather reports (METARs, from the Iowa Environmental Mesonet) were also tested: on their own they predict about as well as the forecast, and added on top of it they gained nothing (84.7% vs 84.6%), so they are not used.</li>
+  <li><b>Two years of data.</b> November 2024 to November 2026, with two winters. Three days the FAA archive returns empty (24–25 August 2025, 9 February 2026) are treated as missing, not calm.</li>
 </ul>
 
 <h2>Reproduce it</h2>
@@ -163,26 +167,31 @@ a{color:#1d4ed8}
   set('baseRate', Math.round(R.baseRate.y3big * 100) + '%');
   set('period', fmtD(R.period.start + 'Z') + ' to ' + fmtD(R.period.end + 'Z'));
   set('eventCount', R.events.total.toLocaleString());
-  set('testRange', fmtD(R.testStart) + ' to ' + fmtD(R.period.end + 'Z'));
+  set('testRange', R.hours ? R.hours.test.toLocaleString() + ' hours' : fmtD(R.testStart) + ' to ' + fmtD(R.period.end + 'Z'));
+  if (R.bySeason) document.getElementById('seasons').innerHTML = '<table><tr><th>Season (held-back weeks)</th><th>Hours</th><th>Bad stretch rate</th><th>Score</th></tr>' + Object.entries(R.bySeason).map(([k, v]) => `<tr><td>${k}</td><td class="num">${v.hours.toLocaleString()}</td><td class="num">${Math.round(v.baseRate * 100)}%</td><td class="num">${v.model.toFixed(2)}</td></tr>`).join('') + '</table>';
   set('fitted', 'Results generated ' + fmtD(R.generatedAt) + '. Live model re-centred on the last ' + M.models.y3big.recentring.days + ' days (observed rate ' + Math.round(M.models.y3big.recentring.observedRate * 100) + '%).');
   const rows = [['model', 'GAPS model (combined)', 'main'], ['tod', 'Time of day and weekday only'], ['persist', 'Recent FAA programs only'], ['usHubStress', 'US hub weather only'], ['usHubStressNext3', 'US hub weather, next 3 h'], ['usWeatherNow', 'Old weather formula at US hubs'], ['jet', 'Old upper-air input (jet stream)', 'old'], ['weather', 'Old weather input (8 world airports)', 'old'], ['sfi2', 'Old index (weather + upper-air)', 'old']];
   const t = document.getElementById('results');
   rows.forEach(([k, label, cls]) => { const p = R.predictors[k]; if (!p) return; const a = p.y3big.aucTest;
-    t.insertAdjacentHTML('beforeend', `<tr class="${cls || ''}"><td>${label}</td><td style="width:40%"><span class="bar" style="width:${Math.max(2, (a - 0.4) / 0.6 * 100)}%"></span></td><td class="num">${a.toFixed(2)}</td></tr>`); });
+    t.insertAdjacentHTML('beforeend', `<tr class="${cls || ''}"><td>${label}${p.testedOn && /4-month/.test(p.testedOn) ? ' *' : ''}</td><td style="width:40%"><span class="bar" style="width:${Math.max(2, (a - 0.4) / 0.6 * 100)}%"></span></td><td class="num">${a.toFixed(2)}</td></tr>`); });
   const c = document.getElementById('calib');
   R.predictors.model.y3big.calibration.filter(b => b.hours).forEach(b => c.insertAdjacentHTML('beforeend', `<tr><td>${Math.round(b.from * 100)}–${Math.round(b.to * 100)}%</td><td class="num">${b.hours}</td><td class="num">${Math.round(b.predicted * 100)}%</td><td class="num">${Math.round(b.observed * 100)}%</td></tr>`));
   // daily chart
-  const d = R.daily, W = 860, H = 220, pad = 30, n = d.length;
+  // over long periods, show weekly totals so the seasons are readable
+  const d = R.daily.length > 200 ? R.daily.reduce((acc, x, i) => { if (i % 7 === 0) acc.push({ d: x.d, events: 0, ws: [], n: 0 }); const w = acc[acc.length - 1]; w.events += x.events; if (x.usHubStress != null) w.ws.push(x.usHubStress); return acc; }, []).map(w => ({ d: w.d, events: w.events, usHubStress: w.ws.length ? w.ws.reduce((a, b) => a + b, 0) / w.ws.length : null }))
+    : R.daily;
+  const perWeek = R.daily.length > 200;
+  const W = 860, H = 220, pad = 30, n = d.length;
   const maxE = Math.max(...d.map(x => x.events)), maxS = Math.max(...d.map(x => x.usHubStress || 0));
   const X = i => pad + i * (W - 2 * pad) / (n - 1);
   let svg = '';
-  const testIdx = d.findIndex(x => x.d >= R.testStart.slice(0, 10));
+  const testIdx = R.split && /week/.test(R.split) ? -1 : d.findIndex(x => x.d >= R.testStart.slice(0, 10));
   if (testIdx > 0) svg += `<rect x="${X(testIdx)}" y="10" width="${W - pad - X(testIdx)}" height="${H - 40}" fill="#e2e8f0" opacity=".5"/><text x="${X(testIdx) + 6}" y="24" font-size="11" fill="#5b6b7c">held-out test weeks</text>`;
   const bw = (W - 2 * pad) / n * 0.8;
-  d.forEach((x, i) => { const h = x.events / maxE * (H - 50); svg += `<rect x="${X(i) - bw / 2}" y="${H - 30 - h}" width="${bw}" height="${h}" fill="#b91c1c" opacity=".75"><title>${x.d}: ${x.events} programs</title></rect>`; });
+  d.forEach((x, i) => { const h = x.events / maxE * (H - 50); svg += `<rect x="${X(i) - bw / 2}" y="${H - 30 - h}" width="${bw}" height="${h}" fill="#b91c1c" opacity=".75"><title>${perWeek ? 'Week of ' : ''}${x.d}: ${x.events} programs</title></rect>`; });
   svg += `<polyline fill="none" stroke="#b45309" stroke-width="2" points="${d.map((x, i) => X(i) + ',' + (H - 30 - (x.usHubStress || 0) / maxS * (H - 50))).join(' ')}"/>`;
-  [0, Math.floor(n / 2), n - 1].forEach(i => { svg += `<text x="${X(i)}" y="${H - 12}" font-size="11" text-anchor="middle" fill="#5b6b7c">${d[i].d.slice(5)}</text>`; });
-  svg += `<text x="${pad}" y="${H - 30 - (H - 50) - 4}" font-size="11" fill="#5b6b7c">${maxE}/day</text>`;
+  [0, Math.floor(n / 2), n - 1].forEach(i => { svg += `<text x="${X(i)}" y="${H - 12}" font-size="11" text-anchor="middle" fill="#5b6b7c">${d[i].d}</text>`; });
+  svg += `<text x="${pad}" y="${H - 30 - (H - 50) - 4}" font-size="11" fill="#5b6b7c">${maxE}/${perWeek ? 'week' : 'day'}</text>`;
   document.getElementById('daily').innerHTML = svg;
 })();
 </script>

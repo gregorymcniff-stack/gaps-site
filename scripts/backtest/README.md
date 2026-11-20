@@ -37,3 +37,22 @@ are followed by the real program 592 times out of 595, but a median of only
 13 minutes later. Added to the model they change the held-out AUC by +0.002
 (95% range −0.001 to +0.004), so they are not used. `faa-adv.json` can be
 rebuilt from `public/data/faa-advisories.csv`.
+
+## Two-year refit (Nov 2026)
+
+```
+gunzip -c data/faa-adv-2024-11-15_2026-11-18.json.gz > faa-2y.json   # or: node fetch-faa.mjs 2024-11-15 2026-11-18 faa-2y.json
+node fetch-weather-2y.mjs 2024-11-15 2026-11-18 wx-2y.json
+SPLIT=weeks node analyze.mjs faa-2y.json wx-2y.json ../../public/data/backtest-results.json
+node export-faa-csv.mjs faa-2y.json ../../public/data/faa-advisories.csv
+```
+
+`SPLIT=weeks` holds out every third calendar week, so the test covers every
+season. Days the FAA archive returns empty (2025-08-24, 2025-08-25,
+2026-02-09) are treated as missing. `test-2y.mjs` compares the forecast input
+with real airport reports (METARs from the Iowa Environmental Mesonet) and
+"programs so far today"; its results are in `results/`. The published
+backtest-results.json also carries the 4-month results for inputs that were
+not re-tested (world weather, jet stream, FAA proposals), marked `testedOn`.
+The per-airport models (`analyze-airports.mjs`) are still fitted on the
+4-month data.
