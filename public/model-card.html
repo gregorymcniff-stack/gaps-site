@@ -50,7 +50,7 @@ td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
 <tr><th>Target events</th><td>New US ground stops and ground delay programs from the FAA ATCSCC Advisory Database (cancellations, proposals, revisions, extensions and non-US facilities excluded): <b id="events">2,788</b> programs. <a href="data/faa-advisories.csv">Download</a>.</td></tr>
 <tr><th>Weather</th><td>Open-Meteo historical forecasts (hourly weather code, gusts, visibility, low cloud) at 15 US hubs. The live model uses the same Open-Meteo forecast product.</td></tr>
 <tr><th>Period</th><td id="period">Loading…</td></tr>
-<tr><th>Split</th><td>GAPS score: every third week of two years held back (<span id="testRange">about 5,800 hours</span>), never seen during fitting, so all four seasons are tested. Per-airport outlooks: time-ordered, fitted on the first two-thirds of July–November 2026 and scored on the final third. The production models are then refitted on the whole period.</td></tr>
+<tr><th>Split</th><td>GAPS score: every third week of two years held back (<span id="testRange">about 5,800 hours</span>), never seen during fitting, so all four seasons are tested. Per-airport outlooks: the same two years and the same held-back weeks. The production models are then refitted on the whole period.</td></tr>
 <tr><th>Not used</th><td>Aircraft counts (no free historical archive), weather at 8 world airports and jet-stream winds (no predictive value in testing), airport forecasts (TAFs; no free historical archive was available).</td></tr>
 </table></div>
 
@@ -63,9 +63,9 @@ td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
 <h2 id="limits">Limitations and risks</h2>
 <ul>
   <li><b>Seasonal drift.</b> Trained mostly on summer storm season; on the autumn test weeks the higher estimates ran too high (for example, the index said about 61% when the rate was about 41%). Mitigation: re-centring on the last 30 days. The re-centred model has not yet been tested on new data.</li>
-  <li><b>Per-airport outlooks still use four months.</b> The GAPS score is fitted on two years (November 2024–November 2026, two winters); the per-airport models are still fitted on July–November 2026 and have not seen winter yet.</li>
+  <li><b>Highest airport estimates run high.</b> When an airport model says above 50%, about half of those hours saw a new program (70% said, 53% happened). The dashboard shows the 1–10 score, which depends on ranking, not on the exact percentage.</li>
   <li><b>Leans on persistence.</b> Recent programs are a strong input, so the outlooks are better at recognising a bad stretch under way than at warning before the first program.</li>
-  <li><b>Small airports in the test.</b> DFW, ATL, IAH, CLT and LAX had fewer than 15 programs in the test weeks and cannot be judged on their own.</li>
+  <li><b>Smaller samples at some airports.</b> LAX (40 test hours with a new program) and SEA (96) have the fewest, so their scores are the least certain.</li>
   <li><b>Coarse target.</b> A short ground stop and an all-day delay program count the same.</li>
   <li><b>Data dependencies.</b> FAA advisories are read from a public web page (not an official API); weather and aircraft come from free services with usage limits. When an input is missing, the outlook is not shown rather than estimated.</li>
   <li><b>US only.</b> No free equivalent of the FAA records exists for Europe or elsewhere.</li>
@@ -81,6 +81,7 @@ td.num{font-family:'JetBrains Mono',monospace}a{color:#1d4ed8}
 <h2 id="changes">Change history</h2>
 <div class="table-wrap"><table>
 <tr><th>Date (UTC)</th><td><b>Change</b></td></tr>
+<tr><th>2026-11-20</th><td>Per-airport outlooks refitted on the same two years and tested on every third week: 0.86 pooled (time of day alone 0.79), 0.82 for the 1–10 airport score. Every airport now has enough test events to be judged (previously DFW, ATL, IAH, CLT and LAX did not).</td></tr>
 <tr><th>2026-11-20</th><td>GAPS score refitted on two years of FAA records (November 2024–November 2026, 12,661 programs) and tested on every third week across all seasons: 0.84 for the 1–10 score, 0.85 for the model, with calibrated percentages. Same three inputs and weights. Tested and not adopted: real airport weather reports (no gain over the forecast), programs so far today (+0.005, not clearly real), airport-weighted weather.</td></tr>
 <tr><th>2026-11-19</th><td>Sky Friction Index renamed the GAPS score. Heads-up added for FAA proposed ground delay programs that have not started yet.</td></tr>
 <tr><th>2026-11-17</th><td>Tested FAA proposed ground delay programs and airport delay advisories as extra inputs: proposals almost always go ahead, but only about 13 minutes later, so they add no warning to a 3-hour outlook (+0.002). Not adopted.</td></tr>

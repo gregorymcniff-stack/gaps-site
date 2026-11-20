@@ -5,7 +5,8 @@
 // Writes airport-model.json (used live) and airport-backtest.json (results).
 //
 // Same honest-test rules as analyze.mjs: fit on the first 2/3 of the period,
-// score on the last 1/3. One pooled model for all 15 hubs (more data per
+// score on the last 1/3 (or, with SPLIT=weeks, hold out every third week so
+// all seasons are tested). One pooled model for all 15 hubs (more data per
 // weight), with each airport's own time-of-day rate as an input.
 import fs from 'node:fs';
 
@@ -14,6 +15,9 @@ const faa = JSON.parse(fs.readFileSync(faaPath, 'utf8'));
 const wx = JSON.parse(fs.readFileSync(wxPath, 'utf8'));
 const HUBS = ['JFK', 'LGA', 'EWR', 'BOS', 'PHL', 'ATL', 'CLT', 'MIA', 'ORD', 'DFW', 'IAH', 'DEN', 'SFO', 'SEA', 'LAX'];
 const t0 = Date.parse(wx.times[0] + ':00Z'), H = wx.times.length;
+// Days the FAA archive returns empty are archive gaps: hours touching them are skipped.
+const haveDay = new Set(Object.keys(faa).filter(d => faa[d].length));
+const dayOf = h => new Date(t0 + h * 3600000).toISOString().slice(0, 10);
 
 // ---- events by airport and hour (new US ground stops / ground delay programs)
 const NEW_PROGRAM = /GROUND STOP|GROUND DELAY PROGRAM/, NOT_NEW = /CNX|CANCEL|PROPOSED|REVIS|EXTEN|COMPRESS|UPDATE|AMEND|MODIF/;
@@ -47,6 +51,7 @@ function points(c, h) {
 // ---- one row per airport-hour
 const rows = [];
 for (let h = 24; h < H - 3; h++) {
+  if (![-24, 0, 3].every(o => haveDay.has(dayOf(h + o)))) continue;
   const t = new Date(t0 + h * 3600000), hour = t.getUTCHours(), we = t.getUTCDay() === 0 || t.getUTCDay() === 6;
   const national = sum(allUS, h - 2, h);
   for (const a of HUBS) {
@@ -57,8 +62,11 @@ for (let h = 24; h < H - 3; h++) {
       wxNext3, own3, own24: sum(ev[a], h - 23, h), others3: national - own3 });
   }
 }
+const SPLIT = process.env.SPLIT || 'chrono';
+const weekOf = h => Math.floor((h / 24 + 4) / 7), isTestH = h => weekOf(h) % 3 === 2;
 const cut = Math.floor((H - 27) * 2 / 3) + 24;
-const train = rows.filter(r => r.h < cut), test = rows.filter(r => r.h >= cut);
+const train = SPLIT === 'weeks' ? rows.filter(r => !isTestH(r.h) && !isTestH(r.h + 24)) : rows.filter(r => r.h < cut);
+const test = SPLIT === 'weeks' ? rows.filter(r => isTestH(r.h)) : rows.filter(r => r.h >= cut);
 
 // ---- helpers
 function fitTod(data) {
@@ -101,7 +109,7 @@ const predictors = {
   wxNext3: { label: "This airport's weather, next 3 h", f: r => r.wxNext3 },
   others3: { label: 'Programs at other airports, last 3 h', f: r => r.others3 },
 };
-const results = { generatedAt: new Date().toISOString(), period: { start: wx.times[0], end: wx.times[H - 1] }, testStart: test[0].t,
+const results = { generatedAt: new Date().toISOString(), period: { start: wx.times[0], end: wx.times[H - 1] }, split: SPLIT === 'weeks' ? 'every third week held out' : 'last third held out', testStart: test[0].t,
   target: 'new ground stop or ground delay program at the airport in the next 3 hours', hubs: HUBS,
   baseRate: +(test.reduce((a, r) => a + r.y, 0) / test.length).toFixed(3), pooled: {}, byAirport: {} };
 for (const [k, p] of Object.entries(predictors)) results.pooled[k] = { label: p.label, aucTest: auc(test, p.f), aucTrain: auc(train, p.f) };
