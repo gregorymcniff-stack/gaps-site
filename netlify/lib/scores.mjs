@@ -115,30 +115,32 @@ export function outlookFeatures(feeds, now = Date.now()) {
   let next3 = -Infinity;
   for (let j = idx; j <= idx + 3 && j < hw.times.length; j++) next3 = Math.max(next3, hubStressAt(hw, j));
   const storms = hw.hubs.filter(c => (Number(hw.hourly[c].weather_code?.[idx]) || 0) >= 95);
+  // storm energy (CAPE), peak of the next 6 hours: same as the backtest
+  let capeNext6 = 0;
+  for (let j = idx; j <= idx + 6 && j < hw.times.length; j++) capeNext6 = Math.max(capeNext6, hw.hubs.reduce((a, c) => a + Math.min(3000, Number(hw.hourly[c].cape?.[j]) || 0) / 1000, 0));
   // programs started in the current hour and the two before it (as in the backtest)
   const since = hourStart - 2 * 3600000;
   const recent = feeds.faaAdvisories.data.programs.filter(p => Date.parse(p.sent) >= since);
   const d = new Date(now), weekend = d.getUTCDay() === 0 || d.getUTCDay() === 6;
-  return { usHubStressNext3: +next3.toFixed(2), usStorms: storms.length, stormHubs: storms, persist: recent.length,
-    recentPrograms: recent, todKey: d.getUTCHours() + '-' + (weekend ? 'we' : 'wd') };
+  return { usHubStressNext3: +next3.toFixed(2), capeNext6: +capeNext6.toFixed(2), usStorms: storms.length, stormHubs: storms, persist: recent.length,
+    recentPrograms: recent, todKey: d.getUTCHours() + '-' + (weekend ? 'we' : 'wd'), seasonKey: d.getUTCMonth() + '-' + d.getUTCHours() };
 }
 export function outlook(feeds, now = Date.now()) {
   const f = outlookFeatures(feeds, now);
   if (!f) return null;
   const out = { features: f, model: { fittedAt: model.fittedAt, heldOutAuc: model.heldOut } };
   for (const y of ['y3big', 'y3']) {
-    const m = model.models[y], tod = m.todTable[f.todKey] ?? 0;
-    const x = { usHubStressNext3: f.usHubStressNext3, usStorms: f.usStorms, persist: f.persist, tod };
+    const m = model.models[y], tod = m.todTable[f.todKey] ?? 0, season = m.seasonTable ? (m.seasonTable[f.seasonKey] ?? 0) : 0;
+    const x = { usHubStressNext3: f.usHubStressNext3, capeNext6: f.capeNext6, usStorms: f.usStorms, persist: f.persist, tod, season };
     const contrib = Object.fromEntries(m.keys.map((k, i) => [k, m.w[i] * (x[k] - m.mu[i]) / m.sd[i]]));
     const z = m.intercept + Object.values(contrib).reduce((a, b) => a + b, 0);
     const key = y === 'y3big' ? 'p3big' : 'p3';
     out[key] = +(1 / (1 + Math.exp(-z))).toFixed(3);
     if (y === 'y3big') {
       out.contributions = Object.fromEntries(Object.entries(contrib).map(([k, v]) => [k, +v.toFixed(3)]));
-      // "typical": same hour and weekday type, with hub weather and recent programs at their averages
-      const ti = m.keys.indexOf('tod');
-      out.typical = +(1 / (1 + Math.exp(-(m.intercept + m.w[ti] * (tod - m.mu[ti]) / m.sd[ti])))).toFixed(3);
-      out.todRate = tod;
+      // "typical": same hour, weekday type and month, with weather and recent programs at their averages
+      out.typical = +(1 / (1 + Math.exp(-(m.intercept + (contrib.tod || 0) + (contrib.season || 0))))).toFixed(3);
+      out.todRate = tod; out.seasonRate = season;
     }
   }
   // 'at least one' can never be less likely than 'three or more' (the two models are fitted separately)
@@ -210,12 +212,17 @@ export const to10 = (q, x) => Math.min(10, Math.max(1, Math.round(pctOf(q, x) * 
 export function scores1to10(outlookObj) {
   const S = model.scale;
   if (!outlookObj || !S) return null;
-  const f = outlookObj.features, tod = model.models.y3big.todTable[f.todKey] ?? 0;
+  const f = outlookObj.features, C = outlookObj.contributions || {};
+  // With S.parts, the time and weather inputs are the model's own parts (time
+  // of day + season; hub weather + storm energy), as in scripts/backtest/analyze.mjs.
+  const part = k => S.parts[k].reduce((a, key) => a + (C[key] || 0), 0);
+  const tod = S.parts ? part('time') : model.models.y3big.todTable[f.todKey] ?? 0;
+  const wx = S.parts ? part('weather') : f.usHubStressNext3;
   const inputs = {
-    tod: { value: tod, score: to10(S.quantiles.tod, tod) },
+    tod: { value: +tod.toFixed(4), score: to10(S.quantiles.tod, tod) },
     persist: { value: f.persist, score: to10(S.quantiles.persist, f.persist) },
-    weather: { value: f.usHubStressNext3, score: to10(S.quantiles.usHubStressNext3, f.usHubStressNext3) },
-    medians: { tod: S.quantiles.tod[100], persist: S.quantiles.persist[100], weather: S.quantiles.usHubStressNext3[100] },
+    weather: { value: +wx.toFixed(4), score: to10(S.quantiles.usHubStressNext3, wx) },
+    medians: { tod: S.quantiles.tod[100], persist: S.quantiles.persist[100], weather: model.stats?.usHubStressNext3?.p50 ?? S.quantiles.usHubStressNext3[100], capeNext6: model.stats?.capeNext6?.p50 ?? null },
   };
   const final = S.weights.tod * inputs.tod.score + S.weights.persist * inputs.persist.score + S.weights.usHubStressNext3 * inputs.weather.score;
   return { inputs, weights: S.weights, final: +final.toFixed(1), score: Math.min(10, Math.max(1, Math.round(final))) };

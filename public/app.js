@@ -78,7 +78,8 @@ function tick() {
 // ---------------------------------------------------------------- outlook
 const LEVELS = [[0.5, 'High', 'high', '#b91c1c'], [0.25, 'Elevated', 'elevated', '#c2410c'], [0.10, 'Moderate', 'moderate', '#b45309'], [0, 'Low', 'low', '#15803d']];
 const level = p => LEVELS.find(l => p >= l[0]);
-const DRIVER = { persist: 'Recent FAA programs', usHubStressNext3: 'US hub weather', tod: 'Time of day', usStorms: 'Hub thunderstorms' };
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DRIVER = { persist: 'Recent FAA programs', usHubStressNext3: 'US hub weather', capeNext6: 'Storm energy', tod: 'Time of day', season: 'Season', usStorms: 'Hub thunderstorms' };
 // ---- 1-10 helpers (5 = average)
 const WORDS10 = [[2, 'Very low', 'low'], [4, 'Below average', 'low'], [5, 'Average', 'moderate'], [7, 'Above average', 'elevated'], [10, 'Well above average', 'high']];
 const word10 = s => { const w = WORDS10.find(x => s <= x[0]); return [w[1], w[2]]; };
@@ -126,15 +127,15 @@ function renderOutlook() {
     (F.persist ? ` ${F.persist} new FAA program${F.persist > 1 ? 's' : ''} in the last ~3 hours (${[...new Set(rp.map(x => x.airport))].slice(0, 4).join(', ')}).` : '');
   const d = new Date(), hh = String(d.getUTCHours()).padStart(2, '0');
   const rows = [
-    ['Time of day', I.tod.score, W.tod, `${hh}:00 UTC on a ${d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday'}: ${I.tod.score >= 6 ? 'a busy' : I.tod.score <= 4 ? 'a quiet' : 'an ordinary'} time for US airports`],
+    ['Time of day and season', I.tod.score, W.tod, `${hh}:00 UTC on a ${d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday'} in ${MONTHS[d.getUTCMonth()]}: ${I.tod.score >= 6 ? 'a busy' : I.tod.score <= 4 ? 'a quiet' : 'an ordinary'} time for US airports`],
     ['Recent FAA programs', I.persist.score, W.persist, `${F.persist} new ground stop${F.persist === 1 ? '' : 's'} or delay program${F.persist === 1 ? '' : 's'} in the last ~3 h (average ${I.medians.persist})`],
-    ['Weather at US hubs', I.weather.score, W.usHubStressNext3, `${F.usHubStressNext3.toFixed(1)} bad-weather points over the next 3 h at 15 hubs (average ${I.medians.weather})${F.usStorms ? ' · storms at ' + F.stormHubs.join(', ') : ''}`],
+    ['Weather at US hubs', I.weather.score, W.usHubStressNext3, `${F.usHubStressNext3.toFixed(1)} bad-weather points over the next 3 h at 15 hubs (average ${I.medians.weather})${Number.isFinite(F.capeNext6) ? ` · storm energy ${F.capeNext6.toFixed(1)} (average ${I.medians.capeNext6 ?? '–'})` : ''}${F.usStorms ? ' · storms at ' + F.stormHubs.join(', ') : ''}`],
   ];
   const n2 = x => String(Math.round(x * 100) / 100);
-  const src = [['Clock, rated with 2 years of FAA records', []], ['FAA advisories', ['faaAdvisories']], ['Open-Meteo forecast', ['usHubWx']]];
-  const why = [`${hh}:00 UTC on a ${d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday'}, ${I.tod.score >= 6 ? 'usually a busy time' : I.tod.score <= 4 ? 'usually a quiet time' : 'an ordinary time'} for FAA programs`,
+  const src = [['Clock and calendar, rated with 2 years of FAA records', []], ['FAA advisories', ['faaAdvisories']], ['Open-Meteo forecast', ['usHubWx']]];
+  const why = [`${hh}:00 UTC on a ${d.getUTCDay() % 6 === 0 ? 'weekend' : 'weekday'} in ${MONTHS[d.getUTCMonth()]}, ${I.tod.score >= 6 ? 'usually a busy time' : I.tod.score <= 4 ? 'usually a quiet time' : 'an ordinary time'} for FAA programs`,
     `${F.persist} new ground stop${F.persist === 1 ? '' : 's'} or delay program${F.persist === 1 ? '' : 's'} in the last 3 hours (a typical hour has ${I.medians.persist})`,
-    `forecast storms, fog, low cloud and gusts at 15 hubs: ${F.usHubStressNext3.toFixed(1)} points (typical ${I.medians.weather})`];
+    `forecast storms, fog, low cloud and gusts at 15 hubs: ${F.usHubStressNext3.toFixed(1)} points (typical ${I.medians.weather})${Number.isFinite(F.capeNext6) ? `, plus storm energy (how ready the air is to build thunderstorms) over the next 6 h: ${F.capeNext6.toFixed(1)} (typical ${I.medians.capeNext6 ?? '–'})` : ''}`];
   const parts = rows.map(([n, s1, w], i) => ({ n, s1, w, c: s1 * w, why: why[i], src: src[i] }));
   $('inputs10').innerHTML = parts.map((x, i) => `<div class="i3">
     <div class="i3h"><span class="i3n">${i + 1}. ${esc(x.n)}</span><span class="i3s" style="color:${COL10(x.s1)}">${x.s1}<small>/10</small></span><span class="i3w">× ${Math.round(x.w * 100)}% weight</span><span class="i3c">= ${n2(x.c)}</span></div>
@@ -660,8 +661,10 @@ function renderSnapshot() {
   const rows = [
     ['The GAPS score (all 3 combined)', TRACK.score1to10 && TRACK.score1to10.aucTest, 'score'],
     ['Time of day', auc('tod'), 'used'],
+    ['Time of day and month (season)', auc('season'), 'used'],
     ['Recent FAA programs', auc('persist'), 'used'],
     ['Weather forecast at 15 US hubs', auc('usHubStressNext3'), 'used'],
+    ['Storm energy at 15 US hubs', auc('capeNext6'), 'used'],
     ['Upper-air winds (jet stream) *', auc('jet'), 'no'],
     ['Count of hubs with thunderstorms', auc('usStorms'), 'no'],
     ['Weather at 8 world points *', auc('weather'), 'no'],
