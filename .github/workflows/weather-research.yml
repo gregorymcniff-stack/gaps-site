@@ -1,0 +1,32 @@
+name: Weather research
+
+# Runs the weather experiment (scripts/backtest/test-weather-v2.mjs) on two
+# years of FAA records and Open-Meteo historical forecasts. Manual only.
+on:
+  workflow_dispatch:
+  push:
+    branches: [weather-research]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: scripts/backtest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache@v4
+        with:
+          path: scripts/backtest/wx-2y.json.parts
+          key: wx-2y-2024-11-15-2026-11-18
+      - run: gunzip -c data/faa-adv-2024-11-15_2026-11-18.json.gz > faa-2y.json
+      - run: node fetch-weather-2y.mjs 2024-11-15 2026-11-18 wx-2y.json
+      - run: node --max-old-space-size=6000 test-weather-v2.mjs faa-2y.json wx-2y.json results/weather-v2.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: weather-v2
+          path: scripts/backtest/results/weather-v2.json
