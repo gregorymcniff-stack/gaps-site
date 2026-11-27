@@ -102,14 +102,24 @@ function fitLogit(keys, data) {
     w = w.map((wi, i) => wi - 0.5 * g[i] / X.length - (i ? 0.001 * wi : 0)); }
   return { predict: r => 1 / (1 + Math.exp(-[1, ...keys.map(k => (r[k] - mu[k]) / sd[k])].reduce((s, xi, i) => s + xi * w[i], 0))), weights: Object.fromEntries(keys.map((k, i) => [k, +w[i + 1].toFixed(3)])) };
 }
+const BASE = ['tod', 'persist', 'hubNext3'];   // the live model
+const WX = ['hubNext3', 'hubNext6', 'hubNext12', 'weightedNext3', 'nyNext3', 'capeHubsNext6', 'gridStormNext3', 'gridStormNext6', 'gridRainNext3', 'gridCapeNext6', 'snowNext3'];
 const tod = fitTod(train); for (const r of rows) r.tod = tod(r);
 // season check: is storm energy just a stand-in for "it's summer"? A month x
 // hour rate (fitted on training hours) gives the model the season directly.
 { const n = {}, k = {}, key = r => r.month + '-' + r.hour; for (const r of train) { n[key(r)] = (n[key(r)] || 0) + 1; k[key(r)] = (k[key(r)] || 0) + r.y; }
-  for (const r of rows) r.monthHour = (k[key(r)] || 0) / (n[key(r)] || 1); }
+  for (const r of rows) r.monthHour = (k[key(r)] || 0) / (n[key(r)] || 1);
+  // compact form for the live site: one "time and season" rate = time-of-day
+  // rate x (this month's rate at this hour / all-months rate at this hour)
+  const nh = {}, kh = {}; for (const r of train) { nh[r.hour] = (nh[r.hour] || 0) + 1; kh[r.hour] = (kh[r.hour] || 0) + r.y; }
+  for (const r of rows) { const hr = (kh[r.hour] || 0) / (nh[r.hour] || 1); r.timeSeason = hr > 0 ? r.tod * r.monthHour / hr : r.tod; } }
+// one weather number: hub points + a x storm energy, a fitted on training hours
+{ const m = fitLogit([...BASE, 'capeHubsNext6'], train);
+  const sd = k => Math.sqrt(train.reduce((a, r) => a + r[k] ** 2, 0) / train.length - (train.reduce((a, r) => a + r[k], 0) / train.length) ** 2);
+  const a = (m.weights.capeHubsNext6 / sd('capeHubsNext6')) / (m.weights.hubNext3 / sd('hubNext3'));
+  console.log('storm-energy factor a =', a.toFixed(3));
+  for (const r of rows) r.wxCombo = r.hubNext3 + a * r.capeHubsNext6; }
 
-const WX = ['hubNext3', 'hubNext6', 'hubNext12', 'weightedNext3', 'nyNext3', 'capeHubsNext6', 'gridStormNext3', 'gridStormNext6', 'gridRainNext3', 'gridCapeNext6', 'snowNext3'];
-const BASE = ['tod', 'persist', 'hubNext3'];   // the live model
 const sets = {
   live: BASE,
   noWeather: ['tod', 'persist'],
@@ -120,6 +130,7 @@ const sets = {
   season_gridCape: [...BASE, 'monthHour', 'gridCapeNext6'],
   season_bothCape: [...BASE, 'monthHour', 'capeHubsNext6', 'gridCapeNext6'],
   bothCape: [...BASE, 'capeHubsNext6', 'gridCapeNext6'],
+  compact: ['timeSeason', 'persist', 'wxCombo'],
   allWeather: ['tod', 'persist', ...WX],
   allWeatherToday: ['tod', 'persist', 'today', ...WX],
 };
@@ -143,11 +154,20 @@ for (const name of Object.keys(sets).filter(n => n !== 'live')) for (const [labe
   const d = draws.map(s => { const x = s.filter(f); return auc(x, 'm_' + name) - auc(x, 'm_live'); }).sort((a, b) => a - b);
   res.models[name][label] = { median: +d[150].toFixed(4), lo95: +d[7].toFixed(4), hi95: +d[292].toFixed(4) };
 }
-for (const name of ['season_cape', 'season_gridCape', 'season_bothCape']) for (const [label, f] of [['gainVsSeason', () => true], ['gainVsSeasonBusy', busy]]) {
+for (const name of ['compact', 'season_cape', 'season_gridCape', 'season_bothCape']) for (const [label, f] of [['gainVsSeason', () => true], ['gainVsSeasonBusy', busy]]) {
   const d = draws.map(s => { const x = s.filter(f); return auc(x, 'm_' + name) - auc(x, 'm_season'); }).sort((a, b) => a - b);
   res.models[name][label] = { median: +d[150].toFixed(4), lo95: +d[7].toFixed(4), hi95: +d[292].toFixed(4) };
   console.log(name, label, JSON.stringify(res.models[name][label]));
 }
+// the 1-10 score as the site builds it (percentiles among training hours, weights 50/35/15)
+{ const Q = k => train.map(r => r[k]).sort((a, b) => a - b), pct = (q, x) => { let lo = 0, eq = 0; for (const v of q) { if (v < x) lo++; else if (v === x) eq++; } return (lo + eq / 2) / q.length; };
+  const to10 = (q, x) => Math.min(10, Math.max(1, Math.round(pct(q, x) * 10)));
+  for (const [name, [tk, wk]] of Object.entries({ live: ['tod', 'hubNext3'], compact: ['timeSeason', 'wxCombo'] })) {
+    const qt = Q(tk), qp = Q('persist'), qw = Q(wk);
+    for (const r of test) r['s10_' + name] = 0.5 * to10(qt, r[tk]) + 0.35 * to10(qp, r.persist) + 0.15 * to10(qw, r[wk]);
+    res['score1to10_' + name] = { all: auc(test, 's10_' + name), busyHours: auc(test.filter(busy), 's10_' + name) };
+    console.log('1-10 score', name, JSON.stringify(res['score1to10_' + name]));
+  } }
 // by season, test hours
 const season = r => [11, 0, 1].includes(r.month) ? 'winter' : [2, 3, 4].includes(r.month) ? 'spring' : [5, 6, 7].includes(r.month) ? 'summer' : 'autumn';
 res.bySeason = {};
