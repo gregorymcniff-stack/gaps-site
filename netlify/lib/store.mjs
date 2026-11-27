@@ -1,5 +1,7 @@
 import { getStore } from '@netlify/blobs';
-import { buildSnapshot, mergeWithPrevious, historyRow } from './feeds.mjs';
+import { buildSnapshot, mergeWithPrevious, historyRow, fetchAdvisoryDay } from './feeds.mjs';
+import { programsFromRows, hourlyPredictions, buildTrackRecord } from './track.mjs';
+import model from '../../public/data/sfi-model.json' with { type: 'json' };
 import { scoreSnapshot } from './scores.mjs';
 import { updateProgramLog, backupAdvisoryFeed } from './backup.mjs';
 
@@ -68,4 +70,57 @@ export async function readHistoryAll() {
     if (Array.isArray(rows)) out.push(...rows);
   }
   return out;
+}
+
+// ---------------------------------------------------------------- live track record
+// FAA advisory lists, one blob per UTC day ("faa-day/YYYY-MM-DD"), holding the
+// new programs of that day. A day is fetched again until it is complete (read
+// at least 3 hours after it ended); after that it is never fetched again.
+
+const DAY = 864e5;
+export async function updateTrackRecord({ now = Date.now(), maxFetches = 8 } = {}) {
+  const s = store();
+  // Hourly predictions, one small blob per finished day ("pred-day/..."), so
+  // only today's full history has to be read each hour.
+  const { blobs } = await s.list({ prefix: 'history/' });
+  const historyDays = blobs.map(b => b.key.slice(8)).sort();
+  const predictions = [];
+  let firstDay = null;
+  for (const day of historyDays) {
+    let preds = await s.get('pred-day/' + day, { type: 'json' }).catch(() => null);
+    if (!Array.isArray(preds)) {
+      preds = hourlyPredictions(await s.get('history/' + day, { type: 'json' }).catch(() => null));
+      if (Date.parse(day + 'T00:00:00Z') + DAY <= now - 3600e3) await s.setJSON('pred-day/' + day, preds);
+    }
+    if (preds.length && !firstDay) firstDay = day;
+    predictions.push(...preds);
+  }
+  if (!firstDay) return null;
+  const days = {}, missing = [];
+  let fetches = 0;
+  for (let d = Date.parse(firstDay + 'T00:00:00Z'); d <= now; d += DAY) {
+    const day = new Date(d).toISOString().slice(0, 10);
+    const saved = await s.get('faa-day/' + day, { type: 'json' }).catch(() => null);
+    if (saved && saved.complete) { days[day] = saved.programs; continue; }
+    if (fetches >= maxFetches) { if (saved) days[day] = saved.programs; else missing.push(day); continue; }
+    fetches++;
+    try {
+      const rows = await fetchAdvisoryDay(day, 10000);
+      // The FAA site sometimes answers a busy moment with an empty list; an
+      // empty day counts as unknown rather than "no programs".
+      if (!rows.length) { if (saved) days[day] = saved.programs; else missing.push(day); continue; }
+      const entry = { day, fetchedAt: new Date(now).toISOString(), complete: now >= d + DAY + 3 * 3600e3, programs: programsFromRows(rows) };
+      await s.setJSON('faa-day/' + day, entry);
+      days[day] = entry.programs;
+    } catch {
+      if (saved) days[day] = saved.programs; else missing.push(day);
+    }
+  }
+  const record = buildTrackRecord({ predictions, days, now, backtestAuc: model.heldOut?.y3big?.auc ?? null });
+  record.faaDaysMissing = missing;
+  await s.setJSON('track-record', record);
+  return record;
+}
+export async function readTrackRecord() {
+  try { return await store().get('track-record', { type: 'json' }); } catch { return null; }
 }

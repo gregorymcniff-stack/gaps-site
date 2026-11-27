@@ -425,9 +425,16 @@ export function pendingProposals(rows, nowMs = Date.now(), maxAgeMin = 60) {
   }
   return out.sort((a, b) => b.sent.localeCompare(a.sent));
 }
+const advisoryListUrl = day => `https://www.fly.faa.gov/adv/adv_list?whichAdvisories=ATCSCC&advisoryCategory=NotAll&date=${day}&gStop=true&_gStop=on&gDelay=true&_gDelay=on&_airflow=on&_ctop=on&_route=on&_other=on`;
+// All ATCSCC advisory rows for one UTC day (used by the live track record).
+export async function fetchAdvisoryDay(day, timeout = 8000) {
+  const html = await (await get(advisoryListUrl(day), { timeout })).text();
+  if (!/adv_list|ATCSCC/i.test(html)) throw new Error('unrecognised advisory page');
+  return parseAdvisoryList(html);
+}
 async function fetchFaaAdvisories() {
   const days = [0, 1].map(k => new Date(Date.now() - k * 86400000).toISOString().slice(0, 10));
-  const lists = await Promise.all(days.map(day => get(`https://www.fly.faa.gov/adv/adv_list?whichAdvisories=ATCSCC&advisoryCategory=NotAll&date=${day}&gStop=true&_gStop=on&gDelay=true&_gDelay=on&_airflow=on&_ctop=on&_route=on&_other=on`, { timeout: 8000 }).then(r => r.text())));
+  const lists = await Promise.all(days.map(day => get(advisoryListUrl(day), { timeout: 8000 }).then(r => r.text())));
   const programs = [], all = [];
   for (const html of lists) {
     if (!/adv_list|ATCSCC/i.test(html)) throw new Error('unrecognised advisory page');

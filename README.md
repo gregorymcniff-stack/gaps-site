@@ -9,6 +9,9 @@ Live aviation dashboard at https://dashboardrunway.live (Netlify, publishes `mai
 - `netlify/functions/live.mjs` serves that snapshot at `/api/live`. If the snapshot is missing or
   older than 12 minutes (e.g. on deploy previews, where schedules don't run), it fetches fresh data.
   The CDN caches the response for 60 s, so all visitors share one copy.
+- `netlify/functions/track-update.mjs` runs hourly: it compares the stored outlooks with the FAA
+  advisory database (one cached blob per day) and saves the live track record, served at
+  `/api/track-record` and shown on `track.html`. Same target as the backtest (`netlify/lib/track.mjs`).
 - `public/index.html` reads only `/api/live`. Every panel shows the time of its data. A feed that is
   down shows "No live data"; there are no stand-in numbers.
 
