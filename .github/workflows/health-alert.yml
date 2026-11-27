@@ -1,0 +1,72 @@
+name: Health alert
+
+# Every 30 minutes, ask https://dashboardrunway.live/api/health whether the
+# 10-minute collector is running and the key feeds are live.
+# - Problem found (twice, 5 minutes apart): open one GitHub issue labelled
+#   "site-down". GitHub emails the repository owner about the new issue.
+# - Back to normal: comment and close that issue (a second email).
+# While the problem lasts nothing else is sent, so there is no flood of emails.
+#
+# Note: GitHub pauses scheduled workflows in a repository with no activity for
+# 60 days. It emails a warning first; one click ("Enable workflow") restarts it.
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: health-alert
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      URL: https://dashboardrunway.live/api/health
+    steps:
+      - name: Check the site
+        id: health
+        run: |
+          check() { curl -s -m 30 -w '\n%{http_code}' "$URL" > body.txt || echo -e '\n000' >> body.txt; tail -n1 body.txt; }
+          code=$(check)
+          if [ "$code" != "200" ]; then
+            echo "First check answered $code; checking again in 5 minutes."
+            sleep 300
+            code=$(check)
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          head -n -1 body.txt | head -c 3000 > report.txt
+          cat report.txt
+
+      - name: Open an issue if there is a problem
+        if: steps.health.outputs.code != '200'
+        run: |
+          open=$(gh issue list --label site-down --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then echo "Issue #$open is already open."; exit 0; fi
+          gh label create site-down --color B60205 --description 'Opened automatically by the health alert' 2>/dev/null || true
+          {
+            echo "The health check at $URL found a problem at $(date -u '+%Y-%m-%d %H:%M UTC') (answer: ${{ steps.health.outputs.code }})."
+            echo
+            echo "What it reported:"
+            echo
+            echo '```'
+            cat report.txt
+            echo '```'
+            echo
+            echo "This issue closes by itself when the check passes again."
+          } > issue.md
+          gh issue create --title "GAPS data problem: $(head -n1 report.txt | cut -c1-120)" --label site-down --body-file issue.md
+
+      - name: Close the issue when things are back to normal
+        if: steps.health.outputs.code == '200'
+        run: |
+          for n in $(gh issue list --label site-down --state open --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "Back to normal at $(date -u '+%Y-%m-%d %H:%M UTC'): the health check answered GAPS-OK."
+          done
