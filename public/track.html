@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAPS Track Record</title>
+<meta name="description" content="How the live GAPS outlook has done: what it said each hour, compared with what the FAA actually did.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0b2a4a;--text:#3a4a5a;--muted:#5b6b7c;--border:#e2e8f0;--panel:#f8fbff;--green:#15803d;--red:#b91c1c;--amber:#b45309}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.65}
+header{background:var(--navy);color:#fff;padding:22px 16px}
+header .in,main{max-width:860px;margin:0 auto}
+header a{color:#93c5fd;text-decoration:none;font-size:13px}
+header h1{margin:6px 0 4px;font-size:26px}
+header p{margin:0;color:#cbd5e1;font-size:14px}
+main{padding:8px 16px 60px}
+h2{color:var(--navy);font-size:19px;margin:34px 0 8px}
+p,li{font-size:14.5px}
+.callout{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--navy);border-radius:6px;padding:12px 14px;margin:14px 0}
+.callout.warn{border-left-color:var(--amber)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+td.num{font-family:'JetBrains Mono',monospace;text-align:right;white-space:nowrap}
+tr.main td{font-weight:700;color:var(--navy)}
+tr.old td{color:var(--red)}
+.bar{display:inline-block;height:8px;border-radius:4px;background:#94a3b8;vertical-align:middle}
+tr.main .bar{background:var(--navy)}
+.chart{width:100%;height:auto;border:1px solid var(--border);border-radius:6px;background:var(--panel)}
+.legend{font-size:12px;color:var(--muted)}
+.legend span{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 12px;vertical-align:middle}
+code{font-family:'JetBrains Mono',monospace;font-size:12.5px;background:var(--panel);padding:1px 4px;border-radius:3px}
+.table-wrap{overflow-x:auto}
+.formula-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin:10px 0;overflow-x:auto}
+.wbar{display:inline-block;height:8px;border-radius:4px;background:var(--navy);vertical-align:middle;margin-right:6px}
+a{color:#1d4ed8}
+</style>
+</head>
+<body>
+<header><div class="in">
+  <a href="./">← Back to the dashboard</a>
+  <h1>Live track record</h1>
+  <p>What GAPS said each hour, checked against what the FAA actually did in the 3 hours after.</p>
+</div></header>
+<main>
+<div id="out"><p>Loading…</p></div>
+
+<h2>How this is checked</h2>
+<ul>
+<li>Once an hour, the site takes the outlook it showed at the start of each past hour (the chance of a <b>bad stretch</b>: 3 or more new FAA ground stops or ground delay programs at US airports in the next 3 hours).</li>
+<li>It then reads the FAA's own record of programs (the <a href="https://www.fly.faa.gov/adv/advADB.jsp">ATCSCC Advisory Database</a>) and counts what really started in those 3 hours. This is the same test used on <a href="method.html#score">two years of past data</a>, now run on live readings the model never saw.</li>
+<li>An hour is counted only once its 3 hours are over and the FAA record for them could be read.</li>
+<li><b>"How well it sorts hours"</b> is the chance that a randomly chosen bad hour got a higher score than a randomly chosen calm one. 50% is a coin flip, 100% is perfect.</li>
+<li>The comparison with <b>"time of day only"</b> shows whether the live readings (recent programs and hub weather) add anything beyond the usual daily pattern.</li>
+</ul>
+<p style="font-size:12.5px;color:var(--muted)">The model was refitted on 20 November 2026; hours before that used the earlier fit. Data: <a href="/api/track-record">/api/track-record</a> (JSON).</p>
+</main>
+<script>
+(async () => {
+  const out = document.getElementById('out');
+  let R;
+  try { const res = await fetch('/api/track-record'); R = await res.json(); if (!res.ok) throw new Error(R.error || res.status); }
+  catch (e) { out.innerHTML = `<div class="callout warn">The track record is not available right now (${String(e.message || e).replace(/</g, '&lt;')}). It updates once an hour.</div>`; return; }
+  const pct = x => x == null ? '–' : Math.round(x * 100) + '%';
+  const day = iso => iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+  if (!R.hours) { out.innerHTML = '<div class="callout">No hours can be checked yet. Each hour needs its 3 hours to pass and the FAA record to be read.</div>'; return; }
+  const better = R.auc != null && R.aucTimeOfDayOnly != null ? (R.auc > R.aucTimeOfDayOnly + 0.01 ? 'better than' : R.auc < R.aucTimeOfDayOnly - 0.01 ? 'worse than' : 'about the same as') : null;
+  const w = R.warnings;
+  let h = `<div class="callout"><b>${R.hours.toLocaleString()} hours checked</b> (${day(R.first)} to ${day(R.last)}). A bad stretch followed in ${R.roughHours.toLocaleString()} of them (${pct(R.roughHours / R.hours)}).<br>
+  <b>How well it sorts hours:</b> ${pct(R.auc)} live, against ${pct(R.backtestAuc)} in testing.${better ? ` That is ${better} time of day alone (${pct(R.aucTimeOfDayOnly)}).` : ''}<br>
+  <b>Warnings:</b> it said 50% or more in ${w.said50} hours; a bad stretch followed in ${w.followed} of them${w.said50 ? ' (' + pct(w.followed / w.said50) + ')' : ''}. Of the ${R.roughHours} bad hours, ${w.roughCaught} had that warning.</div>`;
+  if (R.hours < 300) h += '<div class="callout warn"><b>Early days.</b> With fewer than about 300 hours (two weeks) the numbers can swing a lot. Treat them as a first look.</div>';
+  h += `<h2>Does "30%" mean 30%?</h2><p>Hours grouped by what GAPS said, and how often a bad stretch really followed.</p>
+  <table><tr><th>GAPS said</th><th class="num">Hours</th><th class="num">Average said</th><th class="num">Really happened</th></tr>` +
+    R.calibration.filter(b => b.hours).map(b => `<tr><td>${Math.round(b.from * 100)}–${Math.round(b.to * 100)}%</td><td class="num">${b.hours}</td><td class="num">${pct(b.predicted)}</td><td class="num">${pct(b.observed)}</td></tr>`).join('') + '</table>';
+  if (R.byScore.length) h += `<h2>By the 1–10 score</h2><table><tr><th>Score</th><th class="num">Hours</th><th class="num">Bad stretch followed</th></tr>` +
+    R.byScore.map(b => `<tr><td>${b.score}</td><td class="num">${b.hours}</td><td class="num">${pct(b.rough / b.hours)}</td></tr>`).join('') + '</table>';
+  if (R.daily.length) h += `<h2>Day by day</h2><table><tr><th>Day (UTC)</th><th class="num">Hours</th><th class="num">Average said</th><th class="num">Bad hours</th></tr>` +
+    R.daily.slice().reverse().map(d => `<tr><td>${d.day}</td><td class="num">${d.hours}</td><td class="num">${pct(d.predicted)}</td><td class="num">${pct(d.rough / d.hours)}</td></tr>`).join('') + '</table>';
+  if (R.faaDaysMissing && R.faaDaysMissing.length) h += `<p style="font-size:12.5px;color:var(--muted)">FAA record not readable yet for: ${R.faaDaysMissing.join(', ')}. Those hours are left out until it is.</p>`;
+  h += `<p style="font-size:12.5px;color:var(--muted)">Updated ${new Date(R.generatedAt).toLocaleString()}.</p>`;
+  out.innerHTML = h;
+})();
+</script>
+</body>
+</html>
