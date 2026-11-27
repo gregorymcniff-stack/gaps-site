@@ -103,6 +103,10 @@ function fitLogit(keys, data) {
   return { predict: r => 1 / (1 + Math.exp(-[1, ...keys.map(k => (r[k] - mu[k]) / sd[k])].reduce((s, xi, i) => s + xi * w[i], 0))), weights: Object.fromEntries(keys.map((k, i) => [k, +w[i + 1].toFixed(3)])) };
 }
 const tod = fitTod(train); for (const r of rows) r.tod = tod(r);
+// season check: is storm energy just a stand-in for "it's summer"? A month x
+// hour rate (fitted on training hours) gives the model the season directly.
+{ const n = {}, k = {}, key = r => r.month + '-' + r.hour; for (const r of train) { n[key(r)] = (n[key(r)] || 0) + 1; k[key(r)] = (k[key(r)] || 0) + r.y; }
+  for (const r of rows) r.monthHour = (k[key(r)] || 0) / (n[key(r)] || 1); }
 
 const WX = ['hubNext3', 'hubNext6', 'hubNext12', 'weightedNext3', 'nyNext3', 'capeHubsNext6', 'gridStormNext3', 'gridStormNext6', 'gridRainNext3', 'gridCapeNext6', 'snowNext3'];
 const BASE = ['tod', 'persist', 'hubNext3'];   // the live model
@@ -111,6 +115,11 @@ const sets = {
   noWeather: ['tod', 'persist'],
   ...Object.fromEntries(WX.filter(k => k !== 'hubNext3').map(k => ['plus_' + k, [...BASE, k]])),
   plusToday: [...BASE, 'today'],
+  season: [...BASE, 'monthHour'],
+  season_cape: [...BASE, 'monthHour', 'capeHubsNext6'],
+  season_gridCape: [...BASE, 'monthHour', 'gridCapeNext6'],
+  season_bothCape: [...BASE, 'monthHour', 'capeHubsNext6', 'gridCapeNext6'],
+  bothCape: [...BASE, 'capeHubsNext6', 'gridCapeNext6'],
   allWeather: ['tod', 'persist', ...WX],
   allWeatherToday: ['tod', 'persist', 'today', ...WX],
 };
@@ -134,9 +143,14 @@ for (const name of Object.keys(sets).filter(n => n !== 'live')) for (const [labe
   const d = draws.map(s => { const x = s.filter(f); return auc(x, 'm_' + name) - auc(x, 'm_live'); }).sort((a, b) => a - b);
   res.models[name][label] = { median: +d[150].toFixed(4), lo95: +d[7].toFixed(4), hi95: +d[292].toFixed(4) };
 }
+for (const name of ['season_cape', 'season_gridCape', 'season_bothCape']) for (const [label, f] of [['gainVsSeason', () => true], ['gainVsSeasonBusy', busy]]) {
+  const d = draws.map(s => { const x = s.filter(f); return auc(x, 'm_' + name) - auc(x, 'm_season'); }).sort((a, b) => a - b);
+  res.models[name][label] = { median: +d[150].toFixed(4), lo95: +d[7].toFixed(4), hi95: +d[292].toFixed(4) };
+  console.log(name, label, JSON.stringify(res.models[name][label]));
+}
 // by season, test hours
 const season = r => [11, 0, 1].includes(r.month) ? 'winter' : [2, 3, 4].includes(r.month) ? 'spring' : [5, 6, 7].includes(r.month) ? 'summer' : 'autumn';
 res.bySeason = {};
-for (const s of ['winter', 'spring', 'summer', 'autumn']) { const d = test.filter(r => season(r) === s); res.bySeason[s] = { hours: d.length, ...Object.fromEntries(['live', 'noWeather', 'allWeather', 'allWeatherToday'].map(n => [n, auc(d, 'm_' + n)])) }; }
+for (const s of ['winter', 'spring', 'summer', 'autumn']) { const d = test.filter(r => season(r) === s); res.bySeason[s] = { hours: d.length, ...Object.fromEntries(['live', 'noWeather', 'season', 'plus_capeHubsNext6', 'season_cape', 'bothCape'].map(n => [n, auc(d, 'm_' + n)])) }; }
 fs.writeFileSync(outPath, JSON.stringify(res, null, 1));
 console.log(JSON.stringify({ bySeason: res.bySeason, gains: Object.fromEntries(Object.entries(res.models).map(([k, m]) => [k, [m.gain?.median, m.gain?.lo95, m.gain?.hi95, m.gainBusy?.median, m.gainBusy?.lo95, m.gainBusy?.hi95]])) }, null, 1));
