@@ -56,13 +56,16 @@ a{color:#1d4ed8}
 <tr><th>Input</th><th>Source</th><th>Why</th></tr>
 <tr><td>New FAA programs in the last ~3 hours</td><td>FAA ATCSCC Advisory Database</td><td>Disruptions cluster. A run of ground stops is usually followed by more.</td></tr>
 <tr><td>Weather at 15 major US hubs, worst hour of the next 3</td><td>Open-Meteo forecast</td><td>Thunderstorms, low visibility, low cloud and strong gusts reduce how many flights an airport can take.</td></tr>
+<tr><td>Storm energy at the same 15 hubs, peak of the next 6 hours</td><td>Open-Meteo forecast (CAPE)</td><td>How ready the air is to build thunderstorms, before any storm shows up in the forecast.</td></tr>
 <tr><td>Time of day and weekday</td><td>FAA records</td><td>US disruptions follow the daily schedule: afternoons and evenings are worst.</td></tr>
+<tr><td>Season (month and hour)</td><td>FAA records</td><td>The same hour is rougher in some months than others: summer afternoons bring storms, winter brings snow and low cloud.</td></tr>
 </table>
-<p>The three are combined with a logistic model whose weights were <b>fitted to the FAA records</b>, not chosen by hand. The hubs are JFK, LGA, EWR, BOS, PHL, ATL, CLT, MIA, ORD, DFW, IAH, DEN, SFO, SEA and LAX.</p>
+<p>The five are combined with a logistic model whose weights were <b>fitted to the FAA records</b>, not chosen by hand. The hubs are JFK, LGA, EWR, BOS, PHL, ATL, CLT, MIA, ORD, DFW, IAH, DEN, SFO, SEA and LAX.</p>
 
 <h2 id="score">The 1–10 score on the dashboard</h2>
 <p>To make the outlook easy to read, each input is shown as a score from 1 to 10 where <b>5 is average</b>: the input's rank among all past hours, times ten. A 2 means calmer than about 80% of hours; an 8 means busier than about 80%.</p>
-<p>The final score is the weighted average of the three: <b>time of day 50%, recent FAA programs 35%, weather at US hubs 15%</b>, rounded to a whole number. Example: 0.50 × 2 + 0.35 × 2 + 0.15 × 7 = 2.8 → 3.</p>
+<p>The dashboard groups the five inputs into three readings: <b>time of day and season</b>, <b>recent FAA programs</b>, and <b>weather at US hubs</b> (bad-weather points plus storm energy). Each reading is that part of the model above, ranked against all past hours.</p>
+<p>The final score is the weighted average of the three: <b>time of day and season 50%, recent FAA programs 35%, weather at US hubs 15%</b>, rounded to a whole number. Example: 0.50 × 2 + 0.35 × 2 + 0.15 × 7 = 2.8 → 3.</p>
 <div class="table-wrap" id="score10">Loading…</div>
 <div class="callout"><b>Accuracy.</b> On the held-out weeks the 1–10 score separated rough hours from calm ones with a score of <b id="auc10">0.82</b>, close to the full model's 0.835 (0.5 = guessing). It is slightly less precise in exchange for being easy to read and check by hand. In this simple form, equal weights work about as well; the 50/35/15 split comes from the tested model.</div>
 
@@ -170,7 +173,7 @@ a{color:#1d4ed8}
   set('testRange', R.hours ? R.hours.test.toLocaleString() + ' hours' : fmtD(R.testStart) + ' to ' + fmtD(R.period.end + 'Z'));
   if (R.bySeason) document.getElementById('seasons').innerHTML = '<table><tr><th>Season (held-back weeks)</th><th>Hours</th><th>Bad stretch rate</th><th>Score</th></tr>' + Object.entries(R.bySeason).map(([k, v]) => `<tr><td>${k}</td><td class="num">${v.hours.toLocaleString()}</td><td class="num">${Math.round(v.baseRate * 100)}%</td><td class="num">${v.model.toFixed(2)}</td></tr>`).join('') + '</table>';
   set('fitted', 'Results generated ' + fmtD(R.generatedAt) + '. Live model re-centred on the last ' + M.models.y3big.recentring.days + ' days (observed rate ' + Math.round(M.models.y3big.recentring.observedRate * 100) + '%).');
-  const rows = [['model', 'GAPS model (combined)', 'main'], ['tod', 'Time of day and weekday only'], ['persist', 'Recent FAA programs only'], ['usHubStress', 'US hub weather only'], ['usHubStressNext3', 'US hub weather, next 3 h'], ['usWeatherNow', 'Old weather formula at US hubs'], ['jet', 'Old upper-air input (jet stream)', 'old'], ['weather', 'Old weather input (8 world airports)', 'old'], ['sfi2', 'Old index (weather + upper-air)', 'old']];
+  const rows = [['model', 'GAPS model (combined)', 'main'], ['tod', 'Time of day and weekday only'], ['season', 'Time of day and month (season) only'], ['capeNext6', 'Storm energy at US hubs, next 6 h'], ['persist', 'Recent FAA programs only'], ['usHubStress', 'US hub weather only'], ['usHubStressNext3', 'US hub weather, next 3 h'], ['usWeatherNow', 'Old weather formula at US hubs'], ['jet', 'Old upper-air input (jet stream)', 'old'], ['weather', 'Old weather input (8 world airports)', 'old'], ['sfi2', 'Old index (weather + upper-air)', 'old']];
   const t = document.getElementById('results');
   rows.forEach(([k, label, cls]) => { const p = R.predictors[k]; if (!p) return; const a = p.y3big.aucTest;
     t.insertAdjacentHTML('beforeend', `<tr class="${cls || ''}"><td>${label}${p.testedOn && /4-month/.test(p.testedOn) ? ' *' : ''}</td><td style="width:40%"><span class="bar" style="width:${Math.max(2, (a - 0.4) / 0.6 * 100)}%"></span></td><td class="num">${a.toFixed(2)}</td></tr>`); });

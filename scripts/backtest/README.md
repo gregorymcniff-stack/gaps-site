@@ -62,3 +62,15 @@ Per-airport refit on the same two years:
 ```
 SPLIT=weeks node analyze-airports.mjs faa-2y.json wx-2y.json ../../public/data
 ```
+
+## Weather and season test (Nov 2026)
+
+```
+SPLIT=weeks node test-weather-v2.mjs faa-2y.json wx-2y.json results/weather-v2.json
+```
+
+Tests 10 extra weather inputs on top of the live model. Only storm energy
+(CAPE at the 15 hubs, peak of the next 6 hours) helped, and much of its gain
+was really the season. On top of a month x hour "season" rate it still adds
+about +0.005 AUC in the busy hours (16-02 UTC, 95% range +0.002 to +0.009).
+Both were added to `analyze.mjs` (model 0.846 -> 0.859, 1-10 score 0.84 -> 0.85).
