@@ -387,7 +387,7 @@ async function fetchUsHubWeather() {
   const codes = model.usHubs;
   const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + codes.map(c => US_HUB_COORDS[c][0]).join(',') +
     '&longitude=' + codes.map(c => US_HUB_COORDS[c][1]).join(',') +
-    '&hourly=weather_code,wind_speed_10m,wind_gusts_10m,precipitation,visibility,cloud_cover_low&wind_speed_unit=mph&timezone=UTC&past_hours=1&forecast_hours=5';
+    '&hourly=weather_code,wind_speed_10m,wind_gusts_10m,precipitation,visibility,cloud_cover_low,cape&wind_speed_unit=mph&timezone=UTC&past_hours=1&forecast_hours=8';
   const arr = await (await get(url)).json();
   if (!Array.isArray(arr) || arr.length !== codes.length) throw new Error('unexpected response');
   return { data: { hubs: codes, times: arr[0].hourly.time, hourly: Object.fromEntries(codes.map((c, i) => [c, arr[i].hourly])) } };
@@ -522,7 +522,7 @@ async function fetchEmergencies() {
 // scheduled job, which can run for up to 30 seconds.
 // Bump when the snapshot format changes, so stored snapshots from older code
 // are rebuilt instead of served.
-export const SNAPSHOT_VERSION = 14;
+export const SNAPSHOT_VERSION = 15;
 export async function buildSnapshot({ openskyTimeout = 5000 } = {}) {
   const t0 = Date.now();
   const [opensky, adsblol, faa, metar, sigmet, openmeteo, kp, hubTraffic, emergencies, usHubWx, faaAdvisories, taf] = await Promise.all([

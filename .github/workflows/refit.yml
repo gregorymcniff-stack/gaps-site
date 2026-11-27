@@ -1,0 +1,41 @@
+name: Refit SFI model (temporary)
+on:
+  push:
+    branches: [season-storm-energy]
+    paths: ['.github/workflows/refit.yml', 'scripts/backtest/analyze.mjs']
+permissions:
+  contents: write
+jobs:
+  refit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: scripts/backtest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache@v4
+        with:
+          path: scripts/backtest/wx-2y.json.parts
+          key: wx-2y-2024-11-15-2026-11-18
+      - run: gunzip -c data/faa-adv-2024-11-15_2026-11-18.json.gz > faa-2y.json
+      - run: node fetch-weather-2y.mjs 2024-11-15 2026-11-18 wx-2y.json
+      - run: cp ../../public/data/backtest-results.json old-results.json
+      - run: SPLIT=weeks node --max-old-space-size=6000 analyze.mjs faa-2y.json wx-2y.json ../../public/data/backtest-results.json
+      - name: Keep earlier results for inputs this run does not re-test
+        run: |
+          node -e "
+          const fs=require('fs'), o=JSON.parse(fs.readFileSync('old-results.json')), p='../../public/data/backtest-results.json', n=JSON.parse(fs.readFileSync(p));
+          for (const [k,v] of Object.entries(o.predictors)) if (!n.predictors[k]) n.predictors[k]=v;
+          for (const [k,v] of Object.entries(o)) if (!(k in n)) n[k]=v;
+          fs.writeFileSync(p, JSON.stringify(n,null,1));"
+      - name: Commit the refitted model
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ../../public/data/sfi-model.json ../../public/data/backtest-results.json
+          git commit -m "Refit the SFI model with season and storm energy (two years, every third week held out)"
+          git push
